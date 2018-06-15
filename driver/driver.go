@@ -47,6 +47,12 @@ type rows struct {
 	conn *C.CS_CONNECTION
 }
 
+//keep track of rows affected after inserts and updates
+type result struct {
+	stmt *C.CS_COMMAND
+	conn *C.CS_CONNECTION
+}
+
 func init() {
 	sql.Register(DriverName, &drv{})
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
