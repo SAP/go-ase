@@ -158,6 +158,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+	// TODO
+	return 0, 0, false
+}
+
 func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
 	// TODO
 	return 0, false
