@@ -12,3 +12,7 @@ import "C"
 const DriverName = "ase"
 
 type drv struct{}
+
+var (
+	cContext *C.CS_CONTEXT
+)
