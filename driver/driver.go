@@ -183,12 +183,12 @@ func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
-func (transaction *transaction) Rollback() error {
+func (transaction *transaction) Commit() error {
 	// TODO
 	return nil
 }
 
-func (transaction *transaction) Commit() error {
+func (transaction *transaction) Rollback() error {
 	// TODO
 	return nil
 }
