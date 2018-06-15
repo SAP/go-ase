@@ -158,6 +158,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
+	// TODO
+	return 0, false
+}
+
 func (rows *rows) ColumnTypeScanType(index int) reflect.Type {
 	// TODO
 	return nil
