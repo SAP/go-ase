@@ -157,6 +157,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) Next(dest []driver.Value) error {
+	// TODO
+	return nil
+}
+
 func (rows *rows) HasNextResultSet() bool {
 	return true
 }
