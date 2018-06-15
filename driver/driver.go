@@ -130,3 +130,13 @@ func (connection *connection) Close() error {
 func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
+
+func (statement *statement) Close() error {
+	name := C.CString("myquery")
+	defer C.free(unsafe.Pointer(name))
+	rc := C.ct_dynamic(statement.stmt, C.CS_DEALLOC, name, C.CS_NULLTERM, nil, C.CS_UNUSED)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_dynamic failed")
+	}
+	return nil
+}
