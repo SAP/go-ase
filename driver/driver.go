@@ -22,6 +22,11 @@ var (
 	cContext *C.CS_CONTEXT
 )
 
+//database connection
+type connection struct {
+	conn *C.CS_CONNECTION
+}
+
 func init() {
 	sql.Register(DriverName, &drv{})
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
