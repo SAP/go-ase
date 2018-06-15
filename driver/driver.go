@@ -178,6 +178,24 @@ func (statement *statement) Exec(args []driver.Value) (driver.Result, error) {
 	return &result{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
+func (statement *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	value := make([]driver.Value, len(args))
+	for i := 0; i < len(args); i++ {
+		value[i] = args[i].Value
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return statement.Exec(value)
+	} else {
+		err := setTimeout(statement, deadline.Sub(time.Now()).Seconds())
+		if err != nil {
+			return nil, err
+		}
+		return statement.Exec(value)
+	}
+}
+
 func (statement *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	value := make([]driver.Value, len(args))
 	for i := 0; i < len(args); i++ {
