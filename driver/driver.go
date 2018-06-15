@@ -8,6 +8,7 @@ package driver
 */
 import "C"
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -175,6 +176,24 @@ func (statement *statement) Exec(args []driver.Value) (driver.Result, error) {
 	// TODO: bind parameters / args
 	// TODO: execute statement
 	return &result{stmt: statement.stmt, conn: statement.conn}, nil
+}
+
+func (statement *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	value := make([]driver.Value, len(args))
+	for i := 0; i < len(args); i++ {
+		value[i] = args[i].Value
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return statement.Query(value)
+	} else {
+		err := setTimeout(statement, deadline.Sub(time.Now()).Seconds())
+		if err != nil {
+			return nil, err
+		}
+		return statement.Query(value)
+	}
 }
 
 func setTimeout(statement *statement, timeout float64) error {
