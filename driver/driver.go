@@ -90,6 +90,18 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	return &connection{conn: cConnection}, nil
 }
 
+func (connection *connection) Close() error {
+	rc := C.ct_close(connection.conn, C.CS_UNUSED)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_close failed")
+	}
+	rc = C.ct_con_drop(connection.conn)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_con_drop failed")
+	}
+	return nil
+}
+
 func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
