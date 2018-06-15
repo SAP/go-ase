@@ -152,3 +152,8 @@ func (statement *statement) Close() error {
 	}
 	return nil
 }
+
+func (statement *statement) NumInput() int {
+	// TODO
+	return -1
+}
