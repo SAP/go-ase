@@ -12,6 +12,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"time"
 	"unsafe"
 )
 
@@ -51,6 +52,12 @@ type rows struct {
 type result struct {
 	stmt *C.CS_COMMAND
 	conn *C.CS_CONNECTION
+}
+
+//needed to handle nil time values
+type NullTime struct {
+	Time  time.Time
+	Valid bool
 }
 
 func init() {
