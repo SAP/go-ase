@@ -13,6 +13,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 	"unsafe"
 )
@@ -155,6 +156,11 @@ func (connection *connection) Close() error {
 
 func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
+}
+
+func (rows *rows) ColumnTypeScanType(index int) reflect.Type {
+	// TODO
+	return nil
 }
 
 func (rows *rows) Next(dest []driver.Value) error {
