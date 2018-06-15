@@ -192,3 +192,8 @@ func (transaction *transaction) Commit() error {
 	// TODO
 	return nil
 }
+
+func (nullTime *NullTime) Scan(value interface{}) error {
+	nullTime.Time, nullTime.Valid = value.(time.Time)
+	return nil
+}
