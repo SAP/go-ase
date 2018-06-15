@@ -204,3 +204,8 @@ func (nullTime NullTime) Value() (driver.Value, error) {
 	}
 	return nullTime.Time, nil
 }
+
+func (nullBytes *NullBytes) Scan(value interface{}) error {
+	nullBytes.Bytes, nullBytes.Valid = value.([]byte)
+	return nil
+}
