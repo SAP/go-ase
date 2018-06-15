@@ -177,6 +177,11 @@ func (statement *statement) Exec(args []driver.Value) (driver.Result, error) {
 	return &result{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
+func setTimeout(statement *statement, timeout float64) error {
+	// TODO
+	return nil
+}
+
 func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	// TODO: bind parameters / args
 	// TODO: execute statement
