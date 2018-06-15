@@ -89,3 +89,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	// return connection
 	return &connection{conn: cConnection}, nil
 }
+
+func (connection *connection) Begin() (driver.Tx, error) {
+	return &transaction{conn: connection.conn}, nil
+}
