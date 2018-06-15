@@ -10,3 +10,5 @@ import "C"
 
 //DriverName is the driver name to use with sql.Open for ase databases.
 const DriverName = "ase"
+
+type drv struct{}
