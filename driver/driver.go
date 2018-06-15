@@ -102,6 +102,19 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	return &connection{conn: cConnection}, nil
 }
 
+func (connection *connection) Prepare(query string) (driver.Stmt, error) {
+	psql := C.CString(query)
+	defer C.free(unsafe.Pointer(psql))
+	name := C.CString("myquery")
+	defer C.free(unsafe.Pointer(name))
+	var cPreparedStatement *C.CS_COMMAND
+	rc := C.ct_dynamic(cPreparedStatement, C.CS_PREPARE, name, C.CS_NULLTERM, psql, C.CS_NULLTERM)
+	if rc != C.CS_SUCCEED {
+		return nil, errors.New("C.ct_dynamic failed")
+	}
+	return &statement{query: query, stmt: cPreparedStatement, conn: connection.conn}, nil
+}
+
 func (connection *connection) Close() error {
 	rc := C.ct_close(connection.conn, C.CS_UNUSED)
 	if rc != C.CS_SUCCEED {
