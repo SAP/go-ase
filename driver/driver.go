@@ -183,6 +183,11 @@ func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
+func (result *result) RowsAffected() (int64, error) {
+	// TODO
+	return 0, nil
+}
+
 func (statement *statement) bindParameter(index int, paramVal driver.Value) error {
 	// TODO
 	return nil
