@@ -158,6 +158,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (connection *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
+	// TODO
+	return nil, nil
+}
+
 func (connection *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
 	// TODO
 	return nil, nil
