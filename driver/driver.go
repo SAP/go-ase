@@ -94,7 +94,7 @@ func init() {
 		fmt.Println("C.cs_ctx_alloc failed")
 		return
 	}
-	defer C.free(unsafe.Pointer(cContext))
+	//defer C.free(unsafe.Pointer(cContext))
 
 	rc = C.ct_init(cContext, C.CS_CURRENT_VERSION)
 	if rc != C.CS_SUCCEED {
