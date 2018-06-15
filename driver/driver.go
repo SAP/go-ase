@@ -5,6 +5,20 @@ package driver
 #cgo LDFLAGS: -Wl,-rpath,\$ORIGIN
 #include <stdlib.h>
 #include "ctpublic.h"
+
+typedef struct CS_CONNECTION_WRAPPER {
+	CS_CONNECTION *conn;
+	CS_RETCODE    rc;
+}CS_CONNECTION_WRAPPER;
+
+struct CS_CONNECTION_WRAPPER ct_con_alloc_wrapper(CS_CONTEXT* ctx) {
+	CS_CONNECTION *conn;
+	CS_RETCODE    rc;
+	rc = ct_con_alloc(ctx, &conn);
+	CS_CONNECTION_WRAPPER w = { conn, rc };
+	return w;
+}
+
 */
 import "C"
 import (
@@ -30,6 +44,11 @@ var (
 //database connection
 type connection struct {
 	conn *C.CS_CONNECTION
+}
+
+type connWrapper struct {
+	conn *C.CS_CONNECTION
+	rc   C.CS_RETCODE
 }
 
 type transaction struct {
@@ -88,8 +107,8 @@ func init() {
 func (d *drv) Open(dsn string) (driver.Conn, error) {
 	// create connection
 	var cConnection *C.CS_CONNECTION
-	rc := C.ct_con_alloc(cContext, &cConnection)
-	if rc != C.CS_SUCCEED {
+	cConnWrapper := (connWrapper)(C.ct_con_alloc_wrapper(cContext))
+	if cConnWrapper.rc != C.CS_SUCCEED {
 		return nil, errors.New("C.ct_con_alloc failed")
 	}
 
