@@ -157,6 +157,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) NextResultSet() error {
+	// TODO
+	return nil
+}
+
 func (connection *connection) Ping(ctx context.Context) error {
 	// TODO
 	return nil
