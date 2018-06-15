@@ -158,6 +158,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) ColumnTypeDatabaseTypeName(index int) string {
+	// TODO
+	return ""
+}
+
 func (rows *rows) ColumnTypeNullable(index int) (bool, bool) {
 	// TODO
 	return false, false
