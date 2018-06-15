@@ -183,6 +183,10 @@ func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
+func (result *result) LastInsertId() (int64, error) {
+	return -1, errors.New("Feature not supported")
+}
+
 func (result *result) RowsAffected() (int64, error) {
 	// TODO
 	return 0, nil
