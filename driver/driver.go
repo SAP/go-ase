@@ -60,6 +60,12 @@ type NullTime struct {
 	Valid bool
 }
 
+//needed to handle nil binary values
+type NullBytes struct {
+	Bytes []byte
+	Valid bool
+}
+
 func init() {
 	sql.Register(DriverName, &drv{})
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
