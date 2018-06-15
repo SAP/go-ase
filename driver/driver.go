@@ -169,3 +169,8 @@ func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	// TODO: execute statement
 	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
 }
+
+func (transaction *transaction) Commit() error {
+	// TODO
+	return nil
+}
