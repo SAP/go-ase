@@ -33,6 +33,14 @@ type transaction struct {
 	conn *C.CS_CONNECTION
 }
 
+//statement
+type statement struct {
+	query string
+	stmt  *C.CS_COMMAND
+	conn  *C.CS_CONNECTION
+	Ok    bool
+}
+
 func init() {
 	sql.Register(DriverName, &drv{})
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
