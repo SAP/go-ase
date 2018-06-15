@@ -175,6 +175,7 @@ func (connection *connection) Close() error {
 }
 
 func (connection *connection) Begin() (driver.Tx, error) {
+	// TODO: disable autocommit
 	return &transaction{conn: connection.conn}, nil
 }
 
