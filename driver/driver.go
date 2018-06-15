@@ -209,3 +209,10 @@ func (nullBytes *NullBytes) Scan(value interface{}) error {
 	nullBytes.Bytes, nullBytes.Valid = value.([]byte)
 	return nil
 }
+
+func (nullBytes NullBytes) Value() (driver.Value, error) {
+	if !nullBytes.Valid {
+		return nil, nil
+	}
+	return nullBytes.Bytes, nil
+}
