@@ -158,6 +158,11 @@ func (connection *connection) Begin() (driver.Tx, error) {
 	return &transaction{conn: connection.conn}, nil
 }
 
+func (rows *rows) Close() error {
+	// TODO
+	return nil
+}
+
 func (rows *rows) Columns() []string {
 	// TODO
 	columnNames := make([]string, 1)
