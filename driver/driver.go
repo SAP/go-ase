@@ -157,3 +157,9 @@ func (statement *statement) NumInput() int {
 	// TODO
 	return -1
 }
+
+func (statement *statement) Exec(args []driver.Value) (driver.Result, error) {
+	// TODO: bind parameters / args
+	// TODO: execute statement
+	return &result{stmt: statement.stmt, conn: statement.conn}, nil
+}
