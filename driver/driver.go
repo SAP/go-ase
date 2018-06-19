@@ -89,14 +89,17 @@ type NullBytes struct {
 }
 
 func init() {
+	// register the driver
 	sql.Register(DriverName, &drv{})
+
+	// allocate the context
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
 	if rc != C.CS_SUCCEED {
 		fmt.Println("C.cs_ctx_alloc failed")
 		return
 	}
-	//defer C.free(unsafe.Pointer(cContext))
 
+	// initialize the library
 	rc = C.ct_init(cContext, C.CS_CURRENT_VERSION)
 	if rc != C.CS_SUCCEED {
 		fmt.Println("C.ct_init failed")
@@ -123,7 +126,6 @@ func init() {
 
 func (d *drv) Open(dsn string) (driver.Conn, error) {
 	// create connection
-	var cConnection *C.CS_CONNECTION
 	cConnWrapper := (connWrapper)(C.ct_con_alloc_wrapper(cContext))
 	if cConnWrapper.rc != C.CS_SUCCEED {
 		return nil, errors.New("C.ct_con_alloc failed")
@@ -136,17 +138,17 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	}
 
 	// set user name
-	cUsername := unsafe.Pointer(&dsnInfo.Username)
+	cUsername := unsafe.Pointer(C.CString(dsnInfo.Username))
 	defer C.free(unsafe.Pointer(cUsername))
-	rc = C.ct_con_props(cConnection, C.CS_SET, C.CS_USERNAME, cUsername, C.CS_NULLTERM, nil)
+	rc := C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_USERNAME, cUsername, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
 		return nil, errors.New("C.ct_con_props failed for C.CS_USERNAME")
 	}
 
 	// set password
-	cPassword := unsafe.Pointer(&dsnInfo.Password)
+	cPassword := unsafe.Pointer(C.CString(dsnInfo.Password))
 	defer C.free(unsafe.Pointer(cPassword))
-	rc = C.ct_con_props(cConnection, C.CS_SET, C.CS_PASSWORD, cPassword, C.CS_NULLTERM, nil)
+	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_PASSWORD, cPassword, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
 		return nil, errors.New("C.ct_con_props failed for C.CS_PASSWORD")
 	}
@@ -157,13 +159,13 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	if dsnInfo.Host != "" {
 		cNullterm = (C.long)(0)
 	}
-	rc = C.ct_connect(cConnection, cHostname, cNullterm)
+	rc = C.ct_connect(cConnWrapper.conn, cHostname, cNullterm)
 	if rc != C.CS_SUCCEED {
 		return nil, errors.New("C.ct_connect failed")
 	}
 
 	// return connection
-	return &connection{conn: cConnection}, nil
+	return &connection{conn: cConnWrapper.conn}, nil
 }
 
 func (connection *connection) Prepare(query string) (driver.Stmt, error) {
