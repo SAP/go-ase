@@ -146,6 +146,20 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 		return nil, errors.New("C.ct_con_props failed for C.CS_USERNAME")
 	}
 
+	// set password encryption
+	cTrue := C.CS_TRUE
+	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_EXTENDED_ENCRYPTION, unsafe.Pointer(&cTrue), C.CS_UNUSED, nil)
+	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
+		return nil, errors.New("C.ct_con_props failed for C.CS_SEC_EXTENDED_ENCRYPTION")
+	}
+	cFalse := C.CS_FALSE
+	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_NON_ENCRYPTION_RETRY, unsafe.Pointer(&cFalse), C.CS_UNUSED, nil)
+	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
+		return nil, errors.New("C.ct_con_props failed for C.CS_SEC_NON_ENCRYPTION_RETRY")
+	}
+
 	// set password
 	cPassword := unsafe.Pointer(C.CString(dsnInfo.Password))
 	defer C.free(unsafe.Pointer(cPassword))
