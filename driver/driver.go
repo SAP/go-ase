@@ -95,7 +95,7 @@ type transaction struct {
 	conn *C.CS_CONNECTION
 }
 
-//statement
+// statement is the struct which represents a database statement
 type statement struct {
 	query string
 	stmt  *C.CS_COMMAND
@@ -103,7 +103,7 @@ type statement struct {
 	Ok    bool
 }
 
-//result set
+// rows is the struct which represents a database result set
 type rows struct {
 	stmt *C.CS_COMMAND
 	conn *C.CS_CONNECTION
