@@ -17,7 +17,6 @@ CS_RETCODE ct_callback_wrapper_for_server_messages(CS_CONTEXT* ctx) {
 }
 
 CS_RETCODE ct_callback_server_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_SERVERMSG* msg) {
-	printf("ct_callback_server_message(): %s\n", msg);
 	srvMsg(msg);
 }
 
@@ -28,6 +27,5 @@ CS_RETCODE ct_callback_wrapper_for_client_messages(CS_CONTEXT* ctx) {
 }
 
 CS_RETCODE ct_callback_client_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_CLIENTMSG* msg) {
-	printf("ct_callback_client_message(): %s\n", msg);
 	ctlMsg(msg);
 }
