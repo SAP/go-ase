@@ -22,6 +22,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// srvMsg is a callback function which will be called from C when the server sends a message.
+// This may be an error message or e.g. the information that we are connected successfully.
+// Don't change the following line. It is the directive for cgo to make the function available from C.
 //export srvMsg
 func srvMsg(msg *C.CS_SERVERMSG) {
 	switch msg.msgnumber {
@@ -45,6 +48,9 @@ func srvMsg(msg *C.CS_SERVERMSG) {
 	}
 }
 
+// ctlMsg is a callback function which will be called from C when the client sends a message.
+// This may be an error message or some information.
+// Don't change the following line. It is the directive for cgo to make the function available from C.
 //export ctlMsg
 func ctlMsg(msg *C.CS_CLIENTMSG) {
 	fmt.Fprintln(os.Stderr, "Client message:")
@@ -63,22 +69,28 @@ func ctlMsg(msg *C.CS_CLIENTMSG) {
 //DriverName is the driver name to use with sql.Open for ase databases.
 const DriverName = "ase"
 
+// drv is the struct on which we later call Open() to get a connection.
 type drv struct{}
 
 var (
 	cContext *C.CS_CONTEXT
 )
 
-//database connection
+// connection is the struct which represents a database connection.
 type connection struct {
 	conn *C.CS_CONNECTION
 }
 
+// connWrapper is a helper struct as we cannot pass pointers to pointers with cgo.
+// For this we have bridge.c and bridge.h which implement a C struct CS_CONNECTION_WRAPPER
+// and a C function ct_con_alloc_wrapper() to wrap the C function ct_con_alloc() which
+// expects a pointer to a CS_CONNECTION pointer.
 type connWrapper struct {
 	conn *C.CS_CONNECTION
 	rc   C.CS_RETCODE
 }
 
+// transaction is the struct which represents a database transaction.
 type transaction struct {
 	conn *C.CS_CONNECTION
 }
@@ -230,14 +242,18 @@ func (connection *connection) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (connection *connection) Close() error {
+	// close the connection
 	rc := C.ct_close(connection.conn, C.CS_UNUSED)
 	if rc != C.CS_SUCCEED {
 		return errors.New("C.ct_close failed")
 	}
+
+	// drop the connection
 	rc = C.ct_con_drop(connection.conn)
 	if rc != C.CS_SUCCEED {
 		return errors.New("C.ct_con_drop failed")
 	}
+
 	return nil
 }
 
