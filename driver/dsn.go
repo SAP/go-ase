@@ -7,8 +7,8 @@ import (
 //ase://myuser:mypassword@localhost:4901?
 
 type DsnInfo struct {
-	Host, Username, Password string
-	ConnectProps             url.Values
+	Host, Port, Username, Password string
+	ConnectProps                   url.Values
 }
 
 func parseDSN(dsn string) (*DsnInfo, error) {
@@ -25,6 +25,11 @@ func parseDSN(dsn string) (*DsnInfo, error) {
 		password, _ = url.User.Password()
 	}
 
-	return &DsnInfo{Host: url.Host, Username: userName, Password: password,
-		ConnectProps: url.Query()}, nil
+	return &DsnInfo{
+		Host:         url.Hostname(),
+		Port:         url.Port(),
+		Username:     userName,
+		Password:     password,
+		ConnectProps: url.Query(),
+	}, nil
 }
