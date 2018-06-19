@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -23,14 +24,40 @@ import (
 
 //export srvMsg
 func srvMsg(msg *C.CS_SERVERMSG) {
-	fmt.Fprintln(os.Stderr, "Server message:")
-	fmt.Fprintf(os.Stderr, "%s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.text))))
+	switch msg.msgnumber {
+	case 8589940293:
+		fmt.Printf("Successfully connected with %s\n", strings.Trim(C.GoString((*C.char)(unsafe.Pointer(&msg.text))), "\n"))
+	default:
+		fmt.Fprintln(os.Stderr, "Server message:")
+		fmt.Fprintf(os.Stderr, "msgnumber:   %d\n", msg.msgnumber)
+		fmt.Fprintf(os.Stderr, "state:       %d\n", msg.state)
+		fmt.Fprintf(os.Stderr, "severity:    %d\n", msg.severity)
+		fmt.Fprintf(os.Stderr, "text:        %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.text))))
+		fmt.Fprintf(os.Stderr, "textlen:     %d\n", msg.textlen)
+		fmt.Fprintf(os.Stderr, "server:      %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.svrname))))
+		fmt.Fprintf(os.Stderr, "svrnlen:     %d\n", msg.svrnlen)
+		fmt.Fprintf(os.Stderr, "proc:        %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.proc))))
+		fmt.Fprintf(os.Stderr, "proclen:     %d\n", msg.proclen)
+		fmt.Fprintf(os.Stderr, "line:        %d\n", msg.line)
+		fmt.Fprintf(os.Stderr, "status:      %d\n", msg.status)
+		fmt.Fprintf(os.Stderr, "sqlstate:    %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.sqlstate))))
+		fmt.Fprintf(os.Stderr, "sqlstatelen: %d\n", msg.sqlstatelen)
+	}
 }
 
 //export ctlMsg
 func ctlMsg(msg *C.CS_CLIENTMSG) {
 	fmt.Fprintln(os.Stderr, "Client message:")
-	fmt.Fprintf(os.Stderr, "%s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.msgstring))))
+	fmt.Fprintf(os.Stderr, "severity:     %d\n", msg.severity)
+	fmt.Fprintf(os.Stderr, "msgnumber:    %d\n", msg.msgnumber)
+	fmt.Fprintf(os.Stderr, "msgstring:    %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.msgstring))))
+	fmt.Fprintf(os.Stderr, "msgstringlen: %d\n", msg.msgstringlen)
+	fmt.Fprintf(os.Stderr, "osnumber:     %d\n", msg.osnumber)
+	fmt.Fprintf(os.Stderr, "osstring:     %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.osstring))))
+	fmt.Fprintf(os.Stderr, "osstringlen:  %d\n", msg.osstringlen)
+	fmt.Fprintf(os.Stderr, "status:       %d\n", msg.status)
+	fmt.Fprintf(os.Stderr, "sqlstate:     %s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.sqlstate))))
+	fmt.Fprintf(os.Stderr, "sqlstatelen:  %d\n", msg.sqlstatelen)
 }
 
 //DriverName is the driver name to use with sql.Open for ase databases.
