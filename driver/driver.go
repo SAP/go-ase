@@ -142,6 +142,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	defer C.free(unsafe.Pointer(cUsername))
 	rc := C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_USERNAME, cUsername, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
 		return nil, errors.New("C.ct_con_props failed for C.CS_USERNAME")
 	}
 
@@ -150,6 +151,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	defer C.free(unsafe.Pointer(cPassword))
 	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_PASSWORD, cPassword, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
 		return nil, errors.New("C.ct_con_props failed for C.CS_PASSWORD")
 	}
 
@@ -161,6 +163,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	}
 	rc = C.ct_connect(cConnWrapper.conn, cHostname, cNullterm)
 	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
 		return nil, errors.New("C.ct_connect failed")
 	}
 
