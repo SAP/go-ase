@@ -5,32 +5,33 @@ package driver
 #cgo LDFLAGS: -Wl,-rpath,\$ORIGIN
 #include <stdlib.h>
 #include "ctpublic.h"
-
-typedef struct CS_CONNECTION_WRAPPER {
-	CS_CONNECTION *conn;
-	CS_RETCODE    rc;
-}CS_CONNECTION_WRAPPER;
-
-struct CS_CONNECTION_WRAPPER ct_con_alloc_wrapper(CS_CONTEXT* ctx) {
-	CS_CONNECTION *conn;
-	CS_RETCODE    rc;
-	rc = ct_con_alloc(ctx, &conn);
-	CS_CONNECTION_WRAPPER w = { conn, rc };
-	return w;
-}
-
+#include "bridge.h"
 */
 import "C"
 import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 	"unsafe"
+
+	"github.com/pkg/errors"
 )
+
+//export srvMsg
+func srvMsg(msg *C.CS_SERVERMSG) {
+	fmt.Fprintln(os.Stderr, "Server message:")
+	fmt.Fprintf(os.Stderr, "%s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.text))))
+}
+
+//export ctlMsg
+func ctlMsg(msg *C.CS_CLIENTMSG) {
+	fmt.Fprintln(os.Stderr, "Client message:")
+	fmt.Fprintf(os.Stderr, "%s\n", C.GoString((*C.char)(unsafe.Pointer(&msg.msgstring))))
+}
 
 //DriverName is the driver name to use with sql.Open for ase databases.
 const DriverName = "ase"
@@ -99,6 +100,22 @@ func init() {
 	rc = C.ct_init(cContext, C.CS_CURRENT_VERSION)
 	if rc != C.CS_SUCCEED {
 		fmt.Println("C.ct_init failed")
+		C.cs_ctx_drop(cContext)
+		return
+	}
+
+	// install the server message callback
+	rc = C.ct_callback_wrapper_for_server_messages(cContext)
+	if rc != C.CS_SUCCEED {
+		fmt.Println("C.ct_callback failed for server messages")
+		C.cs_ctx_drop(cContext)
+		return
+	}
+
+	// install the client message callback
+	rc = C.ct_callback_wrapper_for_client_messages(cContext)
+	if rc != C.CS_SUCCEED {
+		fmt.Println("C.ct_callback failed for client messages")
 		C.cs_ctx_drop(cContext)
 		return
 	}
