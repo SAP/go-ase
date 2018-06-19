@@ -285,7 +285,39 @@ func (rows *rows) NextResultSet() error {
 }
 
 func (connection *connection) Ping(ctx context.Context) error {
-	// TODO
+	var cCmd *C.CS_COMMAND
+
+	// allocate the command
+	rc := C.ct_cmd_alloc(connection.conn, &cCmd)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_cmd_alloc failed")
+	}
+
+	// fill the command
+	cQuery := C.CString("SELECT 'PING'")
+	rc = C.ct_command(cCmd, C.CS_LANG_CMD, cQuery, C.CS_NULLTERM, C.CS_UNUSED)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_command failed")
+	}
+
+	// send the command
+	rc = C.ct_send(cCmd)
+	if rc != C.CS_SUCCEED {
+		return driver.ErrBadConn
+	}
+
+	// cancel the results
+	rc = C.ct_cancel(nil, cCmd, C.CS_CANCEL_ALL)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_cancel failed")
+	}
+
+	// drop the command
+	rc = C.ct_cmd_drop(cCmd)
+	if rc != C.CS_SUCCEED {
+		return errors.New("C.ct_cmd_drop failed")
+	}
+
 	return nil
 }
 
