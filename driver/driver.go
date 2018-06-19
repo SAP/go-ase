@@ -169,13 +169,17 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 		return nil, errors.New("C.ct_con_props failed for C.CS_PASSWORD")
 	}
 
-	// connect
-	cHostname := C.CString(dsnInfo.Host)
-	cNullterm := (C.long)(C.CS_NULLTERM)
-	if dsnInfo.Host != "" {
-		cNullterm = (C.long)(0)
+	// set hostname port
+	cHostPort := unsafe.Pointer(C.CString(dsnInfo.Host + " " + dsnInfo.Port))
+	defer C.free(unsafe.Pointer(cHostPort))
+	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SERVERADDR, cHostPort, C.CS_NULLTERM, nil)
+	if rc != C.CS_SUCCEED {
+		C.ct_con_drop(cConnWrapper.conn)
+		return nil, errors.New("C.ct_con_props failed for C.CS_SERVERADDR")
 	}
-	rc = C.ct_connect(cConnWrapper.conn, cHostname, cNullterm)
+
+	// connect
+	rc = C.ct_connect(cConnWrapper.conn, nil, 0)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
 		return nil, errors.New("C.ct_connect failed")
