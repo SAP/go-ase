@@ -335,6 +335,8 @@ func (connection *connection) Ping(ctx context.Context) error {
 	if rc != C.CS_SUCCEED {
 		return errors.New("C.ct_cmd_alloc failed")
 	}
+	// at the end drop the command
+	defer C.ct_cmd_drop(cCmd)
 
 	// fill the command
 	cQuery := C.CString("SELECT 'PING'")
@@ -353,12 +355,6 @@ func (connection *connection) Ping(ctx context.Context) error {
 	rc = C.ct_cancel(nil, cCmd, C.CS_CANCEL_ALL)
 	if rc != C.CS_SUCCEED {
 		return errors.New("C.ct_cancel failed")
-	}
-
-	// drop the command
-	rc = C.ct_cmd_drop(cCmd)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_cmd_drop failed")
 	}
 
 	return nil
