@@ -115,18 +115,6 @@ type result struct {
 	conn *C.CS_CONNECTION
 }
 
-//needed to handle nil time values
-type NullTime struct {
-	Time  time.Time
-	Valid bool
-}
-
-//needed to handle nil binary values
-type NullBytes struct {
-	Bytes []byte
-	Valid bool
-}
-
 func init() {
 	// register the driver
 	sql.Register(DriverName, &drv{})
@@ -450,6 +438,18 @@ func (transaction *transaction) Commit() error {
 func (transaction *transaction) Rollback() error {
 	// TODO
 	return nil
+}
+
+// needed to handle nil time values
+type NullTime struct {
+	Time  time.Time
+	Valid bool
+}
+
+// needed to handle nil binary values
+type NullBytes struct {
+	Bytes []byte
+	Valid bool
 }
 
 func (nullTime *NullTime) Scan(value interface{}) error {
