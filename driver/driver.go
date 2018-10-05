@@ -1,6 +1,7 @@
 package driver
 
 /*
+#cgo CFLAGS: -I${SRCDIR}/includes
 #cgo LDFLAGS: -Wl,-rpath,\$ORIGIN/../lib
 #include <stdlib.h>
 #include "ctpublic.h"

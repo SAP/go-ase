@@ -5,7 +5,6 @@ Therefore please install the SDK according to the [Open Server Unix Install Guid
 Afterwards you have to setup the following environment variables.
 
 ```
-export CGO_CFLAGS="-I/opt/sap/OCS-16_0/include"
 export CGO_LDFLAGS="-L/opt/sap/OCS-16_0/lib -lsybct_r64 -lsybcs_r64"
 export LD_LIBRARY_PATH="/opt/sap/OCS-16_0/lib"
 ```
