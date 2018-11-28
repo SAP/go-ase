@@ -78,7 +78,7 @@ func init() {
 	// allocate the context
 	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
 	if rc != C.CS_SUCCEED {
-		fmt.Println("C.cs_ctx_alloc failed")
+		fmt.Printf("%v", makeError(rc, "C.cs_ctx_alloc failed"))
 		return
 	}
 
@@ -111,7 +111,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	// create connection
 	cConnWrapper := (connWrapper)(C.ct_con_alloc_wrapper(cContext))
 	if cConnWrapper.rc != C.CS_SUCCEED {
-		return nil, errors.New("C.ct_con_alloc failed")
+		return nil, makeError(cConnWrapper.rc, "C.ct_con_alloc failed")
 	}
 
 	dsnInfo, err := ParseDSN(dsn)
@@ -125,7 +125,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	rc := C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_USERNAME, cUsername, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_con_props failed for C.CS_USERNAME")
+		return nil, makeError(rc, "C.ct_con_props failed for C.CS_USERNAME")
 	}
 
 	// set password encryption
@@ -133,13 +133,13 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_EXTENDED_ENCRYPTION, unsafe.Pointer(&cTrue), C.CS_UNUSED, nil)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_con_props failed for C.CS_SEC_EXTENDED_ENCRYPTION")
+		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SEC_EXTENDED_ENCRYPTION")
 	}
 	cFalse := C.CS_FALSE
 	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_NON_ENCRYPTION_RETRY, unsafe.Pointer(&cFalse), C.CS_UNUSED, nil)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_con_props failed for C.CS_SEC_NON_ENCRYPTION_RETRY")
+		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SEC_NON_ENCRYPTION_RETRY")
 	}
 
 	// set password
@@ -148,7 +148,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_PASSWORD, cPassword, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_con_props failed for C.CS_PASSWORD")
+		return nil, makeError(rc, "C.ct_con_props failed for C.CS_PASSWORD")
 	}
 
 	// set hostname port
@@ -157,14 +157,14 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SERVERADDR, cHostPort, C.CS_NULLTERM, nil)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_con_props failed for C.CS_SERVERADDR")
+		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SERVERADDR")
 	}
 
 	// connect
 	rc = C.ct_connect(cConnWrapper.conn, nil, 0)
 	if rc != C.CS_SUCCEED {
 		C.ct_con_drop(cConnWrapper.conn)
-		return nil, errors.New("C.ct_connect failed")
+		return nil, makeError(rc, "C.ct_connect failed")
 	}
 
 	// return connection
