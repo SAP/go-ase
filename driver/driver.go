@@ -158,8 +158,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 		return nil, errors.New("C.ct_con_alloc failed")
 	}
 
-	// parse dsn
-	dsnInfo, err := parseDSN(dsn)
+	dsnInfo, err := ParseDSN(dsn)
 	if err != nil {
 		return nil, err
 	}
