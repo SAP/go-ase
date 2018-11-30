@@ -16,3 +16,6 @@
 
 # Editor specific temporary files
 *.swp
+
+/cgo-ase
+/go-ase
