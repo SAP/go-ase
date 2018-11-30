@@ -200,13 +200,33 @@ func (connection *connection) Close() error {
 }
 
 func (connection *connection) Begin() (driver.Tx, error) {
-	// TODO: disable autocommit
-	return &transaction{conn: connection.conn}, nil
+	return connection.BeginTx(context.Background(), driver.TxOptions{Isolation: 0, ReadOnly: false})
 }
 
 func (connection *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	// TODO
-	return nil, nil
+	isolationLevel := int(opts.Isolation)
+	if isolationLevel < 0 || isolationLevel > 3 {
+		return nil, fmt.Errorf("Unsupported isolation level requested: %d", isolationLevel)
+	}
+
+	rc := C.ct_options(connection.conn, C.CS_SET, C.CS_OPT_ISOLATION, unsafe.Pointer(&isolationLevel), C.CS_UNUSED, nil)
+	if rc != C.CS_SUCCEED {
+		return nil, makeError(rc, "Failed to set isolation")
+	}
+
+	readOnly := C.CS_FALSE
+	if opts.ReadOnly {
+		readOnly = C.CS_TRUE
+	}
+
+	rc = C.ct_con_props(connection.conn, C.CS_SET, C.CS_PROP_READONLY, unsafe.Pointer(&readOnly), C.CS_UNUSED, nil)
+	if rc != C.CS_SUCCEED {
+		return nil, makeError(rc, "Failed to set readonly")
+	}
+
+	// TODO disable autocommit
+
+	return &transaction{conn: connection.conn}, nil
 }
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
