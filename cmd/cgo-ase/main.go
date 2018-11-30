@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 
+	_ "github.com/SAP/go-ase/cgo"
 	"github.com/bgentry/speakeasy"
-	_ "github.wdf.sap.corp/bssdb/go-ase/cgo"
 )
 
 var (
