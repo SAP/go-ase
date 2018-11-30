@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/bgentry/speakeasy"
 	_ "github.wdf.sap.corp/bssdb/go-ase/driver"
@@ -42,5 +43,28 @@ func main() {
 	if err != nil {
 		log.Printf("Pining the database failed: %v", err)
 		return
+	}
+
+	if len(flag.Args()) == 0 {
+		return
+	}
+
+	subcmd := flag.Args()[0]
+	remainder := flag.Args()[1:]
+
+	switch subcmd {
+	case "exec":
+		result, err := db.Exec(strings.Join(remainder, " "))
+		if err != nil {
+			log.Printf("Executing the statement failed: %v", err)
+			return
+		}
+
+		affectedRows, err := result.RowsAffected()
+		if err != nil {
+			log.Printf("Retrieving the affected rows failed: %v", err)
+			return
+		}
+		fmt.Printf("Rows affected: %d\n", affectedRows)
 	}
 }
