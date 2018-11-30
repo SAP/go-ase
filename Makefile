@@ -1,3 +1,5 @@
-all:
-	cd driver && make all
-	cd cmd && make all
+# Default recipes for subdirs
+RECIPES := test build
+$(RECIPES):
+	make -C driver $@
+	make -C cmd $@
