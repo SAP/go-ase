@@ -386,7 +386,7 @@ func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
 }
 
-func (result *result) LastInsertId() (int64, error) {
+func (result result) LastInsertId() (int64, error) {
 	return -1, errors.New("Feature not supported")
 }
 
