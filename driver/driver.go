@@ -13,9 +13,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"os"
 	"reflect"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -67,8 +65,9 @@ type rows struct {
 
 //keep track of rows affected after inserts and updates
 type result struct {
-	stmt *C.CS_COMMAND
-	conn *C.CS_CONNECTION
+	stmt         *C.CS_COMMAND
+	conn         *C.CS_CONNECTION
+	rowsAffected int64
 }
 
 func init() {
@@ -375,9 +374,11 @@ func (result *result) LastInsertId() (int64, error) {
 	return -1, errors.New("Feature not supported")
 }
 
-func (result *result) RowsAffected() (int64, error) {
-	// TODO
-	return 0, nil
+func (result result) RowsAffected() (int64, error) {
+	if result.rowsAffected == -1 {
+		return -1, errors.New("Value unset")
+	}
+	return result.rowsAffected, nil
 }
 
 func (statement *statement) bindParameter(index int, paramVal driver.Value) error {
