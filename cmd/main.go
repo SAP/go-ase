@@ -29,7 +29,8 @@ func main() {
 		}
 	}
 
-	db, err := sql.Open("ase", "ase://"+*fUser+":"+pass+"@"+*fHost+":"+*fPort)
+	db, err := sql.Open("ase", fmt.Sprintf("username='%s' password='%s' host='%s' port=%s",
+		*fUser, pass, *fHost, *fPort))
 	if err != nil {
 		log.Printf("Error opening database connection: %v", err)
 		return
