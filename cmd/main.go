@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/bgentry/speakeasy"
-	_ "github.wdf.sap.corp/bssdb/go-ase/driver"
+	_ "github.wdf.sap.corp/bssdb/go-ase/cgo"
 )
 
 var (

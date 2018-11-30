@@ -1,4 +1,4 @@
-package driver
+package cgo
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/includes

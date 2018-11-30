@@ -1,4 +1,4 @@
-package driver
+package cgo
 
 //#include <stdlib.h>
 //#include "ctpublic.h"
