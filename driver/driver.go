@@ -209,9 +209,25 @@ func (connection *connection) BeginTx(ctx context.Context, opts driver.TxOptions
 	return nil, nil
 }
 
-func (connection *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	// TODO
-	return nil, nil
+func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
+	// TODO: driver.Value handling
+
+	cmd, cmdFree, err := conn.exec(query)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to send command: %v", err)
+	}
+	defer cmdFree()
+
+	rows, result, err := results(cmd)
+	if err != nil {
+		return nil, fmt.Errorf("Received error when reading results: %v", err)
+	}
+
+	if rows != nil {
+		return nil, fmt.Errorf("Received rows when executing a language command")
+	}
+
+	return result, nil
 }
 
 func (connection *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
