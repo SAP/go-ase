@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/bgentry/speakeasy"
 	_ "github.wdf.sap.corp/bssdb/go-ase/driver"
@@ -23,13 +24,14 @@ func main() {
 	if len(pass) == 0 {
 		pass, err = speakeasy.Ask("Please enter the password of user " + *fUser + ": ")
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			return
 		}
 	}
 
 	db, err := sql.Open("ase", "ase://"+*fUser+":"+pass+"@"+*fHost+":"+*fPort)
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Error opening database connection: %v", err)
 		return
 	}
 	defer db.Close()
@@ -37,7 +39,7 @@ func main() {
 	// test the database connection
 	err = db.Ping()
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Pining the database failed: %v", err)
 		return
 	}
 }
