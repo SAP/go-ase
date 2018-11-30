@@ -1,4 +1,4 @@
-package cgo
+package libase
 
 import (
 	"net/url"

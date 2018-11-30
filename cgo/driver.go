@@ -17,6 +17,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/SAP/go-ase/libase"
 	"github.com/pkg/errors"
 )
 
@@ -113,7 +114,7 @@ func (d *drv) Open(dsn string) (driver.Conn, error) {
 		return nil, makeError(cConnWrapper.rc, "C.ct_con_alloc failed")
 	}
 
-	dsnInfo, err := ParseDSN(dsn)
+	dsnInfo, err := libase.ParseDSN(dsn)
 	if err != nil {
 		return nil, err
 	}
