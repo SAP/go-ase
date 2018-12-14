@@ -102,48 +102,74 @@ func main() {
 	}
 	file.WriteString("}\n\n")
 
-	file.WriteString("var type2reflect = map[ASEType]reflect.Type{\n")
+	type2reflect := map[string]string{}
+	type2interface := map[string]string{}
+
 	for _, key := range typeSlice {
-		value := "nil"
 		switch key {
 		// binary
 		case "BINARY", "LONGBINARY", "VARBINARY":
-			value = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2interface[key] = "[]byte{0}"
 		// char
 		case "CHAR":
-			value = "reflect.TypeOf(rune(' '))"
+			type2reflect[key] = "reflect.TypeOf(rune(' '))"
+			type2interface[key] = "rune(' ')"
 		case "VARCHAR", "LONGCHAR", "UNICHAR":
-			value = "reflect.TypeOf(string(\"\"))"
+			type2reflect[key] = "reflect.TypeOf(string(\"\"))"
+			type2interface[key] = "string(\"\")"
 		// bit
 		case "BIT":
-			value = "reflect.TypeOf(uint64(0))"
+			type2reflect[key] = "reflect.TypeOf(uint64(0))"
+			type2interface[key] = "uint64(0)"
 		// xml
 		case "XML":
-			value = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2interface[key] = "[]byte{0}"
 		// datetime
 		case "DATE", "TIME", "DATETIME4":
-			value = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2interface[key] = "[]byte{0}"
 		case "DATETIME", "BIGDATETIME", "BIGTIME":
-			value = "reflect.TypeOf(time.Time{})"
+			type2reflect[key] = "reflect.TypeOf(time.Time{})"
+			type2interface[key] = "time.Time{}"
 		// numeric
 		case "TINYINT", "SMALLINT", "INT", "BIGINT":
-			value = "reflect.TypeOf(int64(0))"
+			type2reflect[key] = "reflect.TypeOf(int64(0))"
+			type2interface[key] = "int64(0)"
 		case "USMALLINT", "USHORT", "UINT", "UBIGINT", "NUMERIC", "LONG":
-			value = "reflect.TypeOf(uint64(0))"
+			type2reflect[key] = "reflect.TypeOf(uint64(0))"
+			type2interface[key] = "uint64(0)"
 		case "DECIMAL", "FLOAT":
-			value = "reflect.TypeOf(float64(0))"
+			type2reflect[key] = "reflect.TypeOf(float64(0))"
+			type2interface[key] = "float64(0)"
 		// money
 		case "MONEY", "MONEY4":
-			value = "reflect.TypeOf(uint64(0))"
+			type2reflect[key] = "reflect.TypeOf(uint64(0))"
+			type2interface[key] = "uint64(0)"
 		// text
 		case "TEXT", "UNITEXT":
-			value = "reflect.TypeOf(string(\"\"))"
+			type2reflect[key] = "reflect.TypeOf(string(\"\"))"
+			type2interface[key] = "string(\"\")"
 		// image
 		case "IMAGE", "BLOB":
-			value = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
+			type2interface[key] = "[]byte{0}"
+		default:
+			type2reflect[key] = "nil"
+			type2interface[key] = "nil"
 		}
 
-		file.WriteString(fmt.Sprintf("    %s: %s,\n", key, value))
+	}
+	file.WriteString("var type2reflect = map[ASEType]reflect.Type{\n")
+	for _, key := range typeSlice {
+		file.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2reflect[key]))
+	}
+	file.WriteString("}\n\n")
+
+	file.WriteString("var type2interface = map[ASEType]interface{}{\n")
+	for _, key := range typeSlice {
+		file.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2interface[key]))
 	}
 	file.WriteString("}\n\n")
 }
