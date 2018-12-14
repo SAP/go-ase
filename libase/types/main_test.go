@@ -23,8 +23,15 @@ func TestASEType_GoReflectType(t *testing.T) {
 		t.Run(name,
 			func(t *testing.T) {
 				reflectType := asetype.GoType()
-				if reflectType == nil {
-					t.Errorf("%s.GoType() returned nil", name)
+
+				if asetype == VOID {
+					if reflectType != nil {
+						t.Errorf("%s.GoReflectType() returned non-nil", name)
+					}
+				} else {
+					if reflectType == nil {
+						t.Errorf("%s.GoReflectType() returned nil", name)
+					}
 				}
 			},
 		)
