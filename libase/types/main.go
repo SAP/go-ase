@@ -16,6 +16,6 @@ func (t ASEType) String() string {
 	return type2string[t]
 }
 
-func (t ASEType) GoType() reflect.Type {
+func (t ASEType) GoReflectType() reflect.Type {
 	return type2reflect[t]
 }

@@ -16,9 +16,9 @@ func TestASEType_String(t *testing.T) {
 	}
 }
 
-// TestASEType_GoType ensures that each ASEType returns a non-nil
+// TestASEType_GoReflectType ensures that each ASEType returns a non-nil
 // reflect.Type.
-func TestASEType_GoType(t *testing.T) {
+func TestASEType_GoReflectType(t *testing.T) {
 	for asetype, name := range type2string {
 		t.Run(name,
 			func(t *testing.T) {
