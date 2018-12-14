@@ -37,3 +37,23 @@ func TestASEType_GoReflectType(t *testing.T) {
 		)
 	}
 }
+
+func TestASEType_GoType(t *testing.T) {
+	for asetype, name := range type2string {
+		t.Run(name,
+			func(t *testing.T) {
+				goType := asetype.GoType()
+
+				if asetype == VOID {
+					if goType != nil {
+						t.Errorf("%s.GoType() returned non-nil interface", name)
+					}
+				} else {
+					if goType == nil {
+						t.Errorf("%s.GoType() returned nil", name)
+					}
+				}
+			},
+		)
+	}
+}

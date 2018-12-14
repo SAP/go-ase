@@ -19,3 +19,7 @@ func (t ASEType) String() string {
 func (t ASEType) GoReflectType() reflect.Type {
 	return type2reflect[t]
 }
+
+func (t ASEType) GoType() interface{} {
+	return type2interface[t]
+}
