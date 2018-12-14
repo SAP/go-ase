@@ -4,7 +4,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"go/format"
+	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -68,39 +71,34 @@ func main() {
 	typeSlice.Sort()
 
 	// Write types.go
-	file, err = os.OpenFile("./types.go", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Printf("Failed to open types.go for writing: %v", err)
-		return
-	}
-	defer file.Close()
+	buf := bytes.Buffer{}
 
-	file.WriteString("package types\n\n")
-	file.WriteString("import (\n")
-	file.WriteString("\t\"reflect\"\n")
-	file.WriteString("\t\"time\"\n")
-	file.WriteString(")\n\n")
+	buf.WriteString("package types\n\n")
+	buf.WriteString("import (\n")
+	buf.WriteString("\t\"reflect\"\n")
+	buf.WriteString("\t\"time\"\n")
+	buf.WriteString(")\n\n")
 
 	// Write constants
-	file.WriteString("const (\n")
+	buf.WriteString("const (\n")
 	for _, key := range typeSlice {
 		val := typeMap[key]
-		file.WriteString(fmt.Sprintf("    %s ASEType = %d\n", key, val))
+		buf.WriteString(fmt.Sprintf("    %s ASEType = %d\n", key, val))
 	}
-	file.WriteString(")\n\n")
+	buf.WriteString(")\n\n")
 
 	// Write type maps
-	file.WriteString("var string2type = map[string]ASEType{\n")
+	buf.WriteString("var string2type = map[string]ASEType{\n")
 	for _, key := range typeSlice {
-		file.WriteString(fmt.Sprintf("    \"%s\": %s,\n", key, key))
+		buf.WriteString(fmt.Sprintf("    \"%s\": %s,\n", key, key))
 	}
-	file.WriteString("}\n\n")
+	buf.WriteString("}\n\n")
 
-	file.WriteString("var type2string = map[ASEType]string{\n")
+	buf.WriteString("var type2string = map[ASEType]string{\n")
 	for _, key := range typeSlice {
-		file.WriteString(fmt.Sprintf("    %s: \"%s\",\n", key, key))
+		buf.WriteString(fmt.Sprintf("    %s: \"%s\",\n", key, key))
 	}
-	file.WriteString("}\n\n")
+	buf.WriteString("}\n\n")
 
 	type2reflect := map[string]string{}
 	type2interface := map[string]string{}
@@ -161,15 +159,29 @@ func main() {
 		}
 
 	}
-	file.WriteString("var type2reflect = map[ASEType]reflect.Type{\n")
+	buf.WriteString("var type2reflect = map[ASEType]reflect.Type{\n")
 	for _, key := range typeSlice {
-		file.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2reflect[key]))
+		buf.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2reflect[key]))
 	}
-	file.WriteString("}\n\n")
+	buf.WriteString("}\n\n")
 
-	file.WriteString("var type2interface = map[ASEType]interface{}{\n")
+	buf.WriteString("var type2interface = map[ASEType]interface{}{\n")
 	for _, key := range typeSlice {
-		file.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2interface[key]))
+		buf.WriteString(fmt.Sprintf("    %s: %s,\n", key, type2interface[key]))
 	}
-	file.WriteString("}\n\n")
+	buf.WriteString("}\n\n")
+
+	// Format buffer
+	formattedBuf, err := format.Source(buf.Bytes())
+	if err != nil {
+		log.Printf("Formatting code failed: %v", err)
+		return
+	}
+
+	// Write result to types.go
+	err = ioutil.WriteFile("types.go", formattedBuf, 0644)
+	if err != nil {
+		log.Printf("Writing generated code to types.go failed: %v", err)
+		return
+	}
 }
