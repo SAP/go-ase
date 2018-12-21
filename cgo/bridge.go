@@ -1,6 +1,6 @@
 package cgo
 
-// #include "ctpublic.h"
+// #include "ctlib.h"
 import "C"
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 //export srvMsg
 func srvMsg(msg *C.CS_SERVERMSG) {
 	switch msg.msgnumber {
-	case 8589940293:
+	case C.CS_SV_INFORM:
 		fmt.Printf("Successfully connected with %s\n", strings.Trim(C.GoString((*C.char)(unsafe.Pointer(&msg.text))), "\n"))
 	default:
 		fmt.Fprintln(os.Stderr, "Server message:")

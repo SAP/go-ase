@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "ctpublic.h"
+#include "ctlib.h"
 #include "bridge.h"
 
 CS_CONNECTION_WRAPPER ct_con_alloc_wrapper(CS_CONTEXT* ctx) {

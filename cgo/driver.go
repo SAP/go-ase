@@ -4,7 +4,7 @@ package cgo
 #cgo CFLAGS: -I${SRCDIR}/includes
 #cgo LDFLAGS: -Wl,-rpath,\$ORIGIN/../lib
 #include <stdlib.h>
-#include "ctpublic.h"
+#include "ctlib.h"
 #include "bridge.h"
 */
 import "C"

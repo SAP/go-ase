@@ -1,7 +1,7 @@
 package cgo
 
 //#include <stdlib.h>
-//#include "ctpublic.h"
+//#include "ctlib.h"
 import "C"
 import (
 	"fmt"
