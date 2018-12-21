@@ -109,11 +109,12 @@ func main() {
 		case "BINARY", "LONGBINARY", "VARBINARY":
 			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
 			type2interface[key] = "[]byte{0}"
-		// char
-		case "CHAR":
-			type2reflect[key] = "reflect.TypeOf(rune(' '))"
-			type2interface[key] = "rune(' ')"
-		case "VARCHAR", "LONGCHAR", "UNICHAR":
+		// char, varchar
+		// CTlib handles varchar as an array of char with the same type
+		// CS_CHAR_TYPE, hence char types must also be handles as
+		// string, otherwise only the first char of a string would be
+		// returned.
+		case "CHAR", "VARCHAR", "LONGCHAR", "UNICHAR":
 			type2reflect[key] = "reflect.TypeOf(string(\"\"))"
 			type2interface[key] = "string(\"\")"
 		// bit
