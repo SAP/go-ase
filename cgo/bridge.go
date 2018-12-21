@@ -5,7 +5,6 @@ import "C"
 import (
 	"fmt"
 	"os"
-	"strings"
 	"unsafe"
 )
 
@@ -16,7 +15,7 @@ import (
 func srvMsg(msg *C.CS_SERVERMSG) {
 	switch msg.msgnumber {
 	case C.CS_SV_INFORM:
-		fmt.Printf("Successfully connected with %s\n", strings.Trim(C.GoString((*C.char)(unsafe.Pointer(&msg.text))), "\n"))
+		break
 	default:
 		fmt.Fprintln(os.Stderr, "Server message:")
 		fmt.Fprintf(os.Stderr, "msgnumber:   %d\n", msg.msgnumber)
