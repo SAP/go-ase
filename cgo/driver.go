@@ -27,15 +27,6 @@ const DriverName = "ase"
 // drv is the struct on which we later call Open() to get a connection.
 type drv struct{}
 
-var (
-	cContext *C.CS_CONTEXT
-)
-
-// connection is the struct which represents a database connection.
-type connection struct {
-	conn *C.CS_CONNECTION
-}
-
 // connWrapper is a helper struct as we cannot pass pointers to pointers with cgo.
 // For this we have bridge.c and bridge.h which implement a C struct CS_CONNECTION_WRAPPER
 // and a C function ct_con_alloc_wrapper() to wrap the C function ct_con_alloc() which
@@ -72,103 +63,16 @@ type result struct {
 }
 
 func init() {
-	// register the driver
 	sql.Register(DriverName, &drv{})
-
-	// allocate the context
-	rc := C.cs_ctx_alloc(C.CS_CURRENT_VERSION, &cContext)
-	if rc != C.CS_SUCCEED {
-		fmt.Printf("%v", makeError(rc, "C.cs_ctx_alloc failed"))
-		return
-	}
-
-	// initialize the library
-	rc = C.ct_init(cContext, C.CS_CURRENT_VERSION)
-	if rc != C.CS_SUCCEED {
-		fmt.Println("C.ct_init failed")
-		C.cs_ctx_drop(cContext)
-		return
-	}
-
-	// install the server message callback
-	rc = C.ct_callback_wrapper_for_server_messages(cContext)
-	if rc != C.CS_SUCCEED {
-		fmt.Println("C.ct_callback failed for server messages")
-		C.cs_ctx_drop(cContext)
-		return
-	}
-
-	// install the client message callback
-	rc = C.ct_callback_wrapper_for_client_messages(cContext)
-	if rc != C.CS_SUCCEED {
-		fmt.Println("C.ct_callback failed for client messages")
-		C.cs_ctx_drop(cContext)
-		return
-	}
 }
 
 func (d *drv) Open(dsn string) (driver.Conn, error) {
-	// create connection
-	cConnWrapper := (connWrapper)(C.ct_con_alloc_wrapper(cContext))
-	if cConnWrapper.rc != C.CS_SUCCEED {
-		return nil, makeError(cConnWrapper.rc, "C.ct_con_alloc failed")
-	}
-
 	dsnInfo, err := libase.ParseDSN(dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to parse DSN: %v", err)
 	}
 
-	// set user name
-	cUsername := unsafe.Pointer(C.CString(dsnInfo.Username))
-	defer C.free(unsafe.Pointer(cUsername))
-	rc := C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_USERNAME, cUsername, C.CS_NULLTERM, nil)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_con_props failed for C.CS_USERNAME")
-	}
-
-	// set password encryption
-	cTrue := C.CS_TRUE
-	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_EXTENDED_ENCRYPTION, unsafe.Pointer(&cTrue), C.CS_UNUSED, nil)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SEC_EXTENDED_ENCRYPTION")
-	}
-	cFalse := C.CS_FALSE
-	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SEC_NON_ENCRYPTION_RETRY, unsafe.Pointer(&cFalse), C.CS_UNUSED, nil)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SEC_NON_ENCRYPTION_RETRY")
-	}
-
-	// set password
-	cPassword := unsafe.Pointer(C.CString(dsnInfo.Password))
-	defer C.free(unsafe.Pointer(cPassword))
-	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_PASSWORD, cPassword, C.CS_NULLTERM, nil)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_con_props failed for C.CS_PASSWORD")
-	}
-
-	// set hostname port
-	cHostPort := unsafe.Pointer(C.CString(dsnInfo.Host + " " + dsnInfo.Port))
-	defer C.free(unsafe.Pointer(cHostPort))
-	rc = C.ct_con_props(cConnWrapper.conn, C.CS_SET, C.CS_SERVERADDR, cHostPort, C.CS_NULLTERM, nil)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_con_props failed for C.CS_SERVERADDR")
-	}
-
-	// connect
-	rc = C.ct_connect(cConnWrapper.conn, nil, 0)
-	if rc != C.CS_SUCCEED {
-		C.ct_con_drop(cConnWrapper.conn)
-		return nil, makeError(rc, "C.ct_connect failed")
-	}
-
-	// return connection
-	return &connection{conn: cConnWrapper.conn}, nil
+	return newConnection(*dsnInfo)
 }
 
 func (connection *connection) Prepare(query string) (driver.Stmt, error) {
@@ -185,19 +89,7 @@ func (connection *connection) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (connection *connection) Close() error {
-	// close the connection
-	rc := C.ct_close(connection.conn, C.CS_UNUSED)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_close failed")
-	}
-
-	// drop the connection
-	rc = C.ct_con_drop(connection.conn)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_con_drop failed")
-	}
-
-	return nil
+	return connection.drop()
 }
 
 func (connection *connection) Begin() (driver.Tx, error) {
