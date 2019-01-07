@@ -13,7 +13,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"reflect"
 	"time"
 	"unsafe"
 
@@ -47,12 +46,6 @@ type statement struct {
 	stmt  *C.CS_COMMAND
 	conn  *C.CS_CONNECTION
 	Ok    bool
-}
-
-// rows is the struct which represents a database result set
-type rows struct {
-	stmt *C.CS_COMMAND
-	conn *C.CS_CONNECTION
 }
 
 //keep track of rows affected after inserts and updates
@@ -146,56 +139,6 @@ func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, 
 func (connection *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
 	// TODO
 	return nil, nil
-}
-
-func (rows *rows) Close() error {
-	// TODO
-	return nil
-}
-
-func (rows *rows) Columns() []string {
-	// TODO
-	columnNames := make([]string, 1)
-	return columnNames
-}
-
-func (rows *rows) ColumnTypeDatabaseTypeName(index int) string {
-	// TODO
-	return ""
-}
-
-func (rows *rows) ColumnTypeNullable(index int) (bool, bool) {
-	// TODO
-	return false, false
-}
-
-func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
-	// TODO
-	return 0, 0, false
-}
-
-func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
-	// TODO
-	return 0, false
-}
-
-func (rows *rows) ColumnTypeScanType(index int) reflect.Type {
-	// TODO
-	return nil
-}
-
-func (rows *rows) Next(dest []driver.Value) error {
-	// TODO
-	return nil
-}
-
-func (rows *rows) HasNextResultSet() bool {
-	return true
-}
-
-func (rows *rows) NextResultSet() error {
-	// TODO
-	return nil
 }
 
 func (connection *connection) Ping(ctx context.Context) error {
@@ -296,7 +239,7 @@ func setTimeout(statement *statement, timeout float64) error {
 func (statement *statement) Query(args []driver.Value) (driver.Rows, error) {
 	// TODO: bind parameters / args
 	// TODO: execute statement
-	return &rows{stmt: statement.stmt, conn: statement.conn}, nil
+	return &rows{cmd: &csCommand{statement.stmt}}, nil
 }
 
 func (result result) LastInsertId() (int64, error) {
