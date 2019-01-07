@@ -66,5 +66,39 @@ func main() {
 			return
 		}
 		fmt.Printf("Rows affected: %d\n", affectedRows)
+	case "query":
+		rows, err := db.Query(strings.Join(remainder, " "))
+		if err != nil {
+			log.Printf("Query failed: %v", err)
+			return
+		}
+		defer rows.Close()
+
+		colNames, err := rows.Columns()
+		if err != nil {
+			log.Printf("Failed to retrieve column names: %v", err)
+			return
+		}
+		fmt.Printf("|")
+		for _, colName := range colNames {
+			fmt.Printf(" %s |", colName)
+		}
+		fmt.Printf("\n")
+
+		var a int
+		var b string
+
+		for rows.Next() {
+			err := rows.Scan(&a, &b)
+			if err != nil {
+				log.Printf("Error retrieving rows: %v", err)
+				return
+			}
+			fmt.Printf("| %d | %s |\n", a, b)
+		}
+		if err := rows.Err(); err != nil {
+			log.Printf("Error preparing rows: %v", err)
+			return
+		}
 	}
 }

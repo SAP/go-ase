@@ -136,9 +136,22 @@ func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, 
 	return result, nil
 }
 
-func (connection *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	// TODO
-	return nil, nil
+func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
+	cmd, err := conn.exec(query)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to send command: %v", err)
+	}
+
+	rows, result, err := cmd.results()
+	if err != nil {
+		return nil, fmt.Errorf("Received error when preparing rows: %v", err)
+	}
+
+	if result != nil {
+		return nil, fmt.Errorf("Received results when querying")
+	}
+
+	return rows, nil
 }
 
 func (connection *connection) Ping(ctx context.Context) error {
