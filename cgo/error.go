@@ -15,7 +15,7 @@ import (
 //
 // The return code is turned into a message according to the Client
 // Library Programmers Guide.
-func makeError(retcode C.CS_RETCODE, message string) error {
+func makeError(retcode C.CS_RETCODE, message string, args ...interface{}) error {
 	// TODO parse retcode as integer and provide a map mapping error
 	// codes to strings to consumers in addition to MakeError.
 	var s string
@@ -32,5 +32,5 @@ func makeError(retcode C.CS_RETCODE, message string) error {
 		s = "Unknown error code: " + strconv.FormatInt(int64(retcode), 10)
 	}
 
-	return fmt.Errorf("%s: %s", message, s)
+	return fmt.Errorf("%s: %s", fmt.Sprintf(message, args...), s)
 }
