@@ -118,19 +118,19 @@ func (connection *connection) BeginTx(ctx context.Context, opts driver.TxOptions
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
 	// TODO: driver.Value handling
 
-	cmd, cmdFree, err := conn.exec(query)
+	cmd, err := conn.exec(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
-	defer cmdFree()
+	defer cmd.drop()
 
-	rows, result, err := results(cmd)
+	rows, result, err := cmd.results()
 	if err != nil {
 		return nil, fmt.Errorf("Received error when reading results: %v", err)
 	}
 
 	if rows != nil {
-		return nil, fmt.Errorf("Received rows when executing a language command")
+		return nil, fmt.Errorf("Received rows when executing an exec")
 	}
 
 	return result, nil
