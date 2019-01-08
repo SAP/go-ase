@@ -197,6 +197,7 @@ func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 }
 
 func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
+	// TODO
 	switch rows.colASEType[index].GoType().(type) {
 	default:
 		return 0, false
