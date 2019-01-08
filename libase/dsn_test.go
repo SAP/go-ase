@@ -6,6 +6,50 @@ import (
 	"testing"
 )
 
+func TestDsnInfo_AsSimple(t *testing.T) {
+	cases := map[string]struct {
+		dsn      DsnInfo
+		expected string
+	}{
+		"Only required information": {
+			dsn: DsnInfo{
+				Host:     "hostname",
+				Port:     "4901",
+				Username: "user",
+				Password: "passwd",
+			},
+			expected: "username='user' password='passwd' host='hostname' port='4901'",
+		},
+		"Everything": {
+			dsn: DsnInfo{
+				Host:     "hostname",
+				Port:     "4901",
+				Username: "user",
+				Password: "passwd",
+				Database: "db_example",
+				ConnectProps: url.Values{
+					"foo": []string{"bar"},
+					"bar": []string{"", "baz"},
+				},
+			},
+			expected: "username='user' password='passwd' host='hostname' port='4901' database='db_example' foo='bar' bar='' bar='baz'",
+		},
+	}
+
+	for name, cas := range cases {
+		t.Run(name,
+			func(t *testing.T) {
+				result := cas.dsn.AsSimple()
+				if result != cas.expected {
+					t.Errorf("Received invalid simple URI")
+					t.Errorf("Expected: %s", cas.expected)
+					t.Errorf("Received: %s", result)
+				}
+			},
+		)
+	}
+}
+
 func TestParseDsnUri(t *testing.T) {
 	cases := map[string]struct {
 		dsn     string

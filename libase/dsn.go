@@ -14,6 +14,33 @@ type DsnInfo struct {
 	ConnectProps                             url.Values
 }
 
+func (dsnInfo DsnInfo) AsSimple() string {
+	ret := []string{}
+
+	fields := map[string]string{
+		"host":     dsnInfo.Host,
+		"port":     dsnInfo.Port,
+		"username": dsnInfo.Username,
+		"password": dsnInfo.Password,
+		"database": dsnInfo.Database,
+	}
+
+	for _, key := range []string{"username", "password", "host", "port", "database"} {
+		value := fields[key]
+		if value != "" {
+			ret = append(ret, fmt.Sprintf("%s='%s'", key, value))
+		}
+	}
+
+	for key, valueL := range dsnInfo.ConnectProps {
+		for _, value := range valueL {
+			ret = append(ret, fmt.Sprintf("%s='%s'", key, value))
+		}
+	}
+
+	return strings.Join(ret, " ")
+}
+
 // ParseDSN parses a DSN into a DsnInfo struct.
 //
 // Accepted DSNs are either in URI or simple form:
