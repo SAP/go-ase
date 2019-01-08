@@ -155,33 +155,19 @@ func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, e
 }
 
 func (connection *connection) Ping(ctx context.Context) error {
-	var cCmd *C.CS_COMMAND
-
-	// allocate the command
-	rc := C.ct_cmd_alloc(connection.conn, &cCmd)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_cmd_alloc failed")
-	}
-	// at the end drop the command
-	defer C.ct_cmd_drop(cCmd)
-
-	// fill the command
-	cQuery := C.CString("SELECT 'PING'")
-	rc = C.ct_command(cCmd, C.CS_LANG_CMD, cQuery, C.CS_NULLTERM, C.CS_UNUSED)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_command failed")
-	}
-
-	// send the command
-	rc = C.ct_send(cCmd)
-	if rc != C.CS_SUCCEED {
+	cmd, err := connection.exec("SELECT 'PING'")
+	if err != nil {
 		return driver.ErrBadConn
 	}
 
-	// cancel the results
-	rc = C.ct_cancel(nil, cCmd, C.CS_CANCEL_ALL)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_cancel failed")
+	_, _, err = cmd.results()
+	if err != nil {
+		return driver.ErrBadConn
+	}
+
+	err = cmd.cancel()
+	if err != nil {
+		return driver.ErrBadConn
 	}
 
 	return nil
