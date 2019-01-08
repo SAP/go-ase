@@ -19,8 +19,8 @@ type csContext struct {
 	connections uint
 }
 
-// ctx is the global context used by all connections.
-var ctx = &csContext{}
+// driverCtx is the global context used by all connections.
+var driverCtx = &csContext{}
 
 // init performs two actions based on the state of context.ctx:
 // context.ctx is not nil: Increment connection counter and return

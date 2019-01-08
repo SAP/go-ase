@@ -18,14 +18,14 @@ type connection struct {
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
 func newConnection(dsn libase.DsnInfo) (*connection, error) {
-	err := ctx.init()
+	err := driverCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
 	conn := &connection{}
 
-	retval := C.ct_con_alloc(ctx.ctx, &conn.conn)
+	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
 	if retval != C.CS_SUCCEED {
 		conn.drop()
 		return nil, makeError(retval, "C.ct_con_alloc failed")
@@ -88,7 +88,7 @@ func newConnection(dsn libase.DsnInfo) (*connection, error) {
 func (conn *connection) drop() error {
 	// Call context.drop when exiting this function to decrease the
 	// connection counter and potentially deallocate the context.
-	defer ctx.drop()
+	defer driverCtx.drop()
 
 	retval := C.ct_close(conn.conn, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {
