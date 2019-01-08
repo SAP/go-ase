@@ -30,8 +30,15 @@ func main() {
 		}
 	}
 
-	db, err := sql.Open("ase", fmt.Sprintf("username='%s' password='%s' host='%s' port=%s",
-		*fUser, pass, *fHost, *fPort))
+	dsn := libase.DsnInfo{
+		Host:     *fHost,
+		Port:     *fPort,
+		Username: *fUser,
+		Password: *fPass,
+		Database: *fDatabase,
+	}
+
+	db, err := sql.Open("ase", dsn.AsSimple())
 	if err != nil {
 		log.Printf("Error opening database connection: %v", err)
 		return
