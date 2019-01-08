@@ -122,25 +122,13 @@ func (conn *connection) Close() error {
 }
 
 func (conn *connection) Ping(ctx context.Context) error {
-	//TODO context
-	cmd, err := conn.exec("SELECT 'PING'")
-	if err != nil {
-		return driver.ErrBadConn
-	}
-
-	_, _, err = cmd.results()
-	if err != nil {
-		return driver.ErrBadConn
-	}
-
-	err = cmd.cancel()
+	rows, err := conn.QueryContext(ctx, "SELECT 'PING'", []driver.NamedValue{})
 	if err != nil {
 		return driver.ErrBadConn
 	}
 
 	return nil
 }
-
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
 	// TODO: driver.Value handling
