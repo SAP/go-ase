@@ -137,6 +137,20 @@ func TestParseDsnSimple(t *testing.T) {
 				},
 			},
 		},
+		"Simple DSN with empty value": {
+			dsn: "username=user password=password host=hostname port=4901 database=\"\" foo=bar bar= bar=baf",
+			dsnInfo: &DsnInfo{
+				Host:     "hostname",
+				Port:     "4901",
+				Username: "user",
+				Password: "password",
+				Database: "",
+				ConnectProps: url.Values{
+					"foo": []string{"bar"},
+					"bar": []string{"", "baf"},
+				},
+			},
+		},
 	}
 
 	for name, cas := range cases {

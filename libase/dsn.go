@@ -126,9 +126,11 @@ func parseDsnSimple(dsn string) (*DsnInfo, error) {
 		key, value := partS[0], partS[1]
 
 		// Remove quotation from value
-		for _, quot := range quotations {
-			if value[0] == quot && value[len(value)-1] == quot {
-				value = value[1 : len(value)-1]
+		if value != "" {
+			for _, quot := range quotations {
+				if value[0] == quot && value[len(value)-1] == quot {
+					value = value[1 : len(value)-1]
+				}
 			}
 		}
 
