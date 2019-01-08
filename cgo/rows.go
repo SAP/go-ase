@@ -190,23 +190,26 @@ func (rows *rows) NextResultSet() error {
 }
 
 func (rows *rows) ColumnTypeDatabaseTypeName(index int) string {
-	// TODO
-	return ""
+	return rows.colASEType[index].String()
 }
 
 func (rows *rows) ColumnTypeNullable(index int) (bool, bool) {
-	// TODO
-	return false, false
+	return (rows.dataFmts[index].status|C.CS_CANBENULL == C.CS_CANBENULL), true
 }
 
 func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
-	// TODO
-	return 0, 0, false
+	if rows.dataFmts[index].scale == 0 && rows.dataFmts[index].precision == 9 {
+		return 0, 0, false
+	}
+
+	return int64(rows.dataFmts[index].scale), int64(rows.dataFmts[index].precision), true
 }
 
 func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
-	// TODO
-	return 0, false
+	switch rows.colASEType[index].GoType().(type) {
+	default:
+		return 0, false
+	}
 }
 
 func (rows *rows) ColumnTypeScanType(index int) reflect.Type {
