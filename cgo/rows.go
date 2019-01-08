@@ -180,15 +180,6 @@ func (rows *rows) Next(dest []driver.Value) error {
 	return nil
 }
 
-func (rows *rows) HasNextResultSet() bool {
-	return true
-}
-
-func (rows *rows) NextResultSet() error {
-	// TODO
-	return nil
-}
-
 func (rows *rows) ColumnTypeDatabaseTypeName(index int) string {
 	return rows.colASEType[index].String()
 }
