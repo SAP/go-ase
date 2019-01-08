@@ -10,8 +10,8 @@ import (
 // DsnInfo represents all required information to open a connection to
 // an ASE server.
 type DsnInfo struct {
-	Host, Port, Username, Password string
-	ConnectProps                   url.Values
+	Host, Port, Username, Password, Database string
+	ConnectProps                             url.Values
 }
 
 // ParseDSN parses a DSN into a DsnInfo struct.
@@ -147,6 +147,8 @@ func parseDsnSimple(dsn string) (*DsnInfo, error) {
 			fallthrough
 		case "password":
 			dsni.Password = value
+		case "database":
+			dsni.Database = value
 		default:
 			dsni.ConnectProps.Add(key, value)
 		}
