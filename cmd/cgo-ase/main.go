@@ -48,7 +48,7 @@ func main() {
 	// test the database connection
 	err = db.Ping()
 	if err != nil {
-		log.Printf("Pining the database failed: %v", err)
+		log.Printf("Pinging the server failed: %v", err)
 		return
 	}
 
@@ -92,17 +92,26 @@ func main() {
 		}
 		fmt.Printf("\n")
 
-		var a int
-		var b string
+		cells := make([]interface{}, len(colNames))
+
+		cellsRef := make([]interface{}, len(colNames))
+		for i := range cells {
+			cellsRef[i] = &(cells[i])
+		}
 
 		for rows.Next() {
-			err := rows.Scan(&a, &b)
+			err := rows.Scan(cellsRef...)
 			if err != nil {
 				log.Printf("Error retrieving rows: %v", err)
 				return
 			}
-			fmt.Printf("| %d | %s |\n", a, b)
+
+			for _, cell := range cells {
+				fmt.Printf("| %v ", cell)
+			}
+			fmt.Printf("|\n")
 		}
+
 		if err := rows.Err(); err != nil {
 			log.Printf("Error preparing rows: %v", err)
 			return
