@@ -4,6 +4,7 @@ package cgo
 //#include "ctlib.h"
 import "C"
 import (
+	"context"
 	"fmt"
 	"io"
 	"unsafe"
@@ -91,6 +92,34 @@ func (conn *connection) exec(query string) (*csCommand, error) {
 	return cmd, nil
 }
 
+func (conn *connection) execContext(ctx context.Context, query string) (*csCommand, error) {
+	recvCmd := make(chan *csCommand, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		cmd, err := conn.exec(query)
+		if err != nil {
+			recvErr <- err
+			return
+		}
+		recvCmd <- cmd
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case cmd := <-recvCmd:
+			if cmd != nil {
+				return cmd, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+}
+
 // resultsHelper reads a single response from the command structure and
 // handles it.
 //
@@ -162,4 +191,35 @@ func (cmd *csCommand) results() (*rows, *result, error) {
 	}
 
 	return nil, result, nil
+}
+
+func (cmd *csCommand) resultsContext(ctx context.Context) (*rows, *result, error) {
+	recvRows := make(chan *rows, 1)
+	recvResult := make(chan *result, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		rows, result, err := cmd.results()
+		recvErr <- err
+		recvRows <- rows
+		recvResult <- result
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case rows := <-recvRows:
+			if rows != nil {
+				return rows, nil, nil
+			}
+		case result := <-recvResult:
+			if result != nil {
+				return nil, result, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
 }
