@@ -126,6 +126,20 @@ func (conn *connection) Ping(ctx context.Context) error {
 	if err != nil {
 		return driver.ErrBadConn
 	}
+	defer rows.Close()
+
+	cols := rows.Columns()
+	cellRefs := make([]driver.Value, len(cols))
+
+	for {
+		err := rows.Next(cellRefs)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("Error occurred while exhausting result set: %v", err)
+		}
+	}
 
 	return nil
 }
