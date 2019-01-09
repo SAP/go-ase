@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/SAP/go-ase/libase"
@@ -21,13 +22,18 @@ import (
 const DriverName = "ase"
 
 // drv is the struct on which we later call Open() to get a connection.
-type drv struct{}
-
-func init() {
-	sql.Register(DriverName, &drv{})
+type aseDrv struct {
+	statementCounter  int
+	statementCounterM sync.Mutex
 }
 
-func (d *drv) Open(dsn string) (driver.Conn, error) {
+var drv = &aseDrv{}
+
+func init() {
+	sql.Register(DriverName, drv)
+}
+
+func (d *aseDrv) Open(dsn string) (driver.Conn, error) {
 	dsnInfo, err := libase.ParseDSN(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse DSN: %v", err)
