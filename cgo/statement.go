@@ -10,6 +10,29 @@ type statement struct {
 	cmd   *C.CS_COMMAND
 }
 
+func (conn *connection) Prepare(query string) (driver.Stmt, error) {
+	return conn.PrepareContext(context.Background(), query)
+}
+
+func (conn *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	stmt := &statement{}
+
+	drv.statementCounterM.Lock()
+	drv.statementCounter += 1
+	stmt.name = C.CString(string(drv.statementCounter))
+	drv.statementCounterM.Unlock()
+
+	q := C.CString(query)
+	defer C.free(unsafe.Pointer(q))
+	retval := C.ct_dynamic(stmt.cmd, C.CS_PREPARE, stmt.name, C.CS_NULLTERM, q, C.CS_NULLTERM)
+	if retval != C.CS_SUCCEED {
+		stmt.Close()
+		return nil, makeError(retval, "Failed to initialize dynamic command")
+	}
+
+	return stmt, nil
+}
+
 func (statement *statement) Close() error {
 	name := C.CString("myquery")
 	defer C.free(unsafe.Pointer(name))
