@@ -4,7 +4,10 @@ package cgo
 //#include "ctlib.h"
 import "C"
 import (
+	"context"
+	"database/sql/driver"
 	"fmt"
+	"io"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -145,15 +148,17 @@ func (conn *connection) Ping(ctx context.Context) error {
 }
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	// TODO: driver.Value handling
+	return conn.ExecContext(context.Background(), query, libase.ValuesToNamedValues(args))
+}
 
-	cmd, err := conn.exec(query)
+func (conn *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	cmd, err := conn.execContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 	defer cmd.drop()
 
-	rows, result, err := cmd.results()
+	rows, result, err := cmd.resultsContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Received error when reading results: %v", err)
 	}
@@ -165,18 +170,17 @@ func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, 
 	return result, nil
 }
 
-func (conn *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	// TODO
-	return nil, nil
+func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
+	return conn.QueryContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
-func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	cmd, err := conn.exec(query)
+func (conn *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	cmd, err := conn.execContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 
-	rows, result, err := cmd.results()
+	rows, result, err := cmd.resultsContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Received error when preparing rows: %v", err)
 	}
