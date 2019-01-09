@@ -95,7 +95,7 @@ func (conn *connection) exec(query string) (*csCommand, error) {
 // handles it.
 //
 // The function is designed to be used for the results function.
-func resultsHelper(cmd *csCommand) (*rows, error) {
+func (cmd *csCommand) resultsHelper() (*rows, error) {
 	var resultType C.CS_INT
 	retval := C.ct_results(cmd.cmd, &resultType)
 
@@ -115,7 +115,7 @@ func resultsHelper(cmd *csCommand) (*rows, error) {
 	case C.CS_CMD_SUCCEED:
 		// After CS_CMD_SUCCEED CS_CMD_DONE must be returned, hence the
 		// resultsHelper is being called again.
-		return resultsHelper(cmd)
+		return cmd.resultsHelper()
 	case C.CS_CMD_DONE:
 		// TODO Check that CS_END_RESULTS is returned one last time
 		return nil, nil
@@ -141,7 +141,7 @@ func resultsHelper(cmd *csCommand) (*rows, error) {
 // results reads responses from the command structure until no more
 // responses are available.
 func (cmd *csCommand) results() (*rows, *result, error) {
-	rows, err := resultsHelper(cmd)
+	rows, err := cmd.resultsHelper()
 	if err != nil {
 		return nil, nil, err
 	}
