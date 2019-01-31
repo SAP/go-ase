@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	_ "github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/libase"
 	"github.com/bgentry/speakeasy"
 )
 
@@ -17,6 +18,87 @@ var (
 	fUser = flag.String("u", "sa", "database user name")
 	fPass = flag.String("p", "", "database user password")
 )
+
+func exec(db *sql.DB, q string) error {
+	result, err := db.Exec(q)
+	if err != nil {
+		return fmt.Errorf("Executing the statement failed: %v", err)
+	}
+
+	affectedRows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("Retrieving the affected rows failed: %v", err)
+	}
+
+	fmt.Printf("Rows affected: %d\n", affectedRows)
+	return nil
+}
+
+func query(db *sql.DB, q string) error {
+	rows, err := db.Query(q)
+	if err != nil {
+		return fmt.Errorf("Query failed: %v", err)
+	}
+	defer rows.Close()
+
+	colNames, err := rows.Columns()
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve column names: %v", err)
+	}
+
+	fmt.Printf("|")
+	for _, colName := range colNames {
+		fmt.Printf(" %s |", colName)
+	}
+	fmt.Printf("\n")
+
+	cells := make([]interface{}, len(colNames))
+
+	cellsRef := make([]interface{}, len(colNames))
+	for i := range cells {
+		cellsRef[i] = &(cells[i])
+	}
+
+	for rows.Next() {
+		err := rows.Scan(cellsRef...)
+		if err != nil {
+			return fmt.Errorf("Error retrieving rows: %v", err)
+		}
+
+		for _, cell := range cells {
+			fmt.Printf("| %v ", cell)
+		}
+		fmt.Printf("|\n")
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("Error preparing rows: %v", err)
+	}
+
+	return nil
+}
+
+func subcmd(db *sql.DB, part string) {
+	partS := strings.Split(part, " ")
+	cmd := partS[0]
+	q := strings.Join(partS[1:], " ")
+
+	switch cmd {
+	case "exec":
+		err := exec(db, q)
+		if err != nil {
+			log.Printf("Exec errored: %v", err)
+		}
+	case "query":
+		err := query(db, q)
+		if err != nil {
+			log.Printf("Query errored: %v", err)
+		}
+	default:
+		log.Printf("Unknown command: %s", cmd)
+	}
+
+}
 
 func main() {
 	flag.Parse()
@@ -35,7 +117,6 @@ func main() {
 		Port:     *fPort,
 		Username: *fUser,
 		Password: *fPass,
-		Database: *fDatabase,
 	}
 
 	db, err := sql.Open("ase", dsn.AsSimple())
@@ -56,65 +137,8 @@ func main() {
 		return
 	}
 
-	subcmd := flag.Args()[0]
-	remainder := flag.Args()[1:]
-
-	switch subcmd {
-	case "exec":
-		result, err := db.Exec(strings.Join(remainder, " "))
-		if err != nil {
-			log.Printf("Executing the statement failed: %v", err)
-			return
-		}
-
-		affectedRows, err := result.RowsAffected()
-		if err != nil {
-			log.Printf("Retrieving the affected rows failed: %v", err)
-			return
-		}
-		fmt.Printf("Rows affected: %d\n", affectedRows)
-	case "query":
-		rows, err := db.Query(strings.Join(remainder, " "))
-		if err != nil {
-			log.Printf("Query failed: %v", err)
-			return
-		}
-		defer rows.Close()
-
-		colNames, err := rows.Columns()
-		if err != nil {
-			log.Printf("Failed to retrieve column names: %v", err)
-			return
-		}
-		fmt.Printf("|")
-		for _, colName := range colNames {
-			fmt.Printf(" %s |", colName)
-		}
-		fmt.Printf("\n")
-
-		cells := make([]interface{}, len(colNames))
-
-		cellsRef := make([]interface{}, len(colNames))
-		for i := range cells {
-			cellsRef[i] = &(cells[i])
-		}
-
-		for rows.Next() {
-			err := rows.Scan(cellsRef...)
-			if err != nil {
-				log.Printf("Error retrieving rows: %v", err)
-				return
-			}
-
-			for _, cell := range cells {
-				fmt.Printf("| %v ", cell)
-			}
-			fmt.Printf("|\n")
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Printf("Error preparing rows: %v", err)
-			return
-		}
+	subcmds := strings.Split(strings.Join(flag.Args(), " "), "--")
+	for _, s := range subcmds {
+		subcmd(db, strings.TrimSpace(s))
 	}
 }
