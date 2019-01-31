@@ -166,7 +166,7 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 		}
 
 		if rows != nil {
-			log.Printf("rows is not nil - this should not be the case")
+			return nil, fmt.Errorf("rows is not nil: %v", rows)
 		}
 
 		if result != nil {
