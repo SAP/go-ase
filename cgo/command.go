@@ -16,6 +16,7 @@ type csCommand struct {
 
 // cancel cancels the current result set and drops the command.
 //
+// cancel automatically calls drop.
 // cancel cannot be called after drop.
 func (cmd *csCommand) cancel() error {
 	retval := C.ct_cancel(nil, cmd.cmd, C.CS_CANCEL_ALL)
@@ -23,42 +24,19 @@ func (cmd *csCommand) cancel() error {
 		return makeError(retval, "Error occurred while cancelling command")
 	}
 
-	retval = C.ct_cmd_drop(cmd.cmd)
-	if retval != C.CS_SUCCEED {
-		return makeError(retval, "Error while dropping command")
-	}
-
-	cmd.cmd = nil
-
-	return nil
+	return cmd.drop()
 }
 
 // drop finishes reading the results and drops the command.
 //
 // drop cannot be called after cancel.
 func (cmd *csCommand) drop() error {
-	// Retrieve results once more - this must return io.EOF as error,
-	// which indicates CS_END_RESULTS as return value of ct_results.
-	_, _, err := cmd.results()
-	if err != io.EOF {
-		err = fmt.Errorf("Expected io.EOF on final ct_results read, received: %v", err)
-	} else {
-		err = nil
-	}
-
 	retval := C.ct_cmd_drop(cmd.cmd)
 	if retval != C.CS_SUCCEED {
-		dropErr := makeError(retval, "Failed to drop command")
-		if err != nil {
-			return fmt.Errorf("%s; %s", dropErr, err)
-		} else {
-			return dropErr
-		}
+		return makeError(retval, "Failed to drop command")
 	}
-
 	cmd.cmd = nil
-
-	return err
+	return nil
 }
 
 // exec allocates, prepares and sends a command.
