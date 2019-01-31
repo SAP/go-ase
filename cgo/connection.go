@@ -190,13 +190,13 @@ func (conn *connection) QueryContext(ctx context.Context, query string, args []d
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 
-	rows, result, err := cmd.resultsContext(ctx)
+	rows, result, err := cmd.resultsHelper()
 	if err != nil {
-		return nil, fmt.Errorf("Received error when preparing rows: %v", err)
+		return nil, fmt.Errorf("Received error while retrieving results: %v", err)
 	}
 
 	if result != nil {
-		return nil, fmt.Errorf("Received results when querying")
+		return nil, fmt.Errorf("Received result when querying: %v", result)
 	}
 
 	return rows, nil
