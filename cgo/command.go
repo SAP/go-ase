@@ -98,8 +98,8 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 // resultsHelper reads a single response from the command structure and
 // handles it.
 //
-// The function is designed to be used for the results function.
-func (cmd *csCommand) resultsHelper() (*rows, error) {
+// When no more results are available this method returns io.EOF.
+func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 	var resultType C.CS_INT
 	retval := C.ct_results(cmd.cmd, &resultType)
 
@@ -108,37 +108,57 @@ func (cmd *csCommand) resultsHelper() (*rows, error) {
 		// handle result type
 		break
 	case C.CS_END_RESULTS:
-		return nil, io.EOF // no more responses available, quit
+		return nil, nil, io.EOF // no more responses available, quit
 	case C.CS_FAIL:
-		return nil, makeError(retval, "Command failed")
+		return nil, nil, makeError(retval, "Command failed")
 	default:
-		return nil, makeError(retval, "Invalid return code")
+		return nil, nil, makeError(retval, "Invalid return code")
 	}
 
 	switch resultType {
-	case C.CS_CMD_SUCCEED:
-		// After CS_CMD_SUCCEED CS_CMD_DONE must be returned, hence the
-		// resultsHelper is being called again.
-		return cmd.resultsHelper()
-	case C.CS_CMD_DONE:
-		// TODO Check that CS_END_RESULTS is returned one last time
-		return nil, nil
+	// fetchable results
+	case C.CS_COMPUTE_RESULT, C.CS_CURSOR_RESULT, C.CS_PARAM_RESULT:
+		fallthrough
+	case C.CS_ROW_RESULT, C.CS_STATUS_RESULT:
+		rows, err := newRows(cmd)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return rows, nil, nil
+
+	// non-fetchable results
+	case C.CS_COMPUTEFMT_RESULT:
+		return nil, nil, nil
+	case C.CS_MSG_RESULT:
+		return nil, nil, nil
+	case C.CS_ROWFMT_RESULT:
+		return nil, nil, nil
+	case C.CS_DESCRIBE_RESULT:
+		return nil, nil, nil
+
+	// other result types
 	case C.CS_CMD_FAIL:
 		err := cmd.cancel()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return nil, makeError(retval, "Command failed, cancelled")
-	case C.CS_ROW_RESULT, C.CS_PARAM_RESULT, C.CS_STATUS_RESULT:
-		rows, err := newRows(cmd)
-		if err != nil {
-			return nil, err
+		return nil, nil, makeError(retval, "Command failed, cancelled")
+	case C.CS_CMD_DONE:
+		var rowsAffected C.CS_INT
+		retval := C.ct_res_info(cmd.cmd, C.CS_ROW_COUNT, unsafe.Pointer(&rowsAffected),
+			C.CS_UNUSED, nil)
+		if retval != C.CS_SUCCEED {
+			return nil, nil, makeError(retval, "Failed to read affected rows")
 		}
 
-		return rows, nil
+		return nil, &result{int64(rowsAffected)}, nil
+	case C.CS_CMD_SUCCEED:
+		return nil, nil, nil
+
 	default:
 		cmd.cancel()
-		return nil, fmt.Errorf("Unknown result type: %d", resultType)
+		return nil, nil, fmt.Errorf("Unknown result type: %d", resultType)
 	}
 }
 
