@@ -158,16 +158,26 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 	}
 	defer cmd.drop()
 
-	rows, result, err := cmd.resultsContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Received error when reading results: %v", err)
+	var resResult driver.Result
+
+	for rows, result, err := cmd.resultsHelper(); err != io.EOF; rows, result, err = cmd.resultsHelper() {
+		if err != nil {
+			return nil, fmt.Errorf("Received error reading results: %v", err)
+		}
+
+		if rows != nil {
+			log.Printf("rows is not nil - this should not be the case")
+		}
+
+		if result != nil {
+			if resResult != nil {
+				return nil, fmt.Errorf("Received more than one result: %v, %v", resResult, result)
+			}
+			resResult = result
+		}
 	}
 
-	if rows != nil {
-		return nil, fmt.Errorf("Received rows when executing an exec")
-	}
-
-	return result, nil
+	return resResult, nil
 }
 
 func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
