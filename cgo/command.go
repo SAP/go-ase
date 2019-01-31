@@ -75,11 +75,8 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 	recvErr := make(chan error, 1)
 	go func() {
 		cmd, err := conn.exec(query)
-		if err != nil {
-			recvErr <- err
-			return
-		}
 		recvCmd <- cmd
+		recvErr <- err
 	}()
 
 	for {
