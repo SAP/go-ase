@@ -18,6 +18,13 @@ type statement struct {
 	cmd   *C.CS_COMMAND
 }
 
+// Interface satisfaction checks
+var (
+	_ driver.Stmt             = (*statement)(nil)
+	_ driver.StmtExecContext  = (*statement)(nil)
+	_ driver.StmtQueryContext = (*statement)(nil)
+)
+
 func (conn *connection) Prepare(query string) (driver.Stmt, error) {
 	return conn.PrepareContext(context.Background(), query)
 }

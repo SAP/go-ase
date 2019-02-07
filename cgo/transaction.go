@@ -14,6 +14,9 @@ type transaction struct {
 	conn *connection
 }
 
+// Interface satisfaction checks
+var _ driver.Tx = (*transaction)(nil)
+
 func (conn *connection) Begin() (driver.Tx, error) {
 	return conn.BeginTx(context.Background(), driver.TxOptions{Isolation: 0, ReadOnly: false})
 }

@@ -1,11 +1,17 @@
 package cgo
 
-import "errors"
+import (
+	"database/sql/driver"
+	"errors"
+)
 
 //keep track of rows affected after inserts and updates
 type result struct {
 	rowsAffected int64
 }
+
+// Interface satisfaction checks
+var _ driver.Result = result{}
 
 func (result result) LastInsertId() (int64, error) {
 	// TODO

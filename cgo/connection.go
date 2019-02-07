@@ -18,6 +18,18 @@ type connection struct {
 	conn *C.CS_CONNECTION
 }
 
+// Interface satisfaction checks
+var (
+	_ driver.Conn               = (*connection)(nil)
+	_ driver.ConnBeginTx        = (*connection)(nil)
+	_ driver.ConnPrepareContext = (*connection)(nil)
+	_ driver.Execer             = (*connection)(nil)
+	_ driver.ExecerContext      = (*connection)(nil)
+	_ driver.Pinger             = (*connection)(nil)
+	_ driver.Queryer            = (*connection)(nil)
+	_ driver.QueryerContext     = (*connection)(nil)
+)
+
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
 func newConnection(dsn libase.DsnInfo) (*connection, error) {

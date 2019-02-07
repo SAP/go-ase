@@ -34,6 +34,16 @@ type rows struct {
 	colData []unsafe.Pointer
 }
 
+// Interface satisfaction checks
+var (
+	_ driver.Rows                           = (*rows)(nil)
+	_ driver.RowsColumnTypeDatabaseTypeName = (*rows)(nil)
+	_ driver.RowsColumnTypeLength           = (*rows)(nil)
+	_ driver.RowsColumnTypeNullable         = (*rows)(nil)
+	_ driver.RowsColumnTypePrecisionScale   = (*rows)(nil)
+	_ driver.RowsColumnTypeScanType         = (*rows)(nil)
+)
+
 func newRows(cmd *csCommand) (*rows, error) {
 	var numCols C.CS_INT
 	retval := C.ct_res_info(cmd.cmd, C.CS_NUMDATA, unsafe.Pointer(&numCols), C.CS_UNUSED, nil)

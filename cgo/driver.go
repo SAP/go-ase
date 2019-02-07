@@ -27,7 +27,11 @@ type aseDrv struct {
 	statementCounterM sync.Mutex
 }
 
-var drv = &aseDrv{}
+var (
+	// Interface satisfaction checks
+	_   driver.Driver = (*aseDrv)(nil)
+	drv               = &aseDrv{}
+)
 
 func init() {
 	sql.Register(DriverName, drv)
