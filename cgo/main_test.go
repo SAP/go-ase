@@ -2,7 +2,10 @@ package cgo
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/SAP/go-ase/libase"
@@ -34,5 +37,53 @@ func TestMain(m *testing.M) {
 	testDsn.Username = fromEnv("ASE_USER")
 	testDsn.Password = fromEnv("ASE_PASS")
 
-	os.Exit(m.Run())
+	// Create new database to run tests in
+	conn, err := newConnection(*testDsn)
+	if err != nil {
+		log.Printf("Failed to open connection to database: %v", err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	testDsn.Database = "db" + strconv.Itoa(rand.Int())
+
+	_, err = conn.Exec("use master", nil)
+	if err != nil {
+		log.Printf("Failed to switch database context to master: %v", err)
+		conn.Close()
+		os.Exit(1)
+	}
+
+	_, err = conn.Exec("create database "+testDsn.Database, nil)
+	conn.Close()
+	if err != nil {
+		log.Printf("Failed to create database %s: %v", testDsn.Database, err)
+		os.Exit(1)
+	}
+
+	// Run test suite
+	rc := m.Run()
+
+	// Delete test database
+	conn, err = newConnection(*testDsn)
+	if err != nil {
+		log.Printf("Failed to open connection to database: %v", err)
+		os.Exit(1)
+	}
+
+	_, err = conn.Exec("use master", nil)
+	if err != nil {
+		log.Printf("Failed to switch database context to master: %v", err)
+		conn.Close()
+		os.Exit(1)
+	}
+
+	_, err = conn.Exec("drop database "+testDsn.Database, nil)
+	conn.Close()
+	if err != nil {
+		log.Printf("Failed to drop database %s: %v", testDsn.Database, err)
+		os.Exit(1)
+	}
+
+	os.Exit(rc)
 }
