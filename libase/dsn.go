@@ -10,22 +10,23 @@ import (
 // DsnInfo represents all required information to open a connection to
 // an ASE server.
 type DsnInfo struct {
-	Host, Port, Username, Password, Database string
-	ConnectProps                             url.Values
+	Host, Port, Username, Password, Userstorekey, Database string
+	ConnectProps                                           url.Values
 }
 
 func (dsnInfo DsnInfo) AsSimple() string {
 	ret := []string{}
 
 	fields := map[string]string{
-		"host":     dsnInfo.Host,
-		"port":     dsnInfo.Port,
-		"username": dsnInfo.Username,
-		"password": dsnInfo.Password,
-		"database": dsnInfo.Database,
+		"host":         dsnInfo.Host,
+		"port":         dsnInfo.Port,
+		"username":     dsnInfo.Username,
+		"password":     dsnInfo.Password,
+		"userstorekey": dsnInfo.Userstorekey,
+		"database":     dsnInfo.Database,
 	}
 
-	for _, key := range []string{"username", "password", "host", "port", "database"} {
+	for _, key := range []string{"username", "password", "host", "port", "userstorekey", "database"} {
 		value := fields[key]
 		if value != "" {
 			ret = append(ret, fmt.Sprintf("%s='%s'", key, value))
@@ -67,24 +68,36 @@ func ParseDSN(dsn string) (*DsnInfo, error) {
 		return nil, err
 	}
 
-	missingFields := []string{}
+	// Check ubiquitous properties
+	fields := map[string]string{
+		"Host": dsnInfo.Host,
+		"Port": dsnInfo.Port,
+	}
+	if err := checkFields(*dsnInfo, fields); err != nil {
+		return nil, err
+	}
 
-	checkFields := map[string]string{
-		"Host":     dsnInfo.Host,
-		"Port":     dsnInfo.Port,
+	// Check that any of the authentication methods are set
+	// This would also be caught by the checks further down, but this
+	// explicitly tells the user that either the userstorekey _or_
+	// a username/password combination can be used.
+	if len(dsnInfo.Userstorekey) == 0 && len(dsnInfo.Username) == 0 && len(dsnInfo.Password) == 0 {
+		return nil, fmt.Errorf("Either userstorekey or username and password must be set")
+	}
+
+	// Exit early if userstorekey is set and ignore username/password
+	// properties
+	if len(dsnInfo.Userstorekey) > 0 {
+		return dsnInfo, nil
+	}
+
+	// Check username/password
+	fields = map[string]string{
 		"Username": dsnInfo.Username,
 		"Password": dsnInfo.Password,
 	}
-
-	for field, value := range checkFields {
-		if value == "" {
-			missingFields = append(missingFields, field)
-		}
-	}
-
-	if len(missingFields) > 0 {
-		sort.Strings(missingFields)
-		return nil, fmt.Errorf("Missing fields: %s", strings.Join(missingFields, ", "))
+	if err := checkFields(*dsnInfo, fields); err != nil {
+		return nil, err
 	}
 
 	return dsnInfo, nil
@@ -176,6 +189,8 @@ func parseDsnSimple(dsn string) (*DsnInfo, error) {
 			fallthrough
 		case "password":
 			dsni.Password = value
+		case "userstorekey":
+			dsni.Userstorekey = value
 		case "database":
 			dsni.Database = value
 		default:
@@ -184,4 +199,21 @@ func parseDsnSimple(dsn string) (*DsnInfo, error) {
 	}
 
 	return dsni, nil
+}
+
+func checkFields(dsn DsnInfo, fields map[string]string) error {
+	missingFields := []string{}
+
+	for field, value := range fields {
+		if value == "" {
+			missingFields = append(missingFields, field)
+		}
+	}
+
+	if len(missingFields) == 0 {
+		return nil
+	}
+
+	sort.Strings(missingFields)
+	return fmt.Errorf("Missing fields: %s", strings.Join(missingFields, ", "))
 }
