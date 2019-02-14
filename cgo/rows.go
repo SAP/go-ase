@@ -121,19 +121,21 @@ func (rows *rows) Close() error {
 		}
 	}
 
-	r, _, err := rows.cmd.results()
-	if r != nil {
-		return fmt.Errorf("Received rows on final ct_results(): %+v", rows)
+	for r, _, err := rows.cmd.resultsHelper(); err != io.EOF; r, _, err = rows.cmd.resultsHelper() {
+		if err != nil {
+			return fmt.Errorf("Received error reading results: %v", err)
+		}
+
+		if r != nil {
+			return fmt.Errorf("Received rows reading results, exiting: %v", r)
+		}
 	}
 
-	if err != nil {
-		return fmt.Errorf("Received error on final ct_results(): %v", err)
-	}
-
-	err = rows.cmd.drop()
+	err := rows.cmd.drop()
 	if err != nil {
 		return fmt.Errorf("Error dropping command: %v", err)
 	}
+	rows.cmd = nil
 
 	return nil
 }
