@@ -18,6 +18,7 @@ var (
 	fUser         = flag.String("u", "sa", "database user name")
 	fPass         = flag.String("p", "", "database user password")
 	fUserstorekey = flag.String("k", "", "userstorekey")
+	fDatabase     = flag.String("D", "", "database")
 )
 
 func exec(db *sql.DB, q string) error {
@@ -119,6 +120,7 @@ func main() {
 		Username:     *fUser,
 		Password:     pass,
 		Userstorekey: *fUserstorekey,
+		Database:     *fDatabase,
 	}
 
 	db, err := sql.Open("ase", dsn.AsSimple())

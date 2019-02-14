@@ -108,17 +108,14 @@ func newConnection(dsn libase.DsnInfo) (*connection, error) {
 		return nil, makeError(retval, "C.ct_connect failed")
 	}
 
-	// // Set database
-	// if dsn.Database != "" {
-	// 	database := unsafe.Pointer(C.CString(dsn.Database))
-	// 	defer C.free(database)
-	// 	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_PROP_INITIAL_DATABASE, database,
-	// 		C.CS_NULLTERM, nil)
-	// 	if retval != C.CS_SUCCEED {
-	// 		conn.Close()
-	// 		return nil, makeError(retval, "C.ct_con_props failed for CS_PROP_INITIAL_DATABASE")
-	// 	}
-	// }
+	// Set database
+	if dsn.Database != "" {
+		_, err := conn.Exec("use "+dsn.Database, nil)
+		if err != nil {
+			conn.Close()
+			return nil, fmt.Errorf("Failed to connect to database %s: %v", dsn.Database, err)
+		}
+	}
 
 	return conn, nil
 }
