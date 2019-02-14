@@ -176,6 +176,7 @@
 #define CS_DATEORDER		(CS_INT)7343
 #define CS_12HOUR		(CS_INT)7344
 #define CS_DT_CONVFMT		(CS_INT)7345
+#define CS_BDT_CONVFMT		(CS_INT)7346
 
 /*
 ** The cs_strcmp() options.
@@ -692,8 +693,8 @@
 #define CS_PROP_FIPSMODE		(CS_INT)9232
 
 #define CS_SEC_COMMAND_ENCRYPTION	(CS_INT)9233
-
 #define CS_PROP_INPROC_ERROR_FAIL	(CS_INT)9234
+#define CS_SECSTOREKEY			(CS_INT)9235
 /* End of properties */
 
 /*
