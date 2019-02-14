@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	fHost = flag.String("H", "localhost", "database hostname")
-	fPort = flag.String("P", "4901", "database sql port")
-	fUser = flag.String("u", "sa", "database user name")
-	fPass = flag.String("p", "", "database user password")
+	fHost         = flag.String("H", "localhost", "database hostname")
+	fPort         = flag.String("P", "4901", "database sql port")
+	fUser         = flag.String("u", "sa", "database user name")
+	fPass         = flag.String("p", "", "database user password")
+	fUserstorekey = flag.String("k", "", "userstorekey")
 )
 
 func exec(db *sql.DB, q string) error {
@@ -104,7 +105,7 @@ func main() {
 	flag.Parse()
 	pass := *fPass
 	var err error
-	if len(pass) == 0 {
+	if len(pass) == 0 && len(*fUserstorekey) == 0 {
 		pass, err = speakeasy.Ask("Please enter the password of user " + *fUser + ": ")
 		if err != nil {
 			log.Println(err)
@@ -113,10 +114,11 @@ func main() {
 	}
 
 	dsn := libase.DsnInfo{
-		Host:     *fHost,
-		Port:     *fPort,
-		Username: *fUser,
-		Password: *fPass,
+		Host:         *fHost,
+		Port:         *fPort,
+		Username:     *fUser,
+		Password:     pass,
+		Userstorekey: *fUserstorekey,
 	}
 
 	db, err := sql.Open("ase", dsn.AsSimple())

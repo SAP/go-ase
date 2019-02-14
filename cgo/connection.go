@@ -46,15 +46,6 @@ func newConnection(dsn libase.DsnInfo) (*connection, error) {
 		return nil, makeError(retval, "C.ct_con_alloc failed")
 	}
 
-	// Set username.
-	username := unsafe.Pointer(C.CString(dsn.Username))
-	defer C.free(username)
-	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_USERNAME, username, C.CS_NULLTERM, nil)
-	if retval != C.CS_SUCCEED {
-		conn.Close()
-		return nil, makeError(retval, "C.ct_con_props failed for CS_USERNAME")
-	}
-
 	// Set password encryption
 	cTrue := C.CS_TRUE
 	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SEC_EXTENDED_ENCRYPTION,
@@ -72,13 +63,34 @@ func newConnection(dsn libase.DsnInfo) (*connection, error) {
 		return nil, makeError(retval, "C.ct_con_props failed for CS_SEC_NON_ENCRYPTION_RETRY")
 	}
 
-	// Set password.
-	password := unsafe.Pointer(C.CString(dsn.Password))
-	defer C.free(password)
-	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_PASSWORD, password, C.CS_NULLTERM, nil)
-	if retval != C.CS_SUCCEED {
-		conn.Close()
-		return nil, makeError(retval, "C.ct_con_props failed for CS_PASSWORD")
+	// Give preference to the user store key
+	if len(dsn.Userstorekey) > 0 {
+		// Set userstorekey
+		userstorekey := unsafe.Pointer(C.CString(dsn.Userstorekey))
+		defer C.free(userstorekey)
+		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SECSTOREKEY, userstorekey, C.CS_NULLTERM, nil)
+		if retval != C.CS_SUCCEED {
+			conn.Close()
+			return nil, makeError(retval, "C.ct_con_props failed for C.CS_SECSTOREKEY")
+		}
+	} else {
+		// Set username.
+		username := unsafe.Pointer(C.CString(dsn.Username))
+		defer C.free(username)
+		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_USERNAME, username, C.CS_NULLTERM, nil)
+		if retval != C.CS_SUCCEED {
+			conn.Close()
+			return nil, makeError(retval, "C.ct_con_props failed for CS_USERNAME")
+		}
+
+		// Set password.
+		password := unsafe.Pointer(C.CString(dsn.Password))
+		defer C.free(password)
+		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_PASSWORD, password, C.CS_NULLTERM, nil)
+		if retval != C.CS_SUCCEED {
+			conn.Close()
+			return nil, makeError(retval, "C.ct_con_props failed for CS_PASSWORD")
+		}
 	}
 
 	// Set hostname and port.
