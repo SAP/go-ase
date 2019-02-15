@@ -1,6 +1,8 @@
-build:
-	make -C ./cgo build
-	go build -o cgo-ase ./cmd/cgo-ase
+BINS ?= $(patsubst cmd/%,%,$(wildcard cmd/*))
+
+build: $(BINS)
+$(BINS):
+	go build -o $@ ./cmd/$@/
 
 test:
-	go test -vet all ./cgo/... ./cmd/... ./libase/... ./internal/...
+	go test -vet all -cover ./cgo/... ./go/... ./cmd/... ./libase/...
