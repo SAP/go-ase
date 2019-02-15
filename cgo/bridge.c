@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "ctpublic.h"
+#include "ctlib.h"
 #include "bridge.h"
 
 CS_CONNECTION_WRAPPER ct_con_alloc_wrapper(CS_CONTEXT* ctx) {
@@ -17,7 +17,7 @@ CS_RETCODE ct_callback_wrapper_for_server_messages(CS_CONTEXT* ctx) {
 }
 
 CS_RETCODE ct_callback_server_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_SERVERMSG* msg) {
-	srvMsg(msg);
+	return srvMsg(msg);
 }
 
 CS_RETCODE ct_callback_wrapper_for_client_messages(CS_CONTEXT* ctx) {
@@ -27,5 +27,5 @@ CS_RETCODE ct_callback_wrapper_for_client_messages(CS_CONTEXT* ctx) {
 }
 
 CS_RETCODE ct_callback_client_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_CLIENTMSG* msg) {
-	ctlMsg(msg);
+	return ctlMsg(msg);
 }

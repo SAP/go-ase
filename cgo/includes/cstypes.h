@@ -179,7 +179,7 @@
 /*
 ** The error message number.
 */
-#if defined (SYB_LP64) || defined (SYB_LLP64) || defined (_AIX)
+#if defined (_LP64) || defined (__LP64__) || defined (_WIN64) || defined (SYB_LP64) || defined (SYB_LLP64) || defined (_AIX)
 typedef unsigned int CS_MSGNUM;
 #else
 typedef long CS_MSGNUM;
@@ -452,6 +452,7 @@ typedef long CS_MSGNUM;
 ** counterpart plus 100. For example, CS_DATES_MDY1 is defined as 1, so
 ** CS_DATES_MDY1_YYYY is defined as 101.
 */
+#define CS_DATES_NOTSET		(CS_INT)-1	/* value not set */
 #define CS_DATES_SHORT		(CS_INT)0	/* default	*/
 #define CS_DATES_MDY1		(CS_INT)1	/* mm/dd/yy	*/
 #define CS_DATES_YMD1		(CS_INT)2	/* yy.mm.dd	*/
@@ -507,6 +508,7 @@ typedef long CS_MSGNUM;
 #define CS_DATES_LONGUSA_YYYY	(CS_INT)138	/* mon dd yyyy hh:mm:ss.zzzzzzAM(PM) */
 #define CS_DATES_LONGUS_YYYY	(CS_INT)139	/* mon dd yyyy hh:mm:ss.zzzzzz */
 #define CS_DATES_YMDHMSUS_YYYY	(CS_INT)140	/* yyyy-mm-dd hh:mm:ss.zzzzzz */
+#define CS_DATES_COMBI_USA_YYYY	(CS_INT)141	/* default setting for big(date)time in BCP/ISQL */
 
 
 /*
@@ -586,7 +588,7 @@ typedef unsigned char	CS_TEXT;	/* text data */
 typedef unsigned char	CS_IMAGE;	/* image data */
 typedef unsigned char	CS_LONGCHAR;	/* long char type */
 typedef unsigned char	CS_LONGBINARY;	/* long binary type */
-#if defined (SYB_LLP64)
+#if defined (_WIN64) || defined (SYB_LLP64)
 typedef __int64		CS_LONG;	/* long integer type */
 typedef unsigned __int64	CS_ULONG;	/* unsigned long integer type */
 #else		
@@ -599,10 +601,10 @@ typedef CS_INT		CS_DATE;	/* 4-byte date type */
 typedef CS_INT		CS_TIME;	/* 4-byte time type */
 typedef	unsigned short	CS_UNITEXT;	/* 2-byte unitext type */
 
-#if defined(__alpha) || defined(SYB_LP64)
+#if defined(__LP64__) || defined(_LP64) || defined(SYB_LP64)
 typedef	long			CS_BIGINT;	/* 8-byte integer */
 typedef	unsigned long		CS_UBIGINT;	/* 8-byte unsigned integer */
-#elif defined(_WIN32)  || defined(SYB_LLP64)
+#elif defined(_WIN64) || defined(_WIN32)  || defined(SYB_LLP64)
 typedef	__int64			CS_BIGINT;	/* 8-byte integer */
 typedef	unsigned __int64	CS_UBIGINT;	/* 8-byte unsigned integer */
 #else
@@ -610,7 +612,7 @@ typedef	long long		CS_BIGINT;	/* 8-byte integer */
 typedef	unsigned long long	CS_UBIGINT;	/* 8-byte unsigned integer */
 #endif
 
-#if defined(SYB_LLP64)
+#if defined(_WIN64) || defined(SYB_LLP64)
 typedef unsigned __int64	CS_SOCKET;
 #else
 typedef int			CS_SOCKET;

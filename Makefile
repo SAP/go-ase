@@ -1,3 +1,6 @@
-all:
-	cd driver && make all
-	cd cmd && make all
+build:
+	make -C ./cgo build
+	go build -o cgo-ase ./cmd/cgo-ase
+
+test:
+	go test -vet all ./cgo/... ./cmd/... ./libase/... ./internal/...

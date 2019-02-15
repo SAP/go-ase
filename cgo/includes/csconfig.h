@@ -139,7 +139,7 @@ typedef void            CS_STATIC;
 ** following insures that all platforms (including 64 bit machines) use
 ** the correct C native types.
 */
-#if defined( __alpha) || defined(SYB_LP64) || defined(SYB_LLP64) || defined(_AIX)
+#if defined(_LP64) || defined(__LP64__) || defined(_WIN64) || defined(SYB_LP64) || defined(SYB_LLP64) || defined(_AIX)
 typedef	int		CS_INT;
 typedef int		CS_RETCODE;
 typedef	int		CS_BOOL;
