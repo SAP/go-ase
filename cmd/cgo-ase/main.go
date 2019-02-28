@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	_ "github.com/SAP/go-ase/cgo"
-	"github.com/SAP/go-ase/libase"
+	libdsn "github.com/SAP/go-ase/libase/dsn"
 	"github.com/bgentry/speakeasy"
 )
 
@@ -114,7 +114,7 @@ func main() {
 		}
 	}
 
-	dsn := libase.DsnInfo{
+	dsn := libdsn.DsnInfo{
 		Host:         *fHost,
 		Port:         *fPort,
 		Username:     *fUser,

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SAP/go-ase/libase"
+	libdsn "github.com/SAP/go-ase/libase/dsn"
 )
 
 //DriverName is the driver name to use with sql.Open for ase databases.
@@ -38,7 +38,7 @@ func init() {
 }
 
 func (d *aseDrv) Open(dsn string) (driver.Conn, error) {
-	dsnInfo, err := libase.ParseDSN(dsn)
+	dsnInfo, err := libdsn.ParseDSN(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse DSN: %v", err)
 	}

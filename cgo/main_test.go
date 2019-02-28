@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/dsn"
 )
 
 // fromEnv reads an environment variable and returns the value.
@@ -27,7 +27,7 @@ func fromEnv(name string) string {
 
 // testDsn is a global DSN providing information for a running and
 // available ASE to run tests against.
-var testDsn = &libase.DsnInfo{}
+var testDsn = &dsn.DsnInfo{}
 
 // TestMain fills testDsn with information provided from the environment
 // and triggers the tests.

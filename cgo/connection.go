@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/dsn"
 )
 
 // connection is the struct which represents a database connection.
@@ -32,7 +33,7 @@ var (
 
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
-func newConnection(dsn libase.DsnInfo) (*connection, error) {
+func newConnection(dsn dsn.DsnInfo) (*connection, error) {
 	err := driverCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
