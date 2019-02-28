@@ -1,54 +1,12 @@
-package libase
+package dsn
 
 import (
 	"net/url"
 	"reflect"
 	"testing"
+
+	validator "gopkg.in/go-playground/validator.v9"
 )
-
-func TestDsnInfo_AsSimple(t *testing.T) {
-	cases := map[string]struct {
-		dsn      DsnInfo
-		expected string
-	}{
-		"Only required information": {
-			dsn: DsnInfo{
-				Host:     "hostname",
-				Port:     "4901",
-				Username: "user",
-				Password: "passwd",
-			},
-			expected: "username='user' password='passwd' host='hostname' port='4901'",
-		},
-		"Everything": {
-			dsn: DsnInfo{
-				Host:     "hostname",
-				Port:     "4901",
-				Username: "user",
-				Password: "passwd",
-				Database: "db_example",
-				ConnectProps: url.Values{
-					"foo": []string{"bar"},
-					"bar": []string{"", "baz"},
-				},
-			},
-			expected: "username='user' password='passwd' host='hostname' port='4901' database='db_example' foo='bar' bar='' bar='baz'",
-		},
-	}
-
-	for name, cas := range cases {
-		t.Run(name,
-			func(t *testing.T) {
-				result := cas.dsn.AsSimple()
-				if result != cas.expected {
-					t.Errorf("Received invalid simple URI")
-					t.Errorf("Expected: %s", cas.expected)
-					t.Errorf("Received: %s", result)
-				}
-			},
-		)
-	}
-}
 
 func TestParseDsnUri(t *testing.T) {
 	cases := map[string]struct {
@@ -116,7 +74,7 @@ func TestParseDsnUriFail(t *testing.T) {
 	}{
 		"URI DSN Password special characters": {
 			dsn:      "ase://user:pass$#@!%=word@hostname:4901?",
-			errorMsg: "Failed to parse DSN: parse ase://user:pass$#@!%=word@hostname:4901?: invalid URL escape \"%=w\"",
+			errorMsg: "Failed to parse DSN using url.Parse: parse ase://user:pass$#@!%=word@hostname:4901?: invalid URL escape \"%=w\"",
 		},
 	}
 
@@ -265,18 +223,28 @@ func TestParseDSN(t *testing.T) {
 }
 
 func TestParseDSNFail(t *testing.T) {
+	type failedField struct {
+		namespace, tag string
+	}
+
 	cases := map[string]struct {
-		simpleDsn, uriDsn, errorMsg string
+		simpleDsn, uriDsn string
+		failedFields      []failedField
 	}{
 		"DSN URI Missing host": {
 			uriDsn:    "ase://user:pass@:4901?",
 			simpleDsn: "username=user password=pass port=4901",
-			errorMsg:  "Missing fields: Host",
+			failedFields: []failedField{
+				{namespace: "DsnInfo.Host", tag: "required"},
+			},
 		},
 		"DSN Simple Missing host and user": {
 			uriDsn:    "ase://:pass@:4901?",
 			simpleDsn: "password=pass port=4901",
-			errorMsg:  "Missing fields: Host, Username",
+			failedFields: []failedField{
+				{namespace: "DsnInfo.Host", tag: "required"},
+				{namespace: "DsnInfo.Username", tag: "required"},
+			},
 		},
 	}
 
@@ -289,15 +257,23 @@ func TestParseDSNFail(t *testing.T) {
 					if err == nil {
 						t.Errorf("Expected error, received nil")
 					} else {
-						if err.Error() != cas.errorMsg {
-							t.Errorf("Received invalid error message")
-							t.Errorf("Expected: %s", cas.errorMsg)
-							t.Errorf("Received: %s", err.Error())
+						validationErrs, ok := err.(validator.ValidationErrors)
+						if !ok {
+							t.Errorf("Received error other than validator.ValidationErrors: %v", err)
+							continue
+						}
+
+						for i, fieldError := range validationErrs {
+							if fieldError.Namespace() != cas.failedFields[i].namespace || fieldError.Tag() != cas.failedFields[i].tag {
+								t.Errorf("validator.FieldError does not match expected error")
+								t.Errorf("Expected: %s %s", cas.failedFields[i].namespace, cas.failedFields[i].tag)
+								t.Errorf("Received: %s %s", fieldError.Namespace(), fieldError.Tag())
+							}
 						}
 					}
 
 					if res != nil {
-						t.Errorf("Received parsed DsnInfo, expected error: %v", res)
+						t.Errorf("Expected error, received parsed DsnInfo: %v", res)
 					}
 				}
 			},
