@@ -27,7 +27,7 @@
 //		x := connectToServer()
 //		version, _ := Target.Version(x.Version)
 //
-//		if version.Can(capsForLibA.Bug1) {
+//		if version.Has(capsForLibA.Bug1) {
 //			// Bugfix not yet applied, use workaround
 //		} else {
 //			// Bugfix is applied, use normally

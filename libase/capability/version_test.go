@@ -50,7 +50,7 @@ func (v ExampleSatisfyInterface) Do(s string) string {
 	return s
 }
 
-func (v ExampleSatisfyInterface) Can(cap *Capability) bool {
+func (v ExampleSatisfyInterface) Has(cap *Capability) bool {
 	can, ok := v.caps[cap]
 	if !ok {
 		return false
@@ -69,10 +69,10 @@ func ExampleVersion() {
 	// The action 'otherthing' has only been implemented from version
 	// 1.5.0 but should be used by the application if the server
 	// supports it.
-	// By guarding the call with a call to .Can the capability can be
+	// By guarding the call with a call to .Has the capability can be
 	// supported without restricting users to specific versions of the
 	// application.
-	if connection.Can(ExampleVersionCapOtherthing) {
+	if connection.Has(ExampleVersionCapOtherthing) {
 		connection.Do("otherthing")
 	}
 
@@ -83,7 +83,7 @@ func ExampleVersion() {
 	// 1.1.0.
 	// Assuming a workaround has been found it can be applied outside of
 	// these version ranges:
-	if connection.Can(ExampleVersionBug50) {
+	if connection.Has(ExampleVersionBug50) {
 		// Workaround for bug
 	}
 	connection.Do("action that would break the server without the bugfix or workaround")
@@ -92,7 +92,7 @@ func ExampleVersion() {
 	// a long time to finish. In version 1.0.0 a new action performing
 	// the same task in less time was added. The capabilities can be
 	// used to support both pre-1.0.0 and post-1.0.0 servers:
-	if connection.Can(ExampleVersionCapSpeedyAction) {
+	if connection.Has(ExampleVersionCapSpeedyAction) {
 		connection.Do("speedy action")
 	} else {
 		connection.Do("slow action")

@@ -25,7 +25,7 @@ func ExampleTarget_Version() {
 
 	for _, version := range []Version{v1, v2} {
 		fmt.Printf("Version: %s, Capability cap1: %t, Capability cap2: %t\n",
-			version.VersionString(), version.Can(cap1), version.Can(cap2))
+			version.VersionString(), version.Has(cap1), version.Has(cap2))
 	}
 	// Output:
 	// Version: 1.0.1, Capability cap1: true, Capability cap2: true
@@ -55,13 +55,13 @@ func TestTarget_Version(t *testing.T) {
 	}
 
 	for _, cap := range capsEnabled {
-		if v.Can(cap) != true {
+		if v.Has(cap) != true {
 			t.Errorf("Capability for version '%s' is not enabled but should be: %s", v, cap)
 		}
 	}
 
 	for _, cap := range capsDisabled {
-		if v.Can(cap) != false {
+		if v.Has(cap) != false {
 			t.Errorf("Capability for version '%s' is enabled but shouldn't be: %s", v, cap)
 		}
 	}

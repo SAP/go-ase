@@ -3,7 +3,7 @@ package capability
 type Version interface {
 	VersionString() string
 	SetCapability(*Capability, bool)
-	Can(*Capability) bool
+	Has(*Capability) bool
 }
 
 // Version represent a single version of a Target.
@@ -26,7 +26,7 @@ func (v *DefaultVersion) SetCapability(cap *Capability, b bool) {
 	v.capabilities[cap] = b
 }
 
-func (v DefaultVersion) Can(cap *Capability) bool {
+func (v DefaultVersion) Has(cap *Capability) bool {
 	canCap, ok := v.capabilities[cap]
 	if !ok {
 		return false
