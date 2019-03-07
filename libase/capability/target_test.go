@@ -1,6 +1,36 @@
 package capability
 
-import "testing"
+import (
+	"fmt"
+	"os"
+	"testing"
+)
+
+func ExampleTarget_Version() {
+	cap1 := NewCapability("cap1", "1.0.0")
+	cap2 := NewCapability("cap2", "0.9.5", "1.5.0")
+	t := Target{nil, []*Capability{cap1, cap2}}
+
+	v1, err := t.Version("1.0.1")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error occurred retrieving Version 1.0.1: %v", err)
+		return
+	}
+
+	v2, err := t.Version("0.9.5")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error occurred retrieving Version 0.9.5: %v", err)
+		return
+	}
+
+	for _, version := range []Version{v1, v2} {
+		fmt.Printf("Version: %s, Capability cap1: %t, Capability cap2: %t\n",
+			version.VersionString(), version.Can(cap1), version.Can(cap2))
+	}
+	// Output:
+	// Version: 1.0.1, Capability cap1: true, Capability cap2: true
+	// Version: 0.9.5, Capability cap1: false, Capability cap2: true
+}
 
 func TestTarget_Version(t *testing.T) {
 	spec := "1.1.0"
