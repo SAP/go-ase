@@ -14,6 +14,10 @@ type VersionRange struct {
 	Introduced, Removed string
 }
 
+func (vrange VersionRange) String() string {
+	return fmt.Sprintf("'%s' -> '%s'", vrange.Introduced, vrange.Removed)
+}
+
 func (vrange VersionRange) contains(fn VersionComparer, version string) (bool, error) {
 	// Range magically doesn't exist, Version can't be contained in
 	// a non-existing range.
