@@ -2,12 +2,12 @@ package capability
 
 var (
 	ExampleVersionCapOtherthing   = NewCapability("otherthing", "1.5.0")
-	ExampleVersionBugfix50        = NewCapability("bugfix for ticket #50", "0.1.0", "0.2.0", "0.9.0", "1.1.0")
+	ExampleVersionBug50           = NewCapability("bug reported in ticket #50", "0.1.0", "0.2.0", "0.9.0", "1.1.0")
 	ExampleVersionCapSpeedyAction = NewCapability("cap1", "1.0.0")
 
 	ExampleVersionTarget = Target{nil, []*Capability{
 		ExampleVersionCapOtherthing,
-		ExampleVersionBugfix50,
+		ExampleVersionBug50,
 		ExampleVersionCapSpeedyAction,
 	}}
 )
@@ -78,11 +78,12 @@ func ExampleVersion() {
 
 	// Ticket #50 reported a serious bug that would cause the remote
 	// server to shutdown on specific actions.
-	// The bug was fixed in version 0.1.0, but reappeared in 0.2.0.
-	// A new fix has been added in 0.9.0 but had to be removed in 1.1.0.
+	// The bug appeared in version 0.1.0, a fix was implemented in
+	// 0.2.0. The bug reappeared in 0.9.0 and has been fixed again in
+	// 1.1.0.
 	// Assuming a workaround has been found it can be applied outside of
 	// these version ranges:
-	if !connection.Can(ExampleVersionBugfix50) {
+	if connection.Can(ExampleVersionBug50) {
 		// Workaround for bug
 	}
 	connection.Do("action that would break the server without the bugfix or workaround")

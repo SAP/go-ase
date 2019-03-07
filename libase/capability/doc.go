@@ -10,10 +10,11 @@
 //
 //	package capsForLibA
 //
-//	import "github.com/SAP/go-ase/libase/capabilities"
+//	import "github.com/SAP/go-ase/libase/capability"
 //
 //	var (
-//		Bugfix1 = capabilities.Capability{"bugfix1", {"0.9.0", ""}}
+//		// Bug appeared in version 0.9.0, no published version has a fix
+//		Bug1 = capability.NewCapability("ticket #15", "0.9.0")
 //		Target = Target{nil, {Bugfix1}}
 //	)
 //
@@ -26,10 +27,12 @@
 //		x := connectToServer()
 //		version, _ := Target.Version(x.Version)
 //
-//		if version.Can(capsForLibA.Bugfix1) {
-//			// Bugfix is applied, use normally
-//		} else {
+//		if version.Can(capsForLibA.Bug1) {
 //			// Bugfix not yet applied, use workaround
+//		} else {
+//			// Bugfix is applied, use normally
 //		}
 //	}
+//
+//  See version_test.go for more elaborate and commented examples.
 package capability
