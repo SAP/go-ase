@@ -1,5 +1,7 @@
 package capability
 
+import "fmt"
+
 // Capability is a representation for a defined behaviour of an
 // application, API, library, etc.pp.
 type Capability struct {
@@ -56,4 +58,17 @@ func NewCapability(description string, versionRanges ...string) *Capability {
 	}
 
 	return c
+}
+
+func (cap Capability) String() string {
+	s := fmt.Sprintf("Capability %s -> (", cap.Description)
+	for i, vrange := range cap.VersionRanges {
+		s += vrange.String()
+		if i+1 < len(cap.VersionRanges) {
+			s += ", "
+		}
+	}
+	s += ")"
+
+	return s
 }
