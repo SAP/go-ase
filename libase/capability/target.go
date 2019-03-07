@@ -13,7 +13,7 @@ type Target struct {
 
 // Version returns a new version and calls .SetVersion with it.
 func (target Target) Version(spec string) (Version, error) {
-	v := newVersion(spec)
+	v := NewVersion(spec)
 
 	err := target.SetVersion(v)
 	if err != nil {

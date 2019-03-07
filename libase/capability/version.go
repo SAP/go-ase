@@ -7,26 +7,26 @@ type Version interface {
 }
 
 // Version represent a single version of a Target.
-type version struct {
+type DefaultVersion struct {
 	// Spec is the string representation of the version.
 	// Depending on the used versioning scheme these may vary wildly.
 	spec         string
 	capabilities map[*Capability]bool
 }
 
-func newVersion(spec string) Version {
-	return &version{spec, map[*Capability]bool{}}
+func NewVersion(spec string) Version {
+	return &DefaultVersion{spec, map[*Capability]bool{}}
 }
 
-func (v version) VersionString() string {
+func (v DefaultVersion) VersionString() string {
 	return v.spec
 }
 
-func (v version) SetCapability(cap *Capability, b bool) {
+func (v *DefaultVersion) SetCapability(cap *Capability, b bool) {
 	v.capabilities[cap] = b
 }
 
-func (v version) Can(cap *Capability) bool {
+func (v DefaultVersion) Can(cap *Capability) bool {
 	canCap, ok := v.capabilities[cap]
 	if !ok {
 		return false
