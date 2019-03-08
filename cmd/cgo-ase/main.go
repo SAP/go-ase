@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	fHost         = flag.String("H", "localhost", "database hostname")
-	fPort         = flag.String("P", "4901", "database sql port")
-	fUser         = flag.String("u", "sa", "database user name")
+	fHost         = flag.String("H", "", "database hostname")
+	fPort         = flag.String("P", "", "database sql port")
+	fUser         = flag.String("u", "", "database user name")
 	fPass         = flag.String("p", "", "database user password")
 	fUserstorekey = flag.String("k", "", "userstorekey")
 	fDatabase     = flag.String("D", "", "database")
