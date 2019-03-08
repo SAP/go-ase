@@ -94,13 +94,15 @@ func newConnection(dsn dsn.DsnInfo) (*connection, error) {
 		}
 	}
 
-	// Set hostname and port.
-	hostport := unsafe.Pointer(C.CString(dsn.Host + " " + dsn.Port))
-	defer C.free(hostport)
-	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SERVERADDR, hostport, C.CS_NULLTERM, nil)
-	if retval != C.CS_SUCCEED {
-		conn.Close()
-		return nil, makeError(retval, "C.ct_con_props failed for CS_SERVERADDR")
+	if dsn.Host != "" && dsn.Port != "" {
+		// Set hostname and port.
+		hostport := unsafe.Pointer(C.CString(dsn.Host + " " + dsn.Port))
+		defer C.free(hostport)
+		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SERVERADDR, hostport, C.CS_NULLTERM, nil)
+		if retval != C.CS_SUCCEED {
+			conn.Close()
+			return nil, makeError(retval, "C.ct_con_props failed for CS_SERVERADDR")
+		}
 	}
 
 	retval = C.ct_connect(conn.conn, nil, 0)
