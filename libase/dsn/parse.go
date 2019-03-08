@@ -55,8 +55,16 @@ func ParseDSN(dsn string) (*DsnInfo, error) {
 // filterUserStoreKey is the validator.FilterFunc for a DsnInfo struct
 // with Userstorekey set.
 func filterUserStoreKey(ns []byte) bool {
-	s := string(ns)
-	if s == "DsnInfo.Username" || s == "DsnInfo.Password" {
+	switch string(ns) {
+	case "DsnInfo.Username":
+		return true
+	case "DsnInfo.Password":
+		return true
+	case "DsnInfo.Database":
+		return true
+	case "DsnInfo.Host":
+		return true
+	case "DsnInfo.Port":
 		return true
 	}
 	return false
