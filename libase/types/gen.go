@@ -50,15 +50,13 @@ func main() {
 			continue
 		}
 
-		// Skip over illegal type '(CS_INT)(-1)'
-		if strings.HasSuffix(split[2], ")") {
-			continue
-		}
-
 		// CS_<x>_TYPE
 		key := strings.Split(split[1], "_")[1]
-		// (CS_INT)<x>
+		// (CS_INT)<x> or (CS_INT)(<x>)
 		value := strings.Split(split[2], ")")[1]
+		// <x> or (<x>) -> <x>
+		value = strings.Trim(value, "()")
+		// Convert to integer
 		valueI, err := strconv.Atoi(value)
 		if err != nil {
 			log.Printf("Failed to parse '%s' as integer: %v", value, err)
