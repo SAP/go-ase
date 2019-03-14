@@ -1,7 +1,10 @@
 package types
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"reflect"
+	"time"
 )
 
 //go:generate go run ./gen.go
@@ -22,4 +25,23 @@ func (t ASEType) GoReflectType() reflect.Type {
 
 func (t ASEType) GoType() interface{} {
 	return type2interface[t]
+}
+
+func FromGoType(value driver.Value) (ASEType, error) {
+	switch value.(type) {
+	case int64:
+		return BIGINT, nil
+	case float64:
+		return FLOAT, nil
+	case bool:
+		return BIT, nil
+	case []byte:
+		return BINARY, nil
+	case string:
+		return CHAR, nil
+	case time.Time:
+		return DATETIME, nil
+	default:
+		return ILLEGAL, fmt.Errorf("Invalid driver.Value for ASE: %v", value)
+	}
 }
