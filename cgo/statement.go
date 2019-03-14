@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"sync"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -23,6 +24,11 @@ var (
 	_ driver.Stmt             = (*statement)(nil)
 	_ driver.StmtExecContext  = (*statement)(nil)
 	_ driver.StmtQueryContext = (*statement)(nil)
+)
+
+var (
+	statementCounter  uint = 0
+	statementCounterM      = sync.Mutex{}
 )
 
 func (conn *connection) Prepare(query string) (driver.Stmt, error) {

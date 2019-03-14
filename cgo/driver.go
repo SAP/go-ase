@@ -12,7 +12,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/SAP/go-ase/libase"
@@ -22,10 +21,7 @@ import (
 const DriverName = "ase"
 
 // drv is the struct on which we later call Open() to get a connection.
-type aseDrv struct {
-	statementCounter  int
-	statementCounterM sync.Mutex
-}
+type aseDrv struct{}
 
 var (
 	// Interface satisfaction checks
