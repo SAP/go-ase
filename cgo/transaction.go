@@ -16,7 +16,7 @@ type transaction struct {
 	// itself however can be set as read-only.
 	// readonlyPreTx signals if a connection was marked as read-only
 	// before the transaction startet.
-	readonlyPreTx bool
+	readonlyPreTx C.CS_INT
 	// readonlyNeedsReset is true if the read-only option passed to
 	// BeginTx differs from the read-only property of the connection.
 	readonlyNeedsReset bool
@@ -34,29 +34,34 @@ func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (dri
 		return nil, fmt.Errorf("Unsupported isolation level requested: %d", opts.Isolation)
 	}
 
-	tx := &transaction{conn, false, false}
+	tx := &transaction{conn, C.CS_FALSE, false}
 
 	_, err := tx.conn.Exec("BEGIN TRANSACTION", nil)
 	if err != nil {
-		return fmt.Errorf("Failed to start transaction: %v", err)
+		return nil, fmt.Errorf("Failed to start transaction: %v", err)
 	}
 
-	_, err := tx.conn.Exec("SET TRANSACTION ISOLATION LEVEL ?", []driver.Value{opts.Isolation})
+	_, err = tx.conn.Exec("SET TRANSACTION ISOLATION LEVEL ?", []driver.Value{opts.Isolation})
 	if err != nil {
-		return fmt.Errorf("Failed to set isolation level for transaction: %v", err)
+		return nil, fmt.Errorf("Failed to set isolation level for transaction: %v", err)
 	}
 
-	ro := C.CS_FALSE
-	rc = C.ct_con_preops(tx.conn.conn, C.CS_GET, C.CS_PROP_READONLY, unsafe.Pointer(&ro), C.CS_UNUSED, nil)
-	if rc != C.CS_SUCCEED {
-		return nil, makeError(rc, "Failed to retrieve readonly property")
+	var currentReadOnly C.CS_INT = C.CS_FALSE
+	retval := C.ct_con_props(tx.conn.conn, C.CS_GET, C.CS_PROP_READONLY, unsafe.Pointer(&currentReadOnly), C.CS_UNUSED, nil)
+	if retval != C.CS_SUCCEED {
+		return nil, makeError(retval, "Failed to retrieve readonly property")
 	}
 
-	if opts.Readonly != bool(ro) {
-		tx.readonlyPreTx = bool(ro)
+	var targetReadOnly C.CS_INT = C.CS_FALSE
+	if opts.ReadOnly {
+		targetReadOnly = C.CS_TRUE
+	}
+
+	if currentReadOnly != targetReadOnly {
+		tx.readonlyPreTx = currentReadOnly
 		tx.readonlyNeedsReset = true
 
-		err = tx.setRO(opts.ReadOnly)
+		err = tx.setRO(targetReadOnly)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +88,7 @@ func (tx *transaction) Rollback() error {
 
 func (tx *transaction) finish() error {
 	if tx.readonlyNeedsReset {
-		err := tx.setRO(tx.roPreTx)
+		err := tx.setRO(tx.readonlyPreTx)
 		if err != nil {
 			return err
 		}
@@ -92,15 +97,10 @@ func (tx *transaction) finish() error {
 	return nil
 }
 
-func (tx *transaction) setRO(ro bool) error {
-	ro := C.CS_FALSE
-	if ro {
-		ro = C.CS_TRUE
-	}
-
-	rc = C.ct_con_props(tx.conn.conn, C.CS_SET, C.CS_PROP_READONLY, unsafe.Pointer(&ro), C.CS_UNUSED, nil)
-	if rc != C.CS_SUCCEED {
-		return nil, makeError(rc, "Failed to set readonly")
+func (tx *transaction) setRO(ro C.CS_INT) error {
+	retval := C.ct_con_props(tx.conn.conn, C.CS_SET, C.CS_PROP_READONLY, unsafe.Pointer(&ro), C.CS_UNUSED, nil)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "Failed to set readonly")
 	}
 
 	return nil
