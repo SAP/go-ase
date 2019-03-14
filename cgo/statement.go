@@ -7,16 +7,19 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/types"
 )
 
 type statement struct {
-	name  *C.char
-	query string
-	cmd   *C.CS_COMMAND
+	name     *C.char
+	argCount int
+	cmd      *csCommand
 }
 
 // Interface satisfaction checks
@@ -38,27 +41,30 @@ func (conn *connection) Prepare(query string) (driver.Stmt, error) {
 func (conn *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	stmt := &statement{}
 
-	drv.statementCounterM.Lock()
-	drv.statementCounter += 1
-	stmt.name = C.CString(string(drv.statementCounter))
-	drv.statementCounterM.Unlock()
+	stmt.argCount = strings.Count(query, "?")
 
-	q := C.CString(query)
-	defer C.free(unsafe.Pointer(q))
-	retval := C.ct_dynamic(stmt.cmd, C.CS_PREPARE, stmt.name, C.CS_NULLTERM, q, C.CS_NULLTERM)
-	if retval != C.CS_SUCCEED {
+	statementCounterM.Lock()
+	statementCounter += 1
+	stmt.name = C.CString(string(statementCounter))
+	statementCounterM.Unlock()
+
+	cmd, err := conn.dynamic(stmt.name, query)
+	if err != nil {
 		stmt.Close()
-		return nil, makeError(retval, "Failed to initialize dynamic command")
+		return nil, err
 	}
+
+	stmt.cmd = cmd
 
 	return stmt, nil
 }
 
 func (stmt *statement) Close() error {
-
-	rc := C.ct_dynamic(stmt.cmd, C.CS_DEALLOC, stmt.name, C.CS_NULLTERM, nil, C.CS_UNUSED)
-	if rc != C.CS_SUCCEED {
-		return errors.New("C.ct_dynamic failed")
+	if stmt.cmd != nil {
+		retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_DEALLOC, stmt.name, C.CS_NULLTERM, nil, C.CS_UNUSED)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "C.ct_dynamic with C.CS_DEALLOC failed")
+		}
 	}
 
 	C.free(unsafe.Pointer(stmt.name))
@@ -67,8 +73,63 @@ func (stmt *statement) Close() error {
 }
 
 func (stmt *statement) NumInput() int {
-	// TODO
-	return -1
+	return stmt.argCount
+}
+
+func (stmt *statement) exec(args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+	if len(args) != stmt.argCount {
+		return nil, nil, fmt.Errorf("Mismatched argument count - expected %d, got %d",
+			stmt.argCount, len(args))
+	}
+
+	name := C.CString(stmt.name)
+	defer C.free(unsafe.Pointer(name))
+
+	retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_EXECUTE, name, C.CS_NULLTERM, nil, C.CS_UNUSED)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "C.ct_dynamic with CS_EXECUTE failed")
+	}
+
+	for i, arg := range args {
+		datafmt := (*C.CS_DATAFMT)(C.calloc(1, C.sizeof_CS_DATAFMT))
+		defer C.free(unsafe.Pointer(datafmt))
+		datafmt.status = C.CS_INPUTVALUE
+		datafmt.namelen = C.CS_NULLTERM
+		asetype, err := types.FromGoType(arg.Value)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to retrieve ASEType for driver.Value: %v", err)
+		}
+		datafmt.datatype = (C.CS_INT)(asetype)
+
+		switch arg.Value.(type) {
+		case []byte:
+			datafmt.format = C.CS_FMT_PADNULL
+		case string:
+			datafmt.format = C.CS_FMT_NULLTERM
+			datafmt.maxlength = C.CS_MAX_CHAR
+		}
+
+		s := fmt.Sprintf("%v", arg.Value)
+		datalen := len(s)
+		ptr := C.CString(s)
+		defer C.free(unsafe.Pointer(ptr))
+
+		retval = C.ct_param(stmt.cmd.cmd, datafmt, unsafe.Pointer(ptr), (C.CS_INT)(datalen), 0)
+		if retval != C.CS_SUCCEED {
+			return nil, nil, makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
+		}
+	}
+
+	retval := C.ct_send(stmt.cmd.cmd)
+	if retval != C.CS_SUCCEED {
+		return nil, nil, makeError(retval, "C.ct_Send failed")
+	}
+
+	return stmt.cmd.resultsHelper()
+}
+
+func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+	return stmt.exec(args)
 }
 
 func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
@@ -76,8 +137,8 @@ func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	// TODO
-	return nil, nil
+	_, result, err := stmt.execContext(ctx, args)
+	return result, err
 }
 
 func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
@@ -85,6 +146,6 @@ func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	// TODO
-	return nil, nil
+	rows, _, err := stmt.execContext(ctx, args)
+	return rows, err
 }
