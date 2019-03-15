@@ -40,7 +40,7 @@ func query(db *sql.DB, q string) error {
 	return processRows(rows)
 }
 
-func subcmd(db *sql.DB, part string) {
+func subcmd(db *sql.DB, part string) error {
 	partS := strings.Split(part, " ")
 	cmd := partS[0]
 	q := strings.Join(partS[1:], " ")
@@ -49,17 +49,18 @@ func subcmd(db *sql.DB, part string) {
 	case "exec":
 		err := exec(db, q)
 		if err != nil {
-			log.Printf("Exec errored: %v", err)
+			return fmt.Errorf("Exec errored: %v", err)
 		}
 	case "query":
 		err := query(db, q)
 		if err != nil {
-			log.Printf("Query errored: %v", err)
+			return fmt.Errorf("Query errored: %v", err)
 		}
 	default:
 		log.Printf("Unknown command: %s", cmd)
 	}
 
+	return nil
 }
 
 func main() {
@@ -103,6 +104,10 @@ func main() {
 
 	subcmds := strings.Split(strings.Join(flag.Args(), " "), "--")
 	for _, s := range subcmds {
-		subcmd(db, strings.TrimSpace(s))
+		err = subcmd(db, strings.TrimSpace(s))
+		if err != nil {
+			log.Printf("Execution of '%s' resulted in error: %v", s, err)
+			return
+		}
 	}
 }
