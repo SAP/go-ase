@@ -11,7 +11,8 @@ import (
 )
 
 type csCommand struct {
-	cmd *C.CS_COMMAND
+	cmd       *C.CS_COMMAND
+	isDynamic bool
 }
 
 // cancel cancels the current result set and drops the command.
@@ -97,6 +98,7 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 
 func (conn *connection) dynamic(name string, query string) (*csCommand, error) {
 	cmd := &csCommand{}
+	cmd.isDynamic = true
 	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
 	if retval != C.CS_SUCCEED {
 		return nil, makeError(retval, "Failed to allocate command structure")

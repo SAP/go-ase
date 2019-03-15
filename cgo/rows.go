@@ -131,9 +131,11 @@ func (rows *rows) Close() error {
 		}
 	}
 
-	err := rows.cmd.drop()
-	if err != nil {
-		return fmt.Errorf("Error dropping command: %v", err)
+	if !rows.cmd.isDynamic {
+		err := rows.cmd.drop()
+		if err != nil {
+			return fmt.Errorf("Error dropping command: %v", err)
+		}
 	}
 	rows.cmd = nil
 
