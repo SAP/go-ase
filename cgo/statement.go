@@ -6,8 +6,8 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"unsafe"
@@ -17,7 +17,7 @@ import (
 )
 
 type statement struct {
-	name     *C.char
+	name     string
 	argCount int
 	cmd      *csCommand
 }
@@ -45,7 +45,7 @@ func (conn *connection) PrepareContext(ctx context.Context, query string) (drive
 
 	statementCounterM.Lock()
 	statementCounter += 1
-	stmt.name = C.CString(string(statementCounter))
+	stmt.name = fmt.Sprintf("stmt%d", statementCounter)
 	statementCounterM.Unlock()
 
 	cmd, err := conn.dynamic(stmt.name, query)
@@ -61,13 +61,26 @@ func (conn *connection) PrepareContext(ctx context.Context, query string) (drive
 
 func (stmt *statement) Close() error {
 	if stmt.cmd != nil {
-		retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_DEALLOC, stmt.name, C.CS_NULLTERM, nil, C.CS_UNUSED)
+		name := C.CString(stmt.name)
+		defer C.free(unsafe.Pointer(name))
+
+		retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_DEALLOC, name, C.CS_NULLTERM, nil, C.CS_UNUSED)
 		if retval != C.CS_SUCCEED {
 			return makeError(retval, "C.ct_dynamic with C.CS_DEALLOC failed")
 		}
-	}
 
-	C.free(unsafe.Pointer(stmt.name))
+		retval = C.ct_send(stmt.cmd.cmd)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "C.ct_send failed")
+		}
+
+		var err error
+		for err = nil; err != io.EOF; _, _, err = stmt.cmd.resultsHelper() {
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
