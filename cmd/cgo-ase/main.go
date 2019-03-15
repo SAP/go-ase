@@ -22,6 +22,7 @@ var (
 )
 
 func exec(db *sql.DB, q string) error {
+	log.Printf("Exec '%s'", q)
 	result, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("Executing the statement failed: %v", err)
@@ -31,6 +32,7 @@ func exec(db *sql.DB, q string) error {
 }
 
 func query(db *sql.DB, q string) error {
+	log.Printf("Query '%s'", q)
 	rows, err := db.Query(q)
 	if err != nil {
 		return fmt.Errorf("Query failed: %v", err)
@@ -38,6 +40,48 @@ func query(db *sql.DB, q string) error {
 	defer rows.Close()
 
 	return processRows(rows)
+}
+
+func statement(db *sql.DB, isQuery bool, query string, args []string) error {
+	log.Printf("Prepare '%s'", query)
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, arg := range args {
+		argSliceS := strings.Split(arg, " ")
+		argSlice := make([]interface{}, len(argSliceS))
+		for i, ent := range argSliceS {
+			argSlice[i] = ent
+		}
+
+		if isQuery {
+			log.Printf("Query prepared with '%s'", arg)
+			rows, err := stmt.Query(argSlice...)
+			if err != nil {
+				return err
+			}
+			err = processRows(rows)
+			rows.Close()
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("Exec prepared with '%s'", arg)
+			result, err := stmt.Exec(argSlice...)
+			if err != nil {
+				return err
+			}
+			err = processResult(result)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func subcmd(db *sql.DB, part string) error {
@@ -55,6 +99,22 @@ func subcmd(db *sql.DB, part string) error {
 		err := query(db, q)
 		if err != nil {
 			return fmt.Errorf("Query errored: %v", err)
+		}
+	case "stmt":
+		// cgo-ase stmt query "select * from ? where ? = ?" - "TST.dbo.test" "a" "1" - "TST.dbo.test" "a" "2"
+		partS = strings.Split(q, " - ")
+		queryS := strings.Split(partS[0], " ")
+		isQueryS := queryS[0]
+		query := strings.Join(queryS[1:], " ")
+
+		isQuery := true
+		if isQueryS == "exec" {
+			isQuery = false
+		}
+
+		err := statement(db, isQuery, query, partS[1:])
+		if err != nil {
+			return fmt.Errorf("Statement errored: %v", err)
 		}
 	default:
 		log.Printf("Unknown command: %s", cmd)
