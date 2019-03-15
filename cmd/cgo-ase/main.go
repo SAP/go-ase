@@ -27,13 +27,7 @@ func exec(db *sql.DB, q string) error {
 		return fmt.Errorf("Executing the statement failed: %v", err)
 	}
 
-	affectedRows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("Retrieving the affected rows failed: %v", err)
-	}
-
-	fmt.Printf("Rows affected: %d\n", affectedRows)
-	return nil
+	return processResult(result)
 }
 
 func query(db *sql.DB, q string) error {
@@ -43,41 +37,7 @@ func query(db *sql.DB, q string) error {
 	}
 	defer rows.Close()
 
-	colNames, err := rows.Columns()
-	if err != nil {
-		return fmt.Errorf("Failed to retrieve column names: %v", err)
-	}
-
-	fmt.Printf("|")
-	for _, colName := range colNames {
-		fmt.Printf(" %s |", colName)
-	}
-	fmt.Printf("\n")
-
-	cells := make([]interface{}, len(colNames))
-
-	cellsRef := make([]interface{}, len(colNames))
-	for i := range cells {
-		cellsRef[i] = &(cells[i])
-	}
-
-	for rows.Next() {
-		err := rows.Scan(cellsRef...)
-		if err != nil {
-			return fmt.Errorf("Error retrieving rows: %v", err)
-		}
-
-		for _, cell := range cells {
-			fmt.Printf("| %v ", cell)
-		}
-		fmt.Printf("|\n")
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("Error preparing rows: %v", err)
-	}
-
-	return nil
+	return processRows(rows)
 }
 
 func subcmd(db *sql.DB, part string) {
