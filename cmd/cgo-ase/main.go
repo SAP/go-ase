@@ -22,65 +22,69 @@ var (
 )
 
 func exec(db *sql.DB, q string) error {
+	log.Printf("Exec '%s'", q)
 	result, err := db.Exec(q)
 	if err != nil {
 		return fmt.Errorf("Executing the statement failed: %v", err)
 	}
 
-	affectedRows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("Retrieving the affected rows failed: %v", err)
-	}
-
-	fmt.Printf("Rows affected: %d\n", affectedRows)
-	return nil
+	return processResult(result)
 }
 
 func query(db *sql.DB, q string) error {
+	log.Printf("Query '%s'", q)
 	rows, err := db.Query(q)
 	if err != nil {
 		return fmt.Errorf("Query failed: %v", err)
 	}
 	defer rows.Close()
 
-	colNames, err := rows.Columns()
+	return processRows(rows)
+}
+
+func statement(db *sql.DB, isQuery bool, query string, args []string) error {
+	log.Printf("Prepare '%s'", query)
+	stmt, err := db.Prepare(query)
 	if err != nil {
-		return fmt.Errorf("Failed to retrieve column names: %v", err)
+		return err
 	}
+	defer stmt.Close()
 
-	fmt.Printf("|")
-	for _, colName := range colNames {
-		fmt.Printf(" %s |", colName)
-	}
-	fmt.Printf("\n")
-
-	cells := make([]interface{}, len(colNames))
-
-	cellsRef := make([]interface{}, len(colNames))
-	for i := range cells {
-		cellsRef[i] = &(cells[i])
-	}
-
-	for rows.Next() {
-		err := rows.Scan(cellsRef...)
-		if err != nil {
-			return fmt.Errorf("Error retrieving rows: %v", err)
+	for _, arg := range args {
+		argSliceS := strings.Split(arg, " ")
+		argSlice := make([]interface{}, len(argSliceS))
+		for i, ent := range argSliceS {
+			argSlice[i] = ent
 		}
 
-		for _, cell := range cells {
-			fmt.Printf("| %v ", cell)
+		if isQuery {
+			log.Printf("Query prepared with '%s'", arg)
+			rows, err := stmt.Query(argSlice...)
+			if err != nil {
+				return err
+			}
+			err = processRows(rows)
+			rows.Close()
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("Exec prepared with '%s'", arg)
+			result, err := stmt.Exec(argSlice...)
+			if err != nil {
+				return err
+			}
+			err = processResult(result)
+			if err != nil {
+				return err
+			}
 		}
-		fmt.Printf("|\n")
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("Error preparing rows: %v", err)
 	}
 
 	return nil
 }
 
-func subcmd(db *sql.DB, part string) {
+func subcmd(db *sql.DB, part string) error {
 	partS := strings.Split(part, " ")
 	cmd := partS[0]
 	q := strings.Join(partS[1:], " ")
@@ -89,17 +93,34 @@ func subcmd(db *sql.DB, part string) {
 	case "exec":
 		err := exec(db, q)
 		if err != nil {
-			log.Printf("Exec errored: %v", err)
+			return fmt.Errorf("Exec errored: %v", err)
 		}
 	case "query":
 		err := query(db, q)
 		if err != nil {
-			log.Printf("Query errored: %v", err)
+			return fmt.Errorf("Query errored: %v", err)
+		}
+	case "stmt":
+		// cgo-ase stmt query "select * from ? where ? = ?" - "TST.dbo.test" "a" "1" - "TST.dbo.test" "a" "2"
+		partS = strings.Split(q, " - ")
+		queryS := strings.Split(partS[0], " ")
+		isQueryS := queryS[0]
+		query := strings.Join(queryS[1:], " ")
+
+		isQuery := true
+		if isQueryS == "exec" {
+			isQuery = false
+		}
+
+		err := statement(db, isQuery, query, partS[1:])
+		if err != nil {
+			return fmt.Errorf("Statement errored: %v", err)
 		}
 	default:
 		log.Printf("Unknown command: %s", cmd)
 	}
 
+	return nil
 }
 
 func main() {
@@ -143,6 +164,10 @@ func main() {
 
 	subcmds := strings.Split(strings.Join(flag.Args(), " "), "--")
 	for _, s := range subcmds {
-		subcmd(db, strings.TrimSpace(s))
+		err = subcmd(db, strings.TrimSpace(s))
+		if err != nil {
+			log.Printf("Execution of '%s' resulted in error: %v", s, err)
+			return
+		}
 	}
 }

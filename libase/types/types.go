@@ -19,6 +19,7 @@ const (
 	DATETIME4      ASEType = 13
 	DECIMAL        ASEType = 17
 	FLOAT          ASEType = 10
+	ILLEGAL        ASEType = -1
 	IMAGE          ASEType = 5
 	IMAGELOCATOR   ASEType = 38
 	INT            ASEType = 8
@@ -63,6 +64,7 @@ var string2type = map[string]ASEType{
 	"DATETIME4":      DATETIME4,
 	"DECIMAL":        DECIMAL,
 	"FLOAT":          FLOAT,
+	"ILLEGAL":        ILLEGAL,
 	"IMAGE":          IMAGE,
 	"IMAGELOCATOR":   IMAGELOCATOR,
 	"INT":            INT,
@@ -107,6 +109,7 @@ var type2string = map[ASEType]string{
 	DATETIME4:      "DATETIME4",
 	DECIMAL:        "DECIMAL",
 	FLOAT:          "FLOAT",
+	ILLEGAL:        "ILLEGAL",
 	IMAGE:          "IMAGE",
 	IMAGELOCATOR:   "IMAGELOCATOR",
 	INT:            "INT",
@@ -151,6 +154,7 @@ var type2reflect = map[ASEType]reflect.Type{
 	DATETIME4:      reflect.SliceOf(reflect.TypeOf(byte(0))),
 	DECIMAL:        reflect.TypeOf(float64(0)),
 	FLOAT:          reflect.TypeOf(float64(0)),
+	ILLEGAL:        nil,
 	IMAGE:          reflect.SliceOf(reflect.TypeOf(byte(0))),
 	IMAGELOCATOR:   nil,
 	INT:            reflect.TypeOf(int64(0)),
@@ -195,6 +199,7 @@ var type2interface = map[ASEType]interface{}{
 	DATETIME4:      []byte{0},
 	DECIMAL:        float64(0),
 	FLOAT:          float64(0),
+	ILLEGAL:        nil,
 	IMAGE:          []byte{0},
 	IMAGELOCATOR:   nil,
 	INT:            int64(0),

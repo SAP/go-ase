@@ -11,7 +11,8 @@ import (
 )
 
 type csCommand struct {
-	cmd *C.CS_COMMAND
+	cmd       *C.CS_COMMAND
+	isDynamic bool
 }
 
 // cancel cancels the current result set and drops the command.
@@ -93,6 +94,36 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 			}
 		}
 	}
+}
+
+func (conn *connection) dynamic(name string, query string) (*csCommand, error) {
+	cmd := &csCommand{}
+	cmd.isDynamic = true
+	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
+	if retval != C.CS_SUCCEED {
+		return nil, makeError(retval, "Failed to allocate command structure")
+	}
+
+	// Initialize dynamic command
+	q := C.CString(query)
+	defer C.free(unsafe.Pointer(q))
+
+	n := C.CString(name)
+	defer C.free(unsafe.Pointer(n))
+
+	retval = C.ct_dynamic(cmd.cmd, C.CS_PREPARE, n, C.CS_NULLTERM, q, C.CS_NULLTERM)
+	if retval != C.CS_SUCCEED {
+		return nil, makeError(retval, "Failed to initialize dynamic command")
+	}
+
+	// Send command to ASE
+	retval = C.ct_send(cmd.cmd)
+	if retval != C.CS_SUCCEED {
+		cmd.drop()
+		return nil, makeError(retval, "Failed to send command")
+	}
+
+	return cmd, nil
 }
 
 // resultsHelper reads a single response from the command structure and

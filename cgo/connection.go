@@ -194,9 +194,6 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 		}
 
 		if result != nil {
-			if resResult != nil {
-				return nil, fmt.Errorf("Received more than one result: %v, %v", resResult, result)
-			}
 			resResult = result
 		}
 	}
