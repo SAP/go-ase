@@ -54,6 +54,14 @@ func (conn *connection) PrepareContext(ctx context.Context, query string) (drive
 		return nil, err
 	}
 
+	for err = nil; err != io.EOF; _, _, err = cmd.resultsHelper() {
+		if err != nil {
+			stmt.Close()
+			cmd.cancel()
+			return nil, err
+		}
+	}
+
 	stmt.cmd = cmd
 
 	return stmt, nil
