@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/dsn"
 )
 
 // connection is the struct which represents a database connection.
@@ -32,7 +33,7 @@ var (
 
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
-func newConnection(dsn libase.DsnInfo) (*connection, error) {
+func newConnection(dsn dsn.DsnInfo) (*connection, error) {
 	err := driverCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
@@ -93,13 +94,15 @@ func newConnection(dsn libase.DsnInfo) (*connection, error) {
 		}
 	}
 
-	// Set hostname and port.
-	hostport := unsafe.Pointer(C.CString(dsn.Host + " " + dsn.Port))
-	defer C.free(hostport)
-	retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SERVERADDR, hostport, C.CS_NULLTERM, nil)
-	if retval != C.CS_SUCCEED {
-		conn.Close()
-		return nil, makeError(retval, "C.ct_con_props failed for CS_SERVERADDR")
+	if dsn.Host != "" && dsn.Port != "" {
+		// Set hostname and port.
+		hostport := unsafe.Pointer(C.CString(dsn.Host + " " + dsn.Port))
+		defer C.free(hostport)
+		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SERVERADDR, hostport, C.CS_NULLTERM, nil)
+		if retval != C.CS_SUCCEED {
+			conn.Close()
+			return nil, makeError(retval, "C.ct_con_props failed for CS_SERVERADDR")
+		}
 	}
 
 	retval = C.ct_connect(conn.conn, nil, 0)
