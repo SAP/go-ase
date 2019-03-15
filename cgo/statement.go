@@ -97,9 +97,9 @@ func (stmt *statement) NumInput() int {
 	return stmt.argCount
 }
 
-func (stmt *statement) exec(args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+func (stmt *statement) exec(args []driver.NamedValue) error {
 	if len(args) != stmt.argCount {
-		return nil, nil, fmt.Errorf("Mismatched argument count - expected %d, got %d",
+		return fmt.Errorf("Mismatched argument count - expected %d, got %d",
 			stmt.argCount, len(args))
 	}
 
@@ -118,7 +118,7 @@ func (stmt *statement) exec(args []driver.NamedValue) (driver.Rows, driver.Resul
 		datafmt.namelen = C.CS_NULLTERM
 		asetype, err := types.FromGoType(arg.Value)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to retrieve ASEType for driver.Value: %v", err)
+			return fmt.Errorf("Failed to retrieve ASEType for driver.Value: %v", err)
 		}
 		datafmt.datatype = (C.CS_INT)(asetype)
 
@@ -137,19 +137,19 @@ func (stmt *statement) exec(args []driver.NamedValue) (driver.Rows, driver.Resul
 
 		retval = C.ct_param(stmt.cmd.cmd, datafmt, unsafe.Pointer(ptr), (C.CS_INT)(datalen), 0)
 		if retval != C.CS_SUCCEED {
-			return nil, nil, makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
+			return makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
 		}
 	}
 
-	retval := C.ct_send(stmt.cmd.cmd)
+	retval = C.ct_send(stmt.cmd.cmd)
 	if retval != C.CS_SUCCEED {
-		return nil, nil, makeError(retval, "C.ct_Send failed")
+		return makeError(retval, "C.ct_send failed")
 	}
 
-	return stmt.cmd.resultsHelper()
+	return nil
 }
 
-func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue) error {
 	return stmt.exec(args)
 }
 
@@ -158,8 +158,29 @@ func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	_, result, err := stmt.execContext(ctx, args)
-	return result, err
+	err := stmt.execContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
+
+	var resResult driver.Result
+
+	for {
+		_, result, err := stmt.cmd.resultsHelper()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		if result != nil {
+			resResult = result
+		}
+	}
+
+	return resResult, nil
 }
 
 func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
@@ -167,6 +188,15 @@ func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	rows, _, err := stmt.execContext(ctx, args)
-	return rows, err
+	err := stmt.execContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, _, err := stmt.cmd.resultsHelper()
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
