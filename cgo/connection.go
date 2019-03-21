@@ -16,7 +16,8 @@ import (
 
 // connection is the struct which represents a database connection.
 type connection struct {
-	conn *C.CS_CONNECTION
+	conn      *C.CS_CONNECTION
+	driverCtx *csContext
 }
 
 // Interface satisfaction checks
@@ -33,7 +34,13 @@ var (
 
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
-func newConnection(dsn dsn.DsnInfo) (*connection, error) {
+//
+// If driverCtx is nil a new csContext will be initialized.
+func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
+	if driverCtx == nil {
+		driverCtx = &csContext{}
+	}
+
 	err := driverCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
@@ -44,7 +51,9 @@ func newConnection(dsn dsn.DsnInfo) (*connection, error) {
 		return nil, fmt.Errorf("Error applying driver properties to context: %v", err)
 	}
 
-	conn := &connection{}
+	conn := &connection{
+		driverCtx: driverCtx,
+	}
 
 	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
 	if retval != C.CS_SUCCEED {
@@ -137,7 +146,7 @@ func (conn *connection) ResetSession(ctx context.Context) error {
 func (conn *connection) Close() error {
 	// Call context.drop when exiting this function to decrease the
 	// connection counter and potentially deallocate the context.
-	defer driverCtx.drop()
+	defer conn.driverCtx.drop()
 
 	retval := C.ct_close(conn.conn, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {
