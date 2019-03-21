@@ -117,7 +117,7 @@ func (rows *rows) Close() error {
 			C.free(unsafe.Pointer(rows.dataFmts[i]))
 		}
 		if rows.colData[i] != nil {
-			C.free(unsafe.Pointer(rows.colData[i]))
+			C.free(rows.colData[i])
 		}
 	}
 
