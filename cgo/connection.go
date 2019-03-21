@@ -212,15 +212,10 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 	}
 	defer cmd.drop()
 
-	var resResult driver.Result
-
-	for rows, result, err := cmd.resultsHelper(); err != io.EOF; rows, result, err = cmd.resultsHelper() {
+	var result, resResult driver.Result
+	for _, result, err = cmd.resultsHelper(); err != io.EOF; _, result, err = cmd.resultsHelper() {
 		if err != nil {
 			return nil, fmt.Errorf("Received error reading results: %v", err)
-		}
-
-		if rows != nil {
-			return nil, fmt.Errorf("rows is not nil: %v", rows)
 		}
 
 		if result != nil {
@@ -251,14 +246,9 @@ func (conn *connection) QueryContext(ctx context.Context, query string, args []d
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 
-
-	rows, result, err := cmd.resultsHelper()
+	rows, _, err := cmd.resultsHelper()
 	if err != nil {
 		return nil, fmt.Errorf("Received error while retrieving results: %v", err)
-	}
-
-	if result != nil {
-		return nil, fmt.Errorf("Received result when querying: %v", result)
 	}
 
 	return rows, nil
