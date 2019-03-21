@@ -48,7 +48,7 @@ func (d *aseDrv) OpenConnector(dsn string) (driver.Connector, error) {
 		return nil, fmt.Errorf("Failed to parse DSN: %v", err)
 	}
 
-	return NewConnector(*dsnInfo), nil
+	return NewConnector(*dsnInfo)
 }
 
 // needed to handle nil time values

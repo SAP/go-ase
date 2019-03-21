@@ -37,22 +37,28 @@ var (
 //
 // If driverCtx is nil a new csContext will be initialized.
 func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
-	if driverCtx == nil {
-		driverCtx = &csContext{}
+	dCtx := driverCtx
+	if dCtx == nil {
+		dCtx = &csContext{}
 	}
 
-	err := driverCtx.init()
+	err := dCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
-	err = driverCtx.applyDSN(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("Error applying driver properties to context: %v", err)
+	// If no driver context was passed the context DSN options still
+	// must be applied.
+	if driverCtx == nil {
+		err := dCtx.applyDSN(dsn)
+		if err != nil {
+			dCtx.drop()
+			return nil, err
+		}
 	}
 
 	conn := &connection{
-		driverCtx: driverCtx,
+		driverCtx: dCtx,
 	}
 
 	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
