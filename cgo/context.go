@@ -5,6 +5,8 @@ package cgo
 import "C"
 import (
 	"sync"
+
+	libdsn "github.com/SAP/go-ase/libase/dsn"
 )
 
 // context wraps C.CS_CONTEXT to ensure that the context is being closed
@@ -53,24 +55,6 @@ func (context *csContext) init() error {
 		return makeError(retval, "C.ct_init failed")
 	}
 
-	retval = C.ct_callback_wrapper_for_server_messages(context.ctx)
-	if retval != C.CS_SUCCEED {
-		err := context.drop()
-		if err != nil {
-			return err
-		}
-		return makeError(retval, "C.ct_callback failed for server messages")
-	}
-
-	retval = C.ct_callback_wrapper_for_client_messages(context.ctx)
-	if retval != C.CS_SUCCEED {
-		err := context.drop()
-		if err != nil {
-			return err
-		}
-		return makeError(retval, "C.ct_callback failed for client messages")
-	}
-
 	// Initialized context, set connection count.
 	context.connections = 1
 	return nil
@@ -102,5 +86,23 @@ func (context *csContext) drop() error {
 	}
 
 	context.ctx = nil
+	return nil
+}
+
+func (context *csContext) applyDSN(dsn libdsn.DsnInfo) error {
+	if dsn.Prop("cgo-callback-client") == "yes" {
+		retval := C.ct_callback_wrapper_for_client_messages(context.ctx)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "C.ct_callback failed for client messages")
+		}
+	}
+
+	if dsn.Prop("cgo-callback-server") == "yes" {
+		retval := C.ct_callback_wrapper_for_server_messages(context.ctx)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "C.ct_callback failed for server messages")
+		}
+	}
+
 	return nil
 }

@@ -39,6 +39,11 @@ func newConnection(dsn dsn.DsnInfo) (*connection, error) {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
+	err = driverCtx.applyDSN(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("Error applying driver properties to context: %v", err)
+	}
+
 	conn := &connection{}
 
 	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
