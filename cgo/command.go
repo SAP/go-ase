@@ -15,22 +15,17 @@ type csCommand struct {
 	isDynamic bool
 }
 
-// cancel cancels the current result set and drops the command.
-//
-// cancel automatically calls drop.
-// cancel cannot be called after drop.
+// cancel cancels the current result set.
 func (cmd *csCommand) cancel() error {
 	retval := C.ct_cancel(nil, cmd.cmd, C.CS_CANCEL_ALL)
 	if retval != C.CS_SUCCEED {
 		return makeError(retval, "Error occurred while cancelling command")
 	}
 
-	return cmd.drop()
+	return nil
 }
 
-// drop finishes reading the results and drops the command.
-//
-// drop cannot be called after cancel.
+// drop deallocates the command.
 func (cmd *csCommand) drop() error {
 	retval := C.ct_cmd_drop(cmd.cmd)
 	if retval != C.CS_SUCCEED {
@@ -141,8 +136,10 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 	case C.CS_END_RESULTS:
 		return nil, nil, io.EOF // no more responses available, quit
 	case C.CS_FAIL:
+		cmd.cancel()
 		return nil, nil, makeError(retval, "Command failed")
 	default:
+		cmd.cancel()
 		return nil, nil, makeError(retval, "Invalid return code")
 	}
 
@@ -153,6 +150,7 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 	case C.CS_ROW_RESULT, C.CS_STATUS_RESULT:
 		rows, err := newRows(cmd)
 		if err != nil {
+			cmd.cancel()
 			return nil, nil, err
 		}
 
@@ -170,16 +168,14 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 
 	// other result types
 	case C.CS_CMD_FAIL:
-		err := cmd.cancel()
-		if err != nil {
-			return nil, nil, err
-		}
+		cmd.cancel()
 		return nil, nil, makeError(retval, "Command failed, cancelled")
 	case C.CS_CMD_DONE:
 		var rowsAffected C.CS_INT
 		retval := C.ct_res_info(cmd.cmd, C.CS_ROW_COUNT, unsafe.Pointer(&rowsAffected),
 			C.CS_UNUSED, nil)
 		if retval != C.CS_SUCCEED {
+			cmd.cancel()
 			return nil, nil, makeError(retval, "Failed to read affected rows")
 		}
 
