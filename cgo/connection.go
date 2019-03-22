@@ -172,11 +172,21 @@ func (conn *connection) Ping(ctx context.Context) error {
 }
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	return conn.ExecContext(context.Background(), query, libase.ValuesToNamedValues(args))
+	q, err := libase.QueryFormat(query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.ExecContext(context.Background(), q, nil)
 }
 
 func (conn *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	cmd, err := conn.execContext(ctx, query)
+	q, err := libase.NamedQueryFormat(query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := conn.execContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
@@ -202,14 +212,25 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 }
 
 func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	return conn.QueryContext(context.Background(), query, libase.ValuesToNamedValues(args))
+	q, err := libase.QueryFormat(query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.QueryContext(context.Background(), q, nil)
 }
 
 func (conn *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	cmd, err := conn.execContext(ctx, query)
+	q, err := libase.NamedQueryFormat(query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := conn.execContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
+
 
 	rows, result, err := cmd.resultsHelper()
 	if err != nil {
