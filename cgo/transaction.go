@@ -7,6 +7,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"unsafe"
+
+	"github.com/SAP/go-ase/libase"
 )
 
 // transaction is the struct which represents a database transaction.
@@ -30,8 +32,9 @@ func (conn *connection) Begin() (driver.Tx, error) {
 }
 
 func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	if opts.Isolation < 0 || opts.Isolation > 3 {
-		return nil, fmt.Errorf("Unsupported isolation level requested: %d", opts.Isolation)
+	isolationLevel, err := libase.IsolationLevelFromGo(opts.Isolation)
+	if err != nil {
+		return nil, err
 	}
 
 	tx := &transaction{conn, C.CS_FALSE, false}
@@ -41,7 +44,7 @@ func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (dri
 		return nil, fmt.Errorf("Failed to start transaction: %v", err)
 	}
 
-	_, err = tx.conn.Exec("SET TRANSACTION ISOLATION LEVEL ?", []driver.Value{opts.Isolation})
+	_, err = tx.conn.Exec("SET TRANSACTION ISOLATION LEVEL ?", []driver.Value{int(isolationLevel)})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set isolation level for transaction: %v", err)
 	}
