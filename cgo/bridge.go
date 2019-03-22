@@ -5,14 +5,32 @@ import "C"
 import (
 	"fmt"
 	"os"
+	"sync"
 	"unsafe"
 )
+
+var (
+	cbTarget *os.File = os.Stderr
+	cbRW              = &sync.RWMutex{}
+)
+
+// SetCallbackTarget sets the os.File target the callback functions for
+// client and server messages will write to.
+func SetCallbackTarget(target *os.File) {
+	cbRW.Lock()
+	defer cbRW.Unlock()
+
+	cbTarget = target
+}
 
 // srvMsg is a callback function which will be called from C when the server sends a message.
 // This may be an error message or e.g. the information that we are connected successfully.
 // Don't change the following line. It is the directive for cgo to make the function available from C.
 //export srvMsg
 func srvMsg(msg *C.CS_SERVERMSG) C.CS_RETCODE {
+	cbRW.RLock()
+	defer cbRW.RUnlock()
+
 	switch msg.msgnumber {
 	case C.CS_SV_INFORM:
 		break
@@ -41,6 +59,9 @@ func srvMsg(msg *C.CS_SERVERMSG) C.CS_RETCODE {
 // Don't change the following line. It is the directive for cgo to make the function available from C.
 //export ctlMsg
 func ctlMsg(msg *C.CS_CLIENTMSG) C.CS_RETCODE {
+	cbRW.RLock()
+	defer cbRW.RUnlock()
+
 	fmt.Fprintln(os.Stderr, "Client message:")
 	fmt.Fprintf(os.Stderr, "\tseverity:     %d\n", msg.severity)
 	fmt.Fprintf(os.Stderr, "\tmsgnumber:    %d\n", msg.msgnumber)
