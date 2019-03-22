@@ -1,7 +1,6 @@
 package types
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"time"
@@ -27,7 +26,7 @@ func (t ASEType) GoType() interface{} {
 	return type2interface[t]
 }
 
-func FromGoType(value driver.Value) (ASEType, error) {
+func FromGoType(value interface{}) (ASEType, error) {
 	switch value.(type) {
 	case int64:
 		return BIGINT, nil
@@ -42,6 +41,6 @@ func FromGoType(value driver.Value) (ASEType, error) {
 	case time.Time:
 		return DATETIME, nil
 	default:
-		return ILLEGAL, fmt.Errorf("Invalid driver.Value for ASE: %v", value)
+		return ILLEGAL, fmt.Errorf("Invalid type for ASE: %v", value)
 	}
 }
