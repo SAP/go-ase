@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"time"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase/types"
@@ -168,23 +167,22 @@ func (rows *rows) Next(dest []driver.Value) error {
 	}
 
 	for i := 0; i < len(rows.colData); i++ {
-		gobytes := C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-		switch rows.colASEType[i].GoType().(type) {
-		case []byte:
-			dest[i] = gobytes
-		case byte:
-			dest[i] = gobytes[0]
-		case rune:
-			dest[i] = rune(gobytes[0])
-		case int64:
-			dest[i] = int64(gobytes[0])
-		case uint64:
-			dest[i] = uint64(gobytes[0])
-		case float64:
-			dest[i] = float64(gobytes[0])
-		case string:
-			dest[i] = string(gobytes)
-		case time.Time:
+		switch rows.colASEType[i] {
+		case types.BINARY:
+			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
+		case types.INT:
+			dest[i] = int64(int32(*((*C.CS_BIGINT)(rows.colData[i]))))
+		case types.BIGINT:
+			dest[i] = int64(*((*C.CS_BIGINT)(rows.colData[i])))
+		case types.UINT:
+			dest[i] = uint64(uint32(*((*C.CS_UBIGINT)(rows.colData[i]))))
+		case types.UBIGINT:
+			dest[i] = uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
+		case types.FLOAT:
+			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
+		case types.CHAR:
+			dest[i] = C.GoString((*C.char)(rows.colData[i]))
+		case types.BIGDATETIME:
 			// TODO: convert from data into time.Time - e.g. cs_convert?
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])

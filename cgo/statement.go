@@ -122,20 +122,41 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		}
 		datafmt.datatype = (C.CS_INT)(asetype)
 
+		datalen := 0
+		var ptr unsafe.Pointer
 		switch arg.Value.(type) {
+		case int64:
+			i := (C.CS_BIGINT)(arg.Value.(int64))
+			ptr = unsafe.Pointer(&i)
+		case uint64:
+			i := (C.CS_UBIGINT)(arg.Value.(uint64))
+			ptr = unsafe.Pointer(&i)
+		case float64:
+			i := (C.CS_FLOAT)(arg.Value.(float64))
+			ptr = unsafe.Pointer(&i)
+		case bool:
+			s := "false"
+			if arg.Value.(bool) {
+				s = "true"
+			}
+			ptr = unsafe.Pointer(C.CString(s))
+			defer C.free(ptr)
 		case []byte:
+			ptr = C.CBytes(arg.Value.([]byte))
+			defer C.free(ptr)
 			datafmt.format = C.CS_FMT_PADNULL
+			datalen = len(arg.Value.([]byte))
 		case string:
+			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
+			defer C.free(ptr)
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
+			datalen = len(arg.Value.(string))
+		default:
+			return fmt.Errorf("Unable to transform to Client-Library: %v", arg.Value)
 		}
 
-		s := fmt.Sprintf("%v", arg.Value)
-		datalen := len(s)
-		ptr := C.CString(s)
-		defer C.free(unsafe.Pointer(ptr))
-
-		retval = C.ct_param(stmt.cmd.cmd, datafmt, unsafe.Pointer(ptr), (C.CS_INT)(datalen), 0)
+		retval = C.ct_param(stmt.cmd.cmd, datafmt, ptr, (C.CS_INT)(datalen), 0)
 		if retval != C.CS_SUCCEED {
 			return makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
 		}
