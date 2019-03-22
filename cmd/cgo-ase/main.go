@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 
 	_ "github.com/SAP/go-ase/cgo"
 	libdsn "github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/flagslice"
 	"github.com/bgentry/speakeasy"
 )
 
@@ -19,6 +21,8 @@ var (
 	fPass         = flag.String("p", "", "database user password")
 	fUserstorekey = flag.String("k", "", "userstorekey")
 	fDatabase     = flag.String("D", "", "database")
+
+	fOpts = &flagslice.FlagStringSlice{}
 )
 
 func exec(db *sql.DB, q string) error {
@@ -124,7 +128,9 @@ func subcmd(db *sql.DB, part string) error {
 }
 
 func main() {
+	flag.Var(fOpts, "o", "Connection properties")
 	flag.Parse()
+
 	pass := *fPass
 	var err error
 	if len(pass) == 0 && len(*fUserstorekey) == 0 {
@@ -142,6 +148,18 @@ func main() {
 		Password:     pass,
 		Userstorekey: *fUserstorekey,
 		Database:     *fDatabase,
+		ConnectProps: url.Values{},
+	}
+
+	for _, fOpt := range fOpts.Slice() {
+		split := strings.SplitN(fOpt, "=", 2)
+		opt := split[0]
+		value := ""
+		if len(split) > 1 {
+			value = split[1]
+		}
+
+		dsn.ConnectProps.Set(opt, value)
 	}
 
 	db, err := sql.Open("ase", dsn.AsSimple())

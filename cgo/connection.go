@@ -16,7 +16,8 @@ import (
 
 // connection is the struct which represents a database connection.
 type connection struct {
-	conn *C.CS_CONNECTION
+	conn      *C.CS_CONNECTION
+	driverCtx *csContext
 }
 
 // Interface satisfaction checks
@@ -33,13 +34,32 @@ var (
 
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
-func newConnection(dsn dsn.DsnInfo) (*connection, error) {
-	err := driverCtx.init()
+//
+// If driverCtx is nil a new csContext will be initialized.
+func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
+	dCtx := driverCtx
+	if dCtx == nil {
+		dCtx = &csContext{}
+	}
+
+	err := dCtx.init()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
-	conn := &connection{}
+	// If no driver context was passed the context DSN options still
+	// must be applied.
+	if driverCtx == nil {
+		err := dCtx.applyDSN(dsn)
+		if err != nil {
+			dCtx.drop()
+			return nil, err
+		}
+	}
+
+	conn := &connection{
+		driverCtx: dCtx,
+	}
 
 	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
 	if retval != C.CS_SUCCEED {
@@ -132,7 +152,7 @@ func (conn *connection) ResetSession(ctx context.Context) error {
 func (conn *connection) Close() error {
 	// Call context.drop when exiting this function to decrease the
 	// connection counter and potentially deallocate the context.
-	defer driverCtx.drop()
+	defer conn.driverCtx.drop()
 
 	retval := C.ct_close(conn.conn, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {

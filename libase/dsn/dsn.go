@@ -83,3 +83,18 @@ func (dsnInfo DsnInfo) AsSimple() string {
 
 	return strings.Join(ret, " ")
 }
+
+// Prop returns the last value for a property or empty string.
+// To access other values use ConnectProps directly.
+func (dsnInfo DsnInfo) Prop(property string) string {
+	vals, ok := dsnInfo.ConnectProps[property]
+	if !ok {
+		return ""
+	}
+
+	if len(vals) == 0 {
+		return ""
+	}
+
+	return vals[len(vals)-1]
+}
