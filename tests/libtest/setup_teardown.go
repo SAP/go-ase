@@ -1,4 +1,4 @@
-package libtests
+package libtest
 
 import (
 	"context"

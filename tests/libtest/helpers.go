@@ -1,4 +1,4 @@
-package libtests
+package libtest
 
 import (
 	"database/sql"
@@ -8,10 +8,10 @@ import (
 	"testing"
 )
 
-func DBTestFunc(t *testing.T, db *sql.DB, tableName string)
+type DBTestFunc func(t *testing.T, db *sql.DB, tableName string)
 
 func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
-	dbs, err := libtest.GetDBs()
+	dbs, err := GetDBs()
 	if err != nil {
 		t.Errorf("Error retrieving DBs: %v", err)
 		return

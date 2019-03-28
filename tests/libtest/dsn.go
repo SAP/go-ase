@@ -1,4 +1,4 @@
-package libtests
+package libtest
 
 import (
 	"fmt"
@@ -104,7 +104,6 @@ func DSN(userstore bool) (*dsn.DsnInfo, func(), error) {
 	}
 
 	fn := func() {
-		log.Printf("Dropping db %s", dsn.Database)
 		err := TeardownDB(dsn)
 		if err != nil {
 			log.Printf("Failed to drop database: %s", dsn.Database)
