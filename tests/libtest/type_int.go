@@ -2,7 +2,6 @@ package libtest
 
 import (
 	"database/sql"
-	"fmt"
 	"math"
 	"testing"
 )
@@ -12,32 +11,15 @@ func DoTestInt64(t *testing.T) {
 }
 
 func testInt64(t *testing.T, db *sql.DB, tableName string) {
-
-	_, err := db.Exec("create table ? (a bigint)", tableName)
-	if err != nil {
-		t.Errorf("Failed to create table %s: %v", tableName, err)
-		return
-	}
-
-	stmt, err := db.Prepare(fmt.Sprintf("insert into %s values (?)", tableName))
-	if err != nil {
-		t.Errorf("Failed to prepare statement: %v", err)
-		return
-	}
-	defer stmt.Close()
-
 	samples := []int64{math.MinInt64, -5000, -100, 0, 100, 5000, math.MaxInt64}
-	for _, sample := range samples {
-		_, err := stmt.Exec(sample)
-		if err != nil {
-			t.Errorf("Failed to execute prepared statement with %v: %v", sample, err)
-			return
-		}
-	}
 
-	rows, err := db.Query("select * from ?", tableName)
+	pass := make([]interface{}, len(samples))
+	for i, sample := range samples {
+		pass[i] = sample
+	}
+	rows, err := SetupTableInsert(db, tableName, "bigint", pass...)
 	if err != nil {
-		t.Errorf("Error selecting from TestInt64: %v", err)
+		t.Errorf("%v", err)
 		return
 	}
 	defer rows.Close()
