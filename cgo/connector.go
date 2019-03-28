@@ -3,6 +3,7 @@ package cgo
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 
 	libdsn "github.com/SAP/go-ase/libase/dsn"
 )
@@ -20,10 +21,25 @@ func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
 		return nil, fmt.Errorf("Failed to initialize context: %v")
 	}
 
-	return &connector{
+	c := &connector{
 		driverCtx: driverCtx,
 		dsn:       dsn,
-	}, nil
+	}
+
+	conn, err := c.Connect(context.Background())
+	if err != nil {
+		driverCtx.drop()
+		return nil, fmt.Errorf("Failed to open connection: %v", err)
+	}
+	defer func() {
+		// In- and decrease connections count before and after closing
+		// connection to prevent the context being deallocated.
+		driverCtx.connections += 1
+		conn.Close()
+		driverCtx.connections -= 1
+	}()
+
+	return c, nil
 }
 
 func (connector *connector) Connect(ctx context.Context) (driver.Conn, error) {
