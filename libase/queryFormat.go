@@ -13,7 +13,7 @@ import (
 //	query: `select * from table where name = ?`
 //	values: aName
 //	-> `select * from table where name = "aName"`
-func QueryFormat(query string, values ...interface{}) (string, error) {
+func QueryFormat(query string, values ...driver.Value) (string, error) {
 	if strings.Count(query, "?") != len(values) {
 		return "", fmt.Errorf("Number of placeholders and passed arguments does not match. Placeholders: %d, Arguments: %d",
 			strings.Count(query, "?"), len(values))
@@ -38,7 +38,7 @@ func QueryFormat(query string, values ...interface{}) (string, error) {
 // TODO: NamedValue.Name should be used as a parameter identifier.
 // TODO: Support named parameters
 func NamedQueryFormat(query string, values ...driver.NamedValue) (string, error) {
-	convertedValues := make([]interface{}, len(values))
+	convertedValues := make([]driver.Value, len(values))
 	for i, value := range values {
 		convertedValues[i] = value.Value
 	}
