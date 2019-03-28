@@ -40,7 +40,7 @@ func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (dri
 
 	tx := &transaction{conn, C.CS_FALSE, false}
 
-	_, err := tx.conn.Exec("BEGIN TRANSACTION", nil)
+	_, err = tx.conn.Exec("BEGIN TRANSACTION", nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start transaction: %v", err)
 	}
