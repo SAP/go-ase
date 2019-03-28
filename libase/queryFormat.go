@@ -23,16 +23,12 @@ func QueryFormat(query string, values ...driver.Value) (string, error) {
 		return query, nil
 	}
 
-	for _, value := range values {
-		switch value.(type) {
-		case string:
-			query = strings.Replace(query, "?", "%q", 1)
-		default:
-			query = strings.Replace(query, "?", "%v", 1)
-		}
+	pass := make([]interface{}, len(values))
+	for i, val := range values {
+		pass[i] = val
 	}
 
-	return fmt.Sprintf(query, values...), nil
+	return fmt.Sprintf(strings.Replace(query, "?", "%v", -1), pass...), nil
 }
 
 // TODO: NamedValue.Name should be used as a parameter identifier.
