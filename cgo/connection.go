@@ -192,7 +192,7 @@ func (conn *connection) Ping(ctx context.Context) error {
 }
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	q, err := libase.QueryFormat(query, args)
+	q, err := libase.QueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, 
 }
 
 func (conn *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	q, err := libase.NamedQueryFormat(query, args)
+	q, err := libase.NamedQueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 }
 
 func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	q, err := libase.QueryFormat(query, args)
+	q, err := libase.QueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, e
 }
 
 func (conn *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	q, err := libase.NamedQueryFormat(query, args)
+	q, err := libase.NamedQueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
