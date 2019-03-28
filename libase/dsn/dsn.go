@@ -22,6 +22,12 @@ type DsnInfo struct {
 	ConnectProps url.Values `json:"connectprops"`
 }
 
+func NewDsnInfo() *DsnInfo {
+	dsn := &DsnInfo{}
+	dsn.ConnectProps = url.Values{}
+	return dsn
+}
+
 // tagToField returns a mapping from json metadata tags to
 // reflect.Values.
 // If multiref is true each json metadata tag will be mapped to its
