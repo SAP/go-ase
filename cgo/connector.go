@@ -15,11 +15,9 @@ type connector struct {
 }
 
 func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
-	driverCtx := &csContext{}
-	err := driverCtx.applyDSN(dsn)
+	driverCtx, err := newCsContext(dsn)
 	if err != nil {
-		driverCtx.drop()
-		return nil, err
+		return nil, fmt.Errorf("Failed to initialize context: %v")
 	}
 
 	return &connector{
