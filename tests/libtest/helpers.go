@@ -21,7 +21,7 @@ func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
 		defer db.Close()
 		t.Run(connectName,
 			func(t *testing.T) {
-				testInt64(t, db, connectName+testName)
+				testFn(t, db, connectName+testName)
 			},
 		)
 	}
