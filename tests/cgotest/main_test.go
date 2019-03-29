@@ -60,3 +60,11 @@ func TestString(t *testing.T) {
 func TestTime(t *testing.T) {
 	libtest.DoTestTime(t)
 }
+
+func TestSQLTx(t *testing.T) {
+	libtest.DoTestSQLTx(t)
+}
+
+func TestSQLExec(t *testing.T) {
+	libtest.DoTestSQLExec(t)
+}
