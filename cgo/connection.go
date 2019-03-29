@@ -136,11 +136,6 @@ func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
 	return conn, nil
 }
 
-func (conn *connection) ResetSession(ctx context.Context) error {
-	// TODO
-	return nil
-}
-
 // Close closes and deallocates a connection.
 func (conn *connection) Close() error {
 	// Call context.drop when exiting this function to decrease the
