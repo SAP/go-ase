@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"unsafe"
 
+	"github.com/SAP/go-ase/libase"
 	"github.com/SAP/go-ase/libase/types"
 )
 
@@ -188,7 +189,8 @@ func (rows *rows) Next(dest []driver.Value) error {
 		case types.CHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		case types.BIGDATETIME:
-			// TODO: convert from data into time.Time - e.g. cs_convert?
+			microseconds := uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
+			dest[i] = libase.MicrosecondsToTime(microseconds)
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])
 		}

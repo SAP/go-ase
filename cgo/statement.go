@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -164,6 +165,9 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
+		case time.Time:
+			microseconds := (C.CS_UBIGINT)(libase.TimeToMicroseconds(arg.Value.(time.Time)))
+			ptr = unsafe.Pointer(&microseconds)
 		default:
 			return fmt.Errorf("Unable to transform to Client-Library: %v", arg.Value)
 		}
