@@ -93,6 +93,7 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 	}
 }
 
+// dynamic initializes a csCommand as a prepared statement.
 func (conn *connection) dynamic(name string, query string) (*csCommand, error) {
 	cmd := &csCommand{}
 	cmd.isDynamic = true

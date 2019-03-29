@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+// TimeToMicroseconds converts a time.Time into the number of
+// microseconds elapsed since time.Time{}.
 func TimeToMicroseconds(date time.Time) uint64 {
 	year, month, day := date.Year(), int(date.Month()), date.Day()
 
@@ -26,8 +28,12 @@ func TimeToMicroseconds(date time.Time) uint64 {
 	return rataDie + hours + minutes + seconds + nanoseconds
 }
 
+// MicrosecondsToTime takes the number of microseconds since time.Time{}
+// and calculates the appropriate time.Time.
 func MicrosecondsToTime(microseconds uint64) time.Time {
-	// Formula from Calendars by Doggett
+	// Formula from CACM, Fliegel / Van Flandern
+	// Implementation from github.com/thda/tds
+
 	// Calculate small offsets
 	nanoseconds := int(microseconds%1000000) * 1000
 	seconds := int(microseconds/1000000) % 86400

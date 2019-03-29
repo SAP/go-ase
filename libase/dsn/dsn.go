@@ -70,6 +70,8 @@ func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
 	return tTF
 }
 
+// Returns all information of a DsnInfo struct as a simple key/value
+// string.
 func (dsnInfo DsnInfo) AsSimple() string {
 	ret := []string{}
 

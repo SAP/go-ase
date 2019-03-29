@@ -15,6 +15,8 @@ type connector struct {
 	dsn       libdsn.DsnInfo
 }
 
+// NewConnector returns a driver.Connector which can be passed to
+// sql.OpenDB.
 func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
 	driverCtx, err := newCsContext(dsn)
 	if err != nil {
