@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/url"
 	"strings"
 
 	_ "github.com/SAP/go-ase/cgo"
@@ -141,15 +140,13 @@ func main() {
 		}
 	}
 
-	dsn := libdsn.DsnInfo{
-		Host:         *fHost,
-		Port:         *fPort,
-		Username:     *fUser,
-		Password:     pass,
-		Userstorekey: *fUserstorekey,
-		Database:     *fDatabase,
-		ConnectProps: url.Values{},
-	}
+	dsn := libdsn.NewDsnInfo()
+	dsn.Host = *fHost
+	dsn.Port = *fPort
+	dsn.Username = *fUser
+	dsn.Password = pass
+	dsn.Userstorekey = *fUserstorekey
+	dsn.Database = *fDatabase
 
 	for _, fOpt := range fOpts.Slice() {
 		split := strings.SplitN(fOpt, "=", 2)

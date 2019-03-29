@@ -22,6 +22,12 @@ type DsnInfo struct {
 	ConnectProps url.Values `json:"connectprops"`
 }
 
+func NewDsnInfo() *DsnInfo {
+	dsn := &DsnInfo{}
+	dsn.ConnectProps = url.Values{}
+	return dsn
+}
+
 // tagToField returns a mapping from json metadata tags to
 // reflect.Values.
 // If multiref is true each json metadata tag will be mapped to its
@@ -87,6 +93,10 @@ func (dsnInfo DsnInfo) AsSimple() string {
 // Prop returns the last value for a property or empty string.
 // To access other values use ConnectProps directly.
 func (dsnInfo DsnInfo) Prop(property string) string {
+	if dsnInfo.ConnectProps == nil {
+		return ""
+	}
+
 	vals, ok := dsnInfo.ConnectProps[property]
 	if !ok {
 		return ""
