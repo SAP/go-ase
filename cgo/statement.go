@@ -135,12 +135,12 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			i := (C.CS_FLOAT)(arg.Value.(float64))
 			ptr = unsafe.Pointer(&i)
 		case bool:
-			s := "false"
+			b := (C.CS_BOOL)(0)
 			if arg.Value.(bool) {
-				s = "true"
+				b = (C.CS_BOOL)(1)
 			}
-			ptr = unsafe.Pointer(C.CString(s))
-			defer C.free(ptr)
+			ptr = unsafe.Pointer(&b)
+			datalen = 1
 		case []byte:
 			ptr = C.CBytes(arg.Value.([]byte))
 			defer C.free(ptr)

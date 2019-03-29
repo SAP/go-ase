@@ -180,6 +180,11 @@ func (rows *rows) Next(dest []driver.Value) error {
 			dest[i] = uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
 		case types.FLOAT:
 			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
+		case types.BIT:
+			dest[i] = false
+			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {
+				dest[i] = true
+			}
 		case types.CHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		case types.BIGDATETIME:
