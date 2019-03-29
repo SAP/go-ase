@@ -36,10 +36,43 @@ var (
 )
 
 func (conn *connection) Prepare(query string) (driver.Stmt, error) {
-	return conn.PrepareContext(context.Background(), query)
+	return conn.prepare(query)
 }
 
 func (conn *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	recvStmt := make(chan driver.Stmt, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		stmt, err := conn.prepare(query)
+		recvStmt <- stmt
+		close(recvStmt)
+		recvErr <- err
+		close(recvErr)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			go func() {
+				stmt := <-recvStmt
+				if stmt != nil {
+					stmt.Close()
+				}
+			}()
+			return nil, ctx.Err()
+		case stmt := <-recvStmt:
+			if stmt != nil {
+				return stmt, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+}
+
+func (conn *connection) prepare(query string) (driver.Stmt, error) {
 	stmt := &statement{}
 
 	stmt.argCount = strings.Count(query, "?")
@@ -194,19 +227,22 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 }
 
 func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue) error {
-	return stmt.exec(args)
-}
+	recvErr := make(chan error, 1)
+	go func() {
+		recvErr <- stmt.exec(args)
+	}()
 
-func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
-	return stmt.ExecContext(context.Background(), libase.ValuesToNamedValues(args))
-}
-
-func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	err := stmt.execContext(ctx, args)
-	if err != nil {
-		return nil, err
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-recvErr:
+			return err
+		}
 	}
+}
 
+func (stmt *statement) execResults() (driver.Result, error) {
 	var resResult driver.Result
 
 	for {
@@ -227,12 +263,48 @@ func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue
 	return resResult, nil
 }
 
-func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
-	return stmt.QueryContext(context.Background(), libase.ValuesToNamedValues(args))
+func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
+	err := stmt.exec(libase.ValuesToNamedValues(args))
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt.execResults()
 }
 
-func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	err := stmt.execContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
+
+	recvResult := make(chan driver.Result, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		res, err := stmt.execResults()
+		recvResult <- res
+		close(recvResult)
+		recvErr <- err
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case res := <-recvResult:
+			if res != nil {
+				return res, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+}
+
+func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
+	err := stmt.exec(libase.ValuesToNamedValues(args))
 	if err != nil {
 		return nil, err
 	}
@@ -243,4 +315,42 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 	}
 
 	return rows, nil
+}
+
+func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	err := stmt.execContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
+
+	recvRows := make(chan driver.Rows, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		rows, _, err := stmt.cmd.resultsHelper()
+		recvRows <- rows
+		close(recvRows)
+		recvErr <- err
+		close(recvErr)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			go func() {
+				rows := <-recvRows
+				if rows != nil {
+					rows.Close()
+				}
+			}()
+			return nil, ctx.Err()
+		case rows := <-recvRows:
+			if rows != nil {
+				return rows, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 }

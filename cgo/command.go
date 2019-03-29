@@ -72,7 +72,9 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 	go func() {
 		cmd, err := conn.exec(query)
 		recvCmd <- cmd
+		close(recvCmd)
 		recvErr <- err
+		close(recvErr)
 	}()
 
 	for {

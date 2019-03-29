@@ -156,8 +156,8 @@ func (conn *connection) Close() error {
 	return nil
 }
 
-func (conn *connection) Ping(ctx context.Context) error {
-	rows, err := conn.QueryContext(ctx, "SELECT 'PING'", []driver.NamedValue{})
+func (conn *connection) ping() error {
+	rows, err := conn.Query("SELECT 'PING'", nil)
 	if err != nil {
 		return driver.ErrBadConn
 	}
@@ -177,6 +177,23 @@ func (conn *connection) Ping(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (conn *connection) Ping(ctx context.Context) error {
+	recvErr := make(chan error, 1)
+	go func() {
+		recvErr <- conn.ping()
+		close(recvErr)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-recvErr:
+			return err
+		}
+	}
 }
 
 func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
