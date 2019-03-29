@@ -2,6 +2,9 @@ package flagslice
 
 import "strings"
 
+// FlagStringSlice implements the flags.Value interface.
+// Each occurrence of a flag of this type will append the given
+// parameter to the flags' value.
 type FlagStringSlice []string
 
 func (fss FlagStringSlice) String() string {
