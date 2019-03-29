@@ -153,11 +153,17 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 			datafmt.format = C.CS_FMT_PADNULL
 		case string:
-			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
-			defer C.free(ptr)
+			if len(arg.Value.(string)) == 0 {
+				ptr = unsafe.Pointer(C.CString(""))
+				defer C.free(ptr)
+				datalen = 0
+			} else {
+				ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
+				defer C.free(ptr)
+				datalen = len(arg.Value.(string))
+			}
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
-			datalen = len(arg.Value.(string))
 		default:
 			return fmt.Errorf("Unable to transform to Client-Library: %v", arg.Value)
 		}
