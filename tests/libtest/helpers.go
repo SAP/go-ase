@@ -21,7 +21,7 @@ func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
 		defer db.Close()
 		t.Run(connectName,
 			func(t *testing.T) {
-				testFn(t, db, connectName+testName)
+				testFn(t, db, testName)
 			},
 		)
 	}
