@@ -4,6 +4,7 @@ package cgo
 import "C"
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"unsafe"
@@ -32,14 +33,14 @@ func (conn *connection) Begin() (driver.Tx, error) {
 }
 
 func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	isolationLevel, err := libase.IsolationLevelFromGo(opts.Isolation)
+	isolationLevel, err := libase.IsolationLevelFromGo(sql.IsolationLevel(opts.Isolation))
 	if err != nil {
 		return nil, err
 	}
 
 	tx := &transaction{conn, C.CS_FALSE, false}
 
-	_, err := tx.conn.Exec("BEGIN TRANSACTION", nil)
+	_, err = tx.conn.Exec("BEGIN TRANSACTION", nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start transaction: %v", err)
 	}
