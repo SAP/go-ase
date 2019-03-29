@@ -64,3 +64,7 @@ func TestTime(t *testing.T) {
 func TestSQLTx(t *testing.T) {
 	libtest.DoTestSQLTx(t)
 }
+
+func TestSQLExec(t *testing.T) {
+	libtest.DoTestSQLExec(t)
+}
