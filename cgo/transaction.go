@@ -29,10 +29,45 @@ type transaction struct {
 var _ driver.Tx = (*transaction)(nil)
 
 func (conn *connection) Begin() (driver.Tx, error) {
-	return conn.BeginTx(context.Background(), driver.TxOptions{Isolation: 0, ReadOnly: false})
+	return conn.beginTx(driver.TxOptions{Isolation: driver.IsolationLevel(sql.LevelDefault), ReadOnly: false})
 }
 
 func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	recvTx := make(chan driver.Tx, 1)
+	recvErr := make(chan error, 1)
+	go func() {
+		tx, err := conn.beginTx(opts)
+		recvTx <- tx
+		close(recvTx)
+		recvErr <- err
+		close(recvErr)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Context exits early, Tx will still be created and
+			// initialized; read and rollback
+			go func() {
+				tx := <-recvTx
+				if tx != nil {
+					tx.Rollback()
+				}
+			}()
+			return nil, ctx.Err()
+		case tx := <-recvTx:
+			if tx != nil {
+				return tx, nil
+			}
+		case err := <-recvErr:
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+}
+
+func (conn *connection) beginTx(opts driver.TxOptions) (driver.Tx, error) {
 	isolationLevel, err := libase.IsolationLevelFromGo(sql.IsolationLevel(opts.Isolation))
 	if err != nil {
 		return nil, err
