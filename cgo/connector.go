@@ -3,6 +3,7 @@ package cgo
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 
 	libdsn "github.com/SAP/go-ase/libase/dsn"
 )
@@ -15,17 +16,30 @@ type connector struct {
 }
 
 func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
-	driverCtx := &csContext{}
-	err := driverCtx.applyDSN(dsn)
+	driverCtx, err := newCsContext(dsn)
 	if err != nil {
-		driverCtx.drop()
-		return nil, err
+		return nil, fmt.Errorf("Failed to initialize context: %v")
 	}
 
-	return &connector{
+	c := &connector{
 		driverCtx: driverCtx,
 		dsn:       dsn,
-	}, nil
+	}
+
+	conn, err := c.Connect(context.Background())
+	if err != nil {
+		driverCtx.drop()
+		return nil, fmt.Errorf("Failed to open connection: %v", err)
+	}
+	defer func() {
+		// In- and decrease connections count before and after closing
+		// connection to prevent the context being deallocated.
+		driverCtx.connections += 1
+		conn.Close()
+		driverCtx.connections -= 1
+	}()
+
+	return c, nil
 }
 
 func (connector *connector) Connect(ctx context.Context) (driver.Conn, error) {
@@ -33,13 +47,9 @@ func (connector *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	errChan := make(chan error, 1)
 	go func() {
 		conn, err := newConnection(connector.driverCtx, connector.dsn)
-		if err != nil {
-			errChan <- err
-		} else {
-			connChan <- conn
-		}
-
+		connChan <- conn
 		close(connChan)
+		errChan <- err
 		close(errChan)
 	}()
 

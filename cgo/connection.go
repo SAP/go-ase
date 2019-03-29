@@ -37,28 +37,21 @@ var (
 //
 // If driverCtx is nil a new csContext will be initialized.
 func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
-	dCtx := driverCtx
-	if dCtx == nil {
-		dCtx = &csContext{}
+	if driverCtx == nil {
+		var err error
+		driverCtx, err = newCsContext(dsn)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to initialize context for conn: %v", err)
+		}
 	}
 
-	err := dCtx.init()
+	err := driverCtx.newConn()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
-	// If no driver context was passed the context DSN options still
-	// must be applied.
-	if driverCtx == nil {
-		err := dCtx.applyDSN(dsn)
-		if err != nil {
-			dCtx.drop()
-			return nil, err
-		}
-	}
-
 	conn := &connection{
-		driverCtx: dCtx,
+		driverCtx: driverCtx,
 	}
 
 	retval := C.ct_con_alloc(driverCtx.ctx, &conn.conn)
@@ -152,7 +145,7 @@ func (conn *connection) ResetSession(ctx context.Context) error {
 func (conn *connection) Close() error {
 	// Call context.drop when exiting this function to decrease the
 	// connection counter and potentially deallocate the context.
-	defer conn.driverCtx.drop()
+	defer conn.driverCtx.dropConn()
 
 	retval := C.ct_close(conn.conn, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {
