@@ -1,23 +1,28 @@
 package libtest
 
 import (
+	"bytes"
 	"database/sql"
-	"math"
 	"testing"
 )
 
-func DoTestInt64(t *testing.T) {
-	TestForEachDB("TestInt64", t, testInt64)
+func DoTestBytes(t *testing.T) {
+	TestForEachDB("TestBytes", t, testBytes)
 }
 
-func testInt64(t *testing.T, db *sql.DB, tableName string) {
-	samples := []int64{math.MinInt64, -5000, -100, 0, 100, 5000, math.MaxInt64}
+func testBytes(t *testing.T, db *sql.DB, tableName string) {
+	samples := [][]byte{
+		[]byte{},
+		[]byte("test"),
+		[]byte("a longer test"),
+	}
 
 	pass := make([]interface{}, len(samples))
 	for i, sample := range samples {
 		pass[i] = sample
 	}
-	rows, err := SetupTableInsert(db, tableName, "bigint", pass...)
+
+	rows, err := SetupTableInsert(db, tableName, "binary(255) null", pass...)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -25,7 +30,7 @@ func testInt64(t *testing.T, db *sql.DB, tableName string) {
 	defer rows.Close()
 
 	i := 0
-	var recv int64
+	var recv []byte
 	for rows.Next() {
 		err = rows.Scan(&recv)
 		if err != nil {
@@ -33,7 +38,9 @@ func testInt64(t *testing.T, db *sql.DB, tableName string) {
 			continue
 		}
 
-		if recv != samples[i] {
+		recv = bytes.Trim(recv, "\x00")
+
+		if bytes.Compare(recv, samples[i]) != 0 {
 			t.Errorf("Received value does not match passed parameter")
 			t.Errorf("Expected: %v", samples[i])
 			t.Errorf("Received: %v", recv)

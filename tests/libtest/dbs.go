@@ -1,4 +1,4 @@
-package libtests
+package libtest
 
 import (
 	"database/sql"
@@ -16,7 +16,6 @@ var (
 )
 
 func GetDBs() (map[string]*sql.DB, error) {
-
 	direct, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open DB with %v: %v", testDsn, err)

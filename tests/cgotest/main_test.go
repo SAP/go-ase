@@ -33,6 +33,30 @@ func testMain(m *testing.M) error {
 	return nil
 }
 
-func TestIn64(t *testing.T) {
+func TestInt64(t *testing.T) {
 	libtest.DoTestInt64(t)
+}
+
+func TestUint64(t *testing.T) {
+	libtest.DoTestUint64(t)
+}
+
+func TestFloat64(t *testing.T) {
+	libtest.DoTestFloat64(t)
+}
+
+func TestBool(t *testing.T) {
+	libtest.DoTestBool(t)
+}
+
+func TestBytes(t *testing.T) {
+	libtest.DoTestBytes(t)
+}
+
+func TestString(t *testing.T) {
+	libtest.DoTestString(t)
+}
+
+func TestTime(t *testing.T) {
+	libtest.DoTestTime(t)
 }

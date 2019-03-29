@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-func DoTestInt64(t *testing.T) {
-	TestForEachDB("TestInt64", t, testInt64)
+func DoTestFloat64(t *testing.T) {
+	TestForEachDB("TestFloat64", t, testFloat64)
 }
 
-func testInt64(t *testing.T, db *sql.DB, tableName string) {
-	samples := []int64{math.MinInt64, -5000, -100, 0, 100, 5000, math.MaxInt64}
+func testFloat64(t *testing.T, db *sql.DB, tableName string) {
+	samples := []float64{math.SmallestNonzeroFloat64, math.MaxFloat64}
 
 	pass := make([]interface{}, len(samples))
 	for i, sample := range samples {
 		pass[i] = sample
 	}
-	rows, err := SetupTableInsert(db, tableName, "bigint", pass...)
+	rows, err := SetupTableInsert(db, tableName, "float", pass...)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -25,7 +25,7 @@ func testInt64(t *testing.T, db *sql.DB, tableName string) {
 	defer rows.Close()
 
 	i := 0
-	var recv int64
+	var recv float64
 	for rows.Next() {
 		err = rows.Scan(&recv)
 		if err != nil {
