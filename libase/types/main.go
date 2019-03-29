@@ -39,7 +39,7 @@ func FromGoType(value interface{}) (ASEType, error) {
 	case string:
 		return CHAR, nil
 	case time.Time:
-		return DATETIME, nil
+		return BIGDATETIME, nil
 	default:
 		return ILLEGAL, fmt.Errorf("Invalid type for ASE: %v", value)
 	}
