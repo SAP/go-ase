@@ -216,9 +216,9 @@ func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 }
 
 func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
-	switch rows.colASEType[i] {
+	switch rows.colASEType[index] {
 	case types.BINARY:
-		return rows.dataFmts[i].maxlength, true
+		return rows.dataFmts[index].maxlength, true
 	case types.CHAR:
 		return int64(C.CS_MAX_CHAR), true
 	default:
