@@ -3,6 +3,7 @@ package dsn
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -25,6 +26,42 @@ type DsnInfo struct {
 func NewDsnInfo() *DsnInfo {
 	dsn := &DsnInfo{}
 	dsn.ConnectProps = url.Values{}
+	return dsn
+}
+
+// NewDsnInfoFromEnv returns a new DsnInfo and fills it with data from
+// the environment.
+//
+// If prefix is empty it is set as `ASE`.
+//
+// Recognized environments variables are in the form of <prefix>_<json
+// tag>. E.g. `.Host` with the prefix `""` would recognize `ASE_HOST`
+// and `ASE_HOSTNAME`.
+func NewDsnInfoFromEnv(prefix string) *DsnInfo {
+	dsn := NewDsnInfo()
+
+	if prefix == "" {
+		prefix = "ASE"
+	}
+	prefix += "_"
+
+	ttf := dsn.tagToField(true)
+	for _, env := range os.Environ() {
+		envSplit := strings.SplitN(env, "=", 2)
+		key, value := envSplit[0], envSplit[1]
+
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+
+		key = strings.ToLower(strings.TrimPrefix(key, prefix))
+		if field, ok := ttf[key]; ok {
+			field.SetString(value)
+		} else {
+			dsn.ConnectProps.Add(key, value)
+		}
+	}
+
 	return dsn
 }
 

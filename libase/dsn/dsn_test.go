@@ -2,8 +2,99 @@ package dsn
 
 import (
 	"net/url"
+	"os"
+	"reflect"
+	"strings"
 	"testing"
 )
+
+func setEnv(prefix string, kv map[string]string) (func(), error) {
+	if prefix != "" {
+		prefix += "_"
+	}
+
+	for key, value := range kv {
+		err := os.Setenv(strings.ToUpper(prefix+key), value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return func() {
+		for key := range kv {
+			os.Unsetenv(strings.ToUpper(prefix + key))
+		}
+	}, nil
+}
+
+func TestNewDsnInfoFromEnv(t *testing.T) {
+	cases := map[string]struct {
+		prefix   string
+		env      map[string]string
+		expected DsnInfo
+	}{
+		"no prefix": {
+			prefix: "",
+			env: map[string]string{
+				"host": "testhost",
+				"port": "4901",
+				"user": "username",
+				"pass": "password",
+			},
+			expected: DsnInfo{
+				Host:         "testhost",
+				Port:         "4901",
+				Username:     "username",
+				Password:     "password",
+				Database:     "",
+				ConnectProps: url.Values{},
+			},
+		},
+		"prefix": {
+			prefix: "NOTASE",
+			env: map[string]string{
+				"host": "testhost",
+				"port": "4901",
+				"user": "username",
+				"pass": "",
+			},
+			expected: DsnInfo{
+				Host:         "testhost",
+				Port:         "4901",
+				Username:     "username",
+				Password:     "",
+				Database:     "",
+				ConnectProps: url.Values{},
+			},
+		},
+	}
+
+	for name, cas := range cases {
+		t.Run(name,
+			func(t *testing.T) {
+				passPrefix := cas.prefix
+				if passPrefix == "" {
+					passPrefix = "ASE"
+				}
+
+				fn, err := setEnv(passPrefix, cas.env)
+				if err != nil {
+					t.Errorf("Error preparing environment: %v", err)
+					return
+				}
+				defer fn()
+
+				d := NewDsnInfoFromEnv(cas.prefix)
+
+				if !reflect.DeepEqual(cas.expected, *d) {
+					t.Errorf("Received DsnInfo does not match expected:")
+					t.Errorf("Expected: %#v", cas.expected)
+					t.Errorf("Received: %#v", *d)
+				}
+			},
+		)
+	}
+}
 
 func TestDsnInfo_tagToField(t *testing.T) {
 	dsn := DsnInfo{
