@@ -1,45 +1,99 @@
 # go-ase
 
-`go-ase` provides a cgo driver for `database/sql`.
+## Description
 
-A pure go driver is planned.
+`go-ase` is an SAP ASE database driver for Go (golang) and its `database/sql` package.
+It is delivered as Go module.
+- The `cgo` driver is a shim for the Client-Library.
+- A pure go driver is planned.
 
-## TOC
+## Requirements
 
-- [Supported ASE data types](#supported-ase-data-types)
-- [DSN](#dsn)
-  * [URI DSN](#uri-dsn)
-  * [Simple DSN](#simple-dsn)
-  * [Connector](#connector)
-- [Connection Properties](#connection-properties)
-  * [Cgo Properties](#cgo-properties)
-- [Implementations](#implementations)
-  * [Cgo](#cgo)
-- [Tests](#tests)
+The `cgo` driver requires the shared objects from the Client-Library for compiling.
+The headers are provided at `cgo/includes`. For more details please see the
+[Client-Libray SDK installation guide][cl-sdk-install-guide].
 
-## Supported ASE data types
+## Download and Installation
 
-| ASE data type | Golang data type  |
-| ------------- | ----------------- |
-| BIGINT        | int64             |
-| FLOAT         | float64           |
-| BIT           | bool              |
-| BINARY        | []byte            |
-| CHAR          | string            |
-| BIGDATETIME   | time.Time         |
+### cgo
 
-# DSN
+Example code:
 
-The go and cgo implementations both accept a URI or a simple DSN as the
-connection string.
+```go
+package main
 
-### URI DSN
+import (
+    _ "github.com/SAP/go-ase/cgo"
+)
 
-The URI DSN is a common URI: `ase://user:pass@host:port/?prop1=val1&prop2=val2`
+func main() {
+    db, err := sql.Open("ase", "ase://user:pass@host:port/")
+    if err != nil {
+        log.Printf("Failed to open database: %v", err)
+        return
+    }
+    defer db.Close()
+
+    err = db.Ping()
+    if err != nil {
+        log.Printf("Failed to ping database: %v", err)
+        return
+    }
+}
+```
+
+Compilation:
+
+```sh
+CGO_LDFLAGS="-L/path/to/OCS/lib -lsybct_r64 -lsybcs_r64" go build -o cmd ./
+```
+
+Execution:
+
+```sh
+LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
+```
+
+`/path/to/OCS/lib` is the path to your Client-Library installation's shared libraries.
+
+### Unit tests
+
+Unit tests for the packages are included in their respective directories
+and can be run using `go test`.
+
+### Integration tests
+
+Integration tests are available in `tests/` and can be run using `go test test/${type}test`,
+where `$type` is either `go` or `cgo`.
+
+These require the following environment variables to be set:
+
+- `ASE_HOST`
+- `ASE_PORT`
+- `ASE_USER`
+- `ASE_PASS`
+
+The cgo tests additionally require the variable `ASE_USERSTOREKEY` to be set.
+
+The integration tests will create new databases for each connection type to run tests
+against. After the tests are finished the created databases will be removed.
+
+## Configuration
+
+### Connection Properties
+
+The data source name (DSN) to specify the connection properties can be given as:
+- a URI based DSN string,
+- a simple DSN string or
+- a `dsn.DsnInfo`.
+
+#### URI DSN
+
+The URI DSN is a common URI like `ase://user:pass@host:port/?prop1=val1&prop2=val2`.
 
 DSNs in this form are parsed using `url.Parse`.
 
-### Simple DSN
+#### Simple DSN
 
 The simple DSN is a key/value string: `username=user password=pass host=hostname port=4901`
 
@@ -58,7 +112,7 @@ Similar to the URI DSN those property/value pairs are purely additive.
 Any property that only recognizes a single argument (e.g. a boolean)
 will only honour the last given value for a property.
 
-### Connector
+#### Connector DSN
 
 As an alternative to the string DSNs `cgo.NewConnector` accepts
 a `dsn.DsnInfo` directly and returns a `driver.Connector`, which can be
@@ -102,11 +156,9 @@ func main() {
 }
 ```
 
-# Connection Properties
+### cgo Properties
 
-## Cgo Properties
-
-### cgo-callback-client
+#### cgo-callback-client
 
 Recognized values: `yes` or any string
 
@@ -117,7 +169,7 @@ When set to any other string the callback will not bet set.
 
 These messages signal a local error in Client-Library.
 
-### cgo-callback-server
+#### cgo-callback-server
 
 Recognized values: `yes` or any string
 
@@ -128,81 +180,39 @@ When set to any other string the callback will not be set.
 
 These messages signal an error in the ASE while processing a request.
 
-# Implementations
+## Limitations
 
-## Cgo
-The `cgo` driver is a shim for Client-Library and requires the shared
-objects from Client-Library for compiling. The headers are provided at
-`cgo/includes`.
+### Supported ASE data types
 
-The Client-Libray SDK installation guide is available here:
+| ASE data type | Golang data type  |
+| ------------- | ----------------- |
+| BIGINT        | int64             |
+| FLOAT         | float64           |
+| BIT           | bool              |
+| BINARY        | []byte            |
+| CHAR          | string            |
+| BIGDATETIME   | time.Time         |
 
-[https://help.sap.com/viewer/882ef48c7e9c4d6e845d98f34378db40/16.0.3.2/en-US]()
+## Known Issues
 
-### Cgo Usage
+The list of known issues is available [here][issues].
 
-Example code:
+## How to obtain support
 
-```go
-package main
+Feel free to open issues for feature requests, bugs or general feedback [here][issues].
 
-import (
-    _ "github.com/SAP/go-ase/cgo"
-)
+## Contributing
 
-func main() {
-    db, err := sql.Open("ase", "ase://user:pass@host:port/")
-    if err != nil {
-        log.Printf("Failed to open database: %v", err)
-        return
-    }
-    defer db.Close()
+Any help to improve this package is highly appreciated.
 
-    err = db.Ping()
-    if err != nil {
-        log.Printf("Failed to ping database: %v", err)
-        return
-    }
-}
-```
+## To-Do (upcoming changes)
 
-Compilation:
+A pure go driver is planned.
 
-```sh
-CGO_LDFLAGS="-L/path/to/OCS/lib -lsybct_r64 -lsybcs_r64" go build -o cmd ./
-```
+## License
 
-Execution:
+Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved.
+This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE)
 
-```sh
-LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
-```
-
-`/path/to/OCS/lib` is the path to your Client-Library installation's
-shared libraries.
-
-# Tests
-
-## Unit tests
-
-Unit tests for the packages are included in their respective directories
-and can be run using `go test`.
-
-## Integration tests
-
-Integration tests are available in `tests/` and can be run using `go
-test test/${type}test`, where `$type` is either `go` or `cgo`.
-
-These require the following environment variables to be set:
-
-- `ASE_HOST`
-- `ASE_PORT`
-- `ASE_USER`
-- `ASE_PASS`
-
-The cgo tests additionally require the variable `ASE_USERSTOREKEY` to be
-set.
-
-The integration tests will create new databases for each connection type
-to run tests against. After the tests are finished the created databases
-will be removed.
+[issues]: https://github.com/SAP/go-ase/issues
+[cl-sdk-install-guide]: https://help.sap.com/viewer/882ef48c7e9c4d6e845d98f34378db40/16.0.3.2/en-US
