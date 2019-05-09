@@ -2,20 +2,35 @@
 
 ## Description
 
-`go-ase` is an SAP ASE database driver for Go (golang) and its `database/sql` package.
+`go-ase` is a driver for the [`databasq/sql`][pkg-database-sql] package
+of [Go (golang)][go] to provide access to SAP ASE instances.
 It is delivered as Go module.
-- The `cgo` driver is a shim for the Client-Library.
-- A pure go driver is planned.
+
+SAP ASE is the shorthand for [SAP Adaptive Server Enterprise][sap-ase],
+a relational model database server originally known as Sybase SQL
+Server.
+
+[cgo][cgo] enables Go to call C code and to link against shared objects.
+
+A pure go driver is planned.
 
 ## Requirements
 
-The `cgo` driver requires the shared objects from the Client-Library for compiling.
-The headers are provided at `cgo/includes`. For more details please see the
-[Client-Libray SDK installation guide][cl-sdk-install-guide].
-
-## Download and Installation
-
 ### cgo
+
+The `cgo` driver requires the shared objects from the Client-Library to
+compile, which can be obtained by [installing the Client-Library
+SDK][cl-sdk-install-guide].
+The headers are provided at `cgo/includes`.
+
+## Download and Usage
+
+The packages in this repo can be `go get` and imported as usual.
+
+For specifics on how to use `database/sql` please see the
+[documentation][pkg-database-sql].
+
+### cgo Usage
 
 Example code:
 
@@ -23,6 +38,7 @@ Example code:
 package main
 
 import (
+    "database/sql"
     _ "github.com/SAP/go-ase/cgo"
 )
 
@@ -42,6 +58,10 @@ func main() {
 }
 ```
 
+`/path/to/OCS` is the path to your Client-Library SDK installation.
+`/lib` is the folder inside of the SDK installation containing the
+shared objects required for the cgo driver.
+
 Compilation:
 
 ```sh
@@ -53,8 +73,6 @@ Execution:
 ```sh
 LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
 ```
-
-`/path/to/OCS/lib` is the path to your Client-Library installation's shared libraries.
 
 ### Unit tests
 
@@ -80,12 +98,14 @@ against. After the tests are finished the created databases will be removed.
 
 ## Configuration
 
-### Connection Properties
+The configuration is handled through either a data source name (DSN) in
+one of two forms or through a configuration struct passed to a connector.
 
-The data source name (DSN) to specify the connection properties can be given as:
-- a URI based DSN string,
-- a simple DSN string or
-- a `dsn.DsnInfo`.
+All of these support additional properties which can tweak the
+connection, configuration options in Client-Library or the drivers
+themselves.
+
+### Data Source Names
 
 #### URI DSN
 
@@ -112,7 +132,7 @@ Similar to the URI DSN those property/value pairs are purely additive.
 Any property that only recognizes a single argument (e.g. a boolean)
 will only honour the last given value for a property.
 
-#### Connector DSN
+#### Connector
 
 As an alternative to the string DSNs `cgo.NewConnector` accepts
 a `dsn.DsnInfo` directly and returns a `driver.Connector`, which can be
@@ -135,7 +155,7 @@ func main() {
     d.Username = "user"
     d.Password = "pass"
 
-    connector, err := ase.NewConnector(d)
+    connector, err := ase.NewConnector(*d)
     if err != nil {
         log.Printf("Failed to create connector: %v", err)
         return
@@ -148,17 +168,21 @@ func main() {
     }
     defer db.Close()
 
-    _, err = db.Exec("select 'ping'")
+    err = db.Ping()
     if err != nil {
         log.Printf("Failed to ping ASE: %v", err)
-        return
     }
 }
 ```
 
-### cgo Properties
+Additional properties can be set by calling `d.ConnectProps.Add("prop1",
+"value1")` or `d.ConnectProps.Set("prop2", "value2")`.
 
-#### cgo-callback-client
+### Properties
+
+#### cgo
+
+##### cgo-callback-client
 
 Recognized values: `yes` or any string
 
@@ -169,7 +193,7 @@ When set to any other string the callback will not bet set.
 
 These messages signal a local error in Client-Library.
 
-#### cgo-callback-server
+##### cgo-callback-server
 
 Recognized values: `yes` or any string
 
@@ -214,5 +238,9 @@ A pure go driver is planned.
 Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved.
 This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE)
 
-[issues]: https://github.com/SAP/go-ase/issues
+[cgo]: https://golang.org/cmd/cgo
 [cl-sdk-install-guide]: https://help.sap.com/viewer/882ef48c7e9c4d6e845d98f34378db40/16.0.3.2/en-US
+[go]: https://golang.org/
+[issues]: https://github.com/SAP/go-ase/issues
+[pkg-database-sql]: https://golang.org/pkg/database/sql
+[sap-ase]: https://www.sap.com/products/sybase-ase.html
