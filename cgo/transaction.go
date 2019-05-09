@@ -55,14 +55,9 @@ func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (dri
 				}
 			}()
 			return nil, ctx.Err()
-		case tx := <-recvTx:
-			if tx != nil {
-				return tx, nil
-			}
 		case err := <-recvErr:
-			if err != nil {
-				return nil, err
-			}
+			tx := <-recvTx
+			return tx, err
 		}
 	}
 }

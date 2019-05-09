@@ -81,14 +81,9 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case cmd := <-recvCmd:
-			if cmd != nil {
-				return cmd, nil
-			}
 		case err := <-recvErr:
-			if err != nil {
-				return nil, err
-			}
+			cmd := <-recvCmd
+			return cmd, err
 		}
 	}
 }

@@ -33,6 +33,7 @@ func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
 		driverCtx.drop()
 		return nil, fmt.Errorf("Failed to open connection: %v", err)
 	}
+
 	defer func() {
 		// In- and decrease connections count before and after closing
 		// connection to prevent the context being deallocated.
@@ -64,10 +65,9 @@ func (connector *connector) Connect(ctx context.Context) (driver.Conn, error) {
 			}
 		}()
 		return nil, ctx.Err()
-	case conn := <-connChan:
-		return conn, nil
 	case err := <-errChan:
-		return nil, err
+		conn := <-connChan
+		return conn, err
 	}
 }
 
