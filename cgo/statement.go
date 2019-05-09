@@ -60,14 +60,9 @@ func (conn *connection) PrepareContext(ctx context.Context, query string) (drive
 				}
 			}()
 			return nil, ctx.Err()
-		case stmt := <-recvStmt:
-			if stmt != nil {
-				return stmt, nil
-			}
 		case err := <-recvErr:
-			if err != nil {
-				return nil, err
-			}
+			stmt := <-recvStmt
+			return stmt, err
 		}
 	}
 }
@@ -291,14 +286,9 @@ func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case res := <-recvResult:
-			if res != nil {
-				return res, nil
-			}
 		case err := <-recvErr:
-			if err != nil {
-				return nil, err
-			}
+			res := <-recvResult
+			return res, err
 		}
 	}
 }
@@ -343,14 +333,9 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 				}
 			}()
 			return nil, ctx.Err()
-		case rows := <-recvRows:
-			if rows != nil {
-				return rows, nil
-			}
 		case err := <-recvErr:
-			if err != nil {
-				return nil, err
-			}
+			rows := <-recvRows
+			return rows, err
 		}
 	}
 }
