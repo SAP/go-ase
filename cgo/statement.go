@@ -31,8 +31,8 @@ var (
 )
 
 var (
-	statementCounter  uint = 0
-	statementCounterM      = sync.Mutex{}
+	statementCounter  uint
+	statementCounterM = sync.Mutex{}
 )
 
 func (conn *connection) Prepare(query string) (driver.Stmt, error) {
