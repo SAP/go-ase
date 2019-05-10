@@ -39,7 +39,7 @@ func testInt64(t *testing.T, db *sql.DB, tableName string) {
 			t.Errorf("Received: %v", recv)
 		}
 
-		i += 1
+		i++
 	}
 
 	if err := rows.Err(); err != nil {

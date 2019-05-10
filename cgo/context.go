@@ -51,7 +51,7 @@ func (context *csContext) newConn() error {
 		}
 	}
 
-	context.connections += 1
+	context.connections++
 
 	return nil
 }
@@ -63,7 +63,7 @@ func (context *csContext) dropConn() error {
 	context.lock.Lock()
 	defer context.lock.Unlock()
 
-	context.connections -= 1
+	context.connections--
 	if context.connections > 0 {
 		return nil
 	}

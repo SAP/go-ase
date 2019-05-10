@@ -73,7 +73,7 @@ func (conn *connection) prepare(query string) (driver.Stmt, error) {
 	stmt.argCount = strings.Count(query, "?")
 
 	statementCounterM.Lock()
-	statementCounter += 1
+	statementCounter++
 	stmt.name = fmt.Sprintf("stmt%d", statementCounter)
 	statementCounterM.Unlock()
 
