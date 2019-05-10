@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// DoTestFloat64 tests that the float64 type is handled correctly.
 func DoTestFloat64(t *testing.T) {
 	TestForEachDB("TestFloat64", t, testFloat64)
 }

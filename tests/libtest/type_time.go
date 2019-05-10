@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// DoTestTime tests that the time.Time type is handled correctly.
 func DoTestTime(t *testing.T) {
 	TestForEachDB("TestTime", t, testTime)
 }

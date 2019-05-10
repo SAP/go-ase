@@ -23,6 +23,7 @@ type DsnInfo struct {
 	ConnectProps url.Values `json:"connectprops"`
 }
 
+// NewDsnInfo returns an initialized DsnInfo.
 func NewDsnInfo() *DsnInfo {
 	dsn := &DsnInfo{}
 	dsn.ConnectProps = url.Values{}
@@ -107,8 +108,8 @@ func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
 	return tTF
 }
 
-// Returns all information of a DsnInfo struct as a simple key/value
-// string.
+// AsSimple returns all information of a DsnInfo struct as a simple
+// key/value string.
 func (dsnInfo DsnInfo) AsSimple() string {
 	ret := []string{}
 

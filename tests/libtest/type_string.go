@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// DoTestString tests that the string type is handled correctly.
 func DoTestString(t *testing.T) {
 	TestForEachDB("TestString", t, testString)
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// DoTestUint64 tests that the uint64 type is handled correctly.
 func DoTestUint64(t *testing.T) {
 	TestForEachDB("TestUint64", t, testUint64)
 }

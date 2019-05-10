@@ -72,6 +72,8 @@ func TeardownDB(testDsn *dsn.DsnInfo) error {
 	return nil
 }
 
+// SetupTableInsert creates a table with the passed type and inserts all
+// passed samples as rows.
 func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, error) {
 	_, err := db.Exec("create table ? (a ?)", tableName, aseType)
 	if err != nil {

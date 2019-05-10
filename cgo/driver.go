@@ -51,17 +51,19 @@ func (d *aseDrv) OpenConnector(dsn string) (driver.Connector, error) {
 	return NewConnector(*dsnInfo)
 }
 
-// needed to handle nil time values
+// NullTime is needed to handle nil time values.
 type NullTime struct {
 	Time  time.Time
 	Valid bool
 }
 
+// Scan implements the Scanner interface.
 func (nullTime *NullTime) Scan(value interface{}) error {
 	nullTime.Time, nullTime.Valid = value.(time.Time)
 	return nil
 }
 
+// Value implements the driver.Valuer interface.
 func (nullTime NullTime) Value() (driver.Value, error) {
 	if !nullTime.Valid {
 		return nil, nil
@@ -69,17 +71,19 @@ func (nullTime NullTime) Value() (driver.Value, error) {
 	return nullTime.Time, nil
 }
 
-// needed to handle nil binary values
+// NullBytes is needed to handle nil binary values.
 type NullBytes struct {
 	Bytes []byte
 	Valid bool
 }
 
+// Scan implements the Scanner interface.
 func (nullBytes *NullBytes) Scan(value interface{}) error {
 	nullBytes.Bytes, nullBytes.Valid = value.([]byte)
 	return nil
 }
 
+// Value implements the driver.Valuer interface.
 func (nullBytes NullBytes) Value() (driver.Value, error) {
 	if !nullBytes.Valid {
 		return nil, nil

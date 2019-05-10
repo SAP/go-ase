@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// DoTestSQLExec runs tests for sql.Exec.
 func DoTestSQLExec(t *testing.T) {
 	t.Run("no cancel",
 		func(t *testing.T) {

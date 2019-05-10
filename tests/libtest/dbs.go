@@ -15,6 +15,8 @@ var (
 	testDsnUserstoreConnector driver.Connector
 )
 
+// GetDBs opens a series of connections using different methods and
+// returns them in a map.
 func GetDBs() (map[string]*sql.DB, error) {
 	direct, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
@@ -35,8 +37,13 @@ func GetDBs() (map[string]*sql.DB, error) {
 	}, nil
 }
 
+// ConnectorCreator is the interface for function expected by InitDBs to
+// initialize driver.Connectors.
 type ConnectorCreator func(dsn.DsnInfo) (driver.Connector, error)
 
+// InitDBs collects DSN information from the environment, creates a test
+// database for the connection type and returns a function to tear down
+// all created databases.
 func InitDBs(connectorFn ConnectorCreator) (func(), error) {
 	fnChan := make(chan func(), 4)
 	defer close(fnChan)

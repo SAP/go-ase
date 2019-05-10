@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// DoTestBytes tests that the bytes type is handled correctly.
 func DoTestBytes(t *testing.T) {
 	TestForEachDB("TestBytes", t, testBytes)
 }

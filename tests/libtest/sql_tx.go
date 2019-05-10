@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// DoTestSQLTx runs tests for sql.Tx.
 func DoTestSQLTx(t *testing.T) {
 	t.Run("Commit",
 		func(t *testing.T) {
