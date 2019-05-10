@@ -2,7 +2,6 @@ package libtest
 
 import (
 	"database/sql"
-	"log"
 	"math/rand"
 	"strconv"
 	"testing"
@@ -29,11 +28,4 @@ func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
 
 func RandomNumber() string {
 	return strconv.Itoa(rand.Int())
-}
-
-func LogDefer(fn func() error) {
-	err := fn()
-	if err != nil {
-		log.Printf("Error in deferred function: %v", err)
-	}
 }
