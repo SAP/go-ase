@@ -18,11 +18,11 @@ type Version interface {
 	Has(*Capability) bool
 }
 
-// Version returns a new version and calls .SetVersion with it.
+// Version returns a new version and calls .SetCapabilities with it.
 func (target Target) Version(spec string) (Version, error) {
 	v := NewVersion(spec)
 
-	err := target.SetVersion(v)
+	err := target.SetCapabilities(v)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (target Target) Version(spec string) (Version, error) {
 //   or the version of a lower/upper bound in a VersionRange.
 // - A VersionRange of a Capability has lower and upper bound set with
 //   the lower bound being equal or greater than the upper bound.
-func (target Target) SetVersion(v Version) error {
+func (target Target) SetCapabilities(v Version) error {
 	cmpFn := target.VersionComparer
 	if cmpFn == nil {
 		cmpFn = VersionCompareSemantic
