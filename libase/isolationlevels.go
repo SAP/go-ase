@@ -5,8 +5,10 @@ import (
 	"fmt"
 )
 
+// IsolationLevel reflects the ASE isolation levels.
 type IsolationLevel int
 
+// Valid ASE isolation levels.
 const (
 	LevelInvalid         IsolationLevel = -1
 	LevelReadUncommitted IsolationLevel = iota
@@ -16,6 +18,7 @@ const (
 )
 
 var (
+	// sql2ase maps sql.IsolationLevel to libase.IsolationLevel.
 	sql2ase = map[sql.IsolationLevel]IsolationLevel{
 		sql.LevelDefault:         LevelReadCommitted,
 		sql.LevelReadUncommitted: LevelReadUncommitted,
@@ -54,6 +57,7 @@ func (lvl IsolationLevel) ToGo() sql.IsolationLevel {
 	return sql.LevelDefault
 }
 
+// String implements the Stringer interface.
 func (lvl IsolationLevel) String() string {
 	return lvl.ToGo().String()
 }

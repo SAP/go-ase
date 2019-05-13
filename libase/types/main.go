@@ -8,8 +8,10 @@ import (
 
 //go:generate go run ./gen.go
 
+// ASEType reflects the data types ASE supports.
 type ASEType int
 
+// Type retuns an ASEType based on the name.
 func Type(name string) ASEType {
 	t, ok := string2type[name]
 	if !ok {
@@ -18,6 +20,7 @@ func Type(name string) ASEType {
 	return t
 }
 
+// String implements the Stringer interface.
 func (t ASEType) String() string {
 	s, ok := type2string[t]
 	if !ok {
@@ -26,6 +29,8 @@ func (t ASEType) String() string {
 	return s
 }
 
+// GoReflectType returns the reflect.Type of the Go type used for the
+// ASEType.
 func (t ASEType) GoReflectType() reflect.Type {
 	t, ok := type2reflect[t]
 	if !ok {
@@ -34,6 +39,7 @@ func (t ASEType) GoReflectType() reflect.Type {
 	return t
 }
 
+// GoType returns the Go type used for the ASEType.
 func (t ASEType) GoType() interface{} {
 	t, ok := type2interface[t]
 	if !ok {
@@ -42,6 +48,7 @@ func (t ASEType) GoType() interface{} {
 	return t
 }
 
+// FromGoType returns the most fitting ASEType for the Go type.
 func FromGoType(value interface{}) (ASEType, error) {
 	switch value.(type) {
 	case int64:

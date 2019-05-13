@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// DoTestBool tests that the boolean type is handled correctly.
 func DoTestBool(t *testing.T) {
 	TestForEachDB("TestBool", t, testBool)
 }

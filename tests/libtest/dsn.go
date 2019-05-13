@@ -35,6 +35,8 @@ func doCallbacks() bool {
 	return false
 }
 
+// DSNFromEnv initializes a dsn.DsnInfo and fills it with information
+// from the environment.
 func DSNFromEnv() (*dsn.DsnInfo, error) {
 	dsnInfo := dsn.NewDsnInfo()
 
@@ -67,6 +69,8 @@ func DSNFromEnv() (*dsn.DsnInfo, error) {
 	return dsnInfo, nil
 }
 
+// DSNUserstoreFromEnv initializes a dsn.DsnInfo and retrieves the
+// userstorekey from the environment.
 func DSNUserstoreFromEnv() (*dsn.DsnInfo, error) {
 	dsnInfo := dsn.NewDsnInfo()
 
@@ -85,6 +89,8 @@ func DSNUserstoreFromEnv() (*dsn.DsnInfo, error) {
 	return dsnInfo, nil
 }
 
+// DSN creates a new dsn.DsnInfo, sets up a new database and returns the
+// DsnInfo and a function to tear down the database.
 func DSN(userstore bool) (*dsn.DsnInfo, func(), error) {
 	var dsn *dsn.DsnInfo
 	var err error
