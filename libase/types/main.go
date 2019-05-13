@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-//go:generate go run ./gen.go
+//go:generate go run ./gen_types.go
+//go:generate go run ./gen_nulls.go -type Bytes -gotype []byte
+//go:generate go run ./gen_nulls.go -type Time -gotype time.Time -import time
 
 // ASEType reflects the data types ASE supports.
 type ASEType int

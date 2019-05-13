@@ -174,13 +174,13 @@ func main() {
 	formattedBuf, err := format.Source(buf.Bytes())
 	if err != nil {
 		log.Printf("Formatting code failed: %v", err)
-		return
+		os.Exit(1)
 	}
 
 	// Write result to types.go
 	err = ioutil.WriteFile("types.go", formattedBuf, 0644)
 	if err != nil {
 		log.Printf("Writing generated code to types.go failed: %v", err)
-		return
+		os.Exit(1)
 	}
 }
