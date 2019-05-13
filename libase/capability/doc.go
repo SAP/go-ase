@@ -15,7 +15,7 @@
 //	var (
 //		// Bug appeared in version 0.9.0, no published version has a fix
 //		Bug1 = capability.NewCapability("ticket #15", "0.9.0")
-//		Target = Target{nil, {Bugfix1}}
+//		Target = capability.Target{nil, {Bug1}}
 //	)
 //
 //	package main
