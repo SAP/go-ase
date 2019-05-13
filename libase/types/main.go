@@ -34,20 +34,20 @@ func (t ASEType) String() string {
 // GoReflectType returns the reflect.Type of the Go type used for the
 // ASEType.
 func (t ASEType) GoReflectType() reflect.Type {
-	t, ok := type2reflect[t]
+	reflectType, ok := type2reflect[t]
 	if !ok {
 		return nil
 	}
-	return t
+	return reflectType
 }
 
 // GoType returns the Go type used for the ASEType.
 func (t ASEType) GoType() interface{} {
-	t, ok := type2interface[t]
+	goType, ok := type2interface[t]
 	if !ok {
 		return nil
 	}
-	return t
+	return goType
 }
 
 // FromGoType returns the most fitting ASEType for the Go type.
