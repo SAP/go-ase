@@ -34,5 +34,5 @@
 //		}
 //	}
 //
-//  See version_test.go for more elaborate and commented examples.
+//  See defaultVersion_test.go for more elaborate and commented examples.
 package capability

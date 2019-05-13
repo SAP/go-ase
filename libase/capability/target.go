@@ -20,7 +20,7 @@ type Version interface {
 
 // Version returns a new version and calls .SetCapabilities with it.
 func (target Target) Version(spec string) (Version, error) {
-	v := NewVersion(spec)
+	v := NewDefaultVersion(spec)
 
 	err := target.SetCapabilities(v)
 	if err != nil {
