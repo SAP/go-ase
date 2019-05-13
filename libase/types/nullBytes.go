@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	_ driver.Value = (*NullBytes)(nil)
-	_ sql.Scanner  = (*NullBytes)(nil)
+	_ driver.Valuer = (*NullBytes)(nil)
+	_ sql.Scanner   = (*NullBytes)(nil)
 )
 
 type NullBytes struct {

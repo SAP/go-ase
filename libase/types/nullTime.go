@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	_ driver.Value = (*NullTime)(nil)
-	_ sql.Scanner  = (*NullTime)(nil)
+	_ driver.Valuer = (*NullTime)(nil)
+	_ sql.Scanner   = (*NullTime)(nil)
 )
 
 type NullTime struct {
