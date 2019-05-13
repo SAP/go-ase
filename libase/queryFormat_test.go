@@ -1,26 +1,29 @@
 package libase
 
-import "testing"
+import (
+	"database/sql/driver"
+	"testing"
+)
 
 func TestQueryFormat(t *testing.T) {
 	cases := map[string]struct {
 		query  string
-		values []interface{}
+		values []driver.Value
 		result string
 	}{
 		"string": {
 			query:  "select * from a where b like ?",
-			values: []interface{}{"c"},
+			values: []driver.Value{"c"},
 			result: "select * from a where b like \"c\"",
 		},
 		"ints": {
 			query:  "select * from aTable where x = ?",
-			values: []interface{}{10},
+			values: []driver.Value{10},
 			result: "select * from aTable where x = 10",
 		},
 		"mixed": {
 			query:  "select * from aTable where x like ? and y = ?",
-			values: []interface{}{"aString", 10},
+			values: []driver.Value{"aString", 10},
 			result: "select * from aTable where x like \"aString\" and y = 10",
 		},
 	}
