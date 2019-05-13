@@ -31,8 +31,8 @@ var (
 )
 
 var (
-	statementCounter  uint = 0
-	statementCounterM      = sync.Mutex{}
+	statementCounter  uint
+	statementCounterM = sync.Mutex{}
 )
 
 func (conn *connection) Prepare(query string) (driver.Stmt, error) {
@@ -73,7 +73,7 @@ func (conn *connection) prepare(query string) (driver.Stmt, error) {
 	stmt.argCount = strings.Count(query, "?")
 
 	statementCounterM.Lock()
-	statementCounter += 1
+	statementCounter++
 	stmt.name = fmt.Sprintf("stmt%d", statementCounter)
 	statementCounterM.Unlock()
 
@@ -153,25 +153,25 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 		datalen := 0
 		var ptr unsafe.Pointer
-		switch arg.Value.(type) {
+		switch value := arg.Value.(type) {
 		case int64:
-			i := (C.CS_BIGINT)(arg.Value.(int64))
+			i := (C.CS_BIGINT)(value)
 			ptr = unsafe.Pointer(&i)
 		case uint64:
-			i := (C.CS_UBIGINT)(arg.Value.(uint64))
+			i := (C.CS_UBIGINT)(value)
 			ptr = unsafe.Pointer(&i)
 		case float64:
-			i := (C.CS_FLOAT)(arg.Value.(float64))
+			i := (C.CS_FLOAT)(value)
 			ptr = unsafe.Pointer(&i)
 		case bool:
 			b := (C.CS_BOOL)(0)
-			if arg.Value.(bool) {
+			if value {
 				b = (C.CS_BOOL)(1)
 			}
 			ptr = unsafe.Pointer(&b)
 			datalen = 1
 		case []byte:
-			if len(arg.Value.([]byte)) == 0 {
+			if len(value) == 0 {
 				ptr = C.CBytes([]byte{})
 				defer C.free(ptr)
 				datalen = 0
@@ -182,14 +182,14 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 			datafmt.format = C.CS_FMT_PADNULL
 		case string:
-			if len(arg.Value.(string)) == 0 {
+			if len(value) == 0 {
 				ptr = unsafe.Pointer(C.CString(""))
 				defer C.free(ptr)
 				datalen = 0
 			} else {
-				ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
+				ptr = unsafe.Pointer(C.CString(value))
 				defer C.free(ptr)
-				datalen = len(arg.Value.(string))
+				datalen = len(value)
 			}
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR

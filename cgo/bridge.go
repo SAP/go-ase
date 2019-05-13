@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	cbTarget *os.File = os.Stderr
-	cbRW              = &sync.RWMutex{}
+	cbTarget = os.Stderr
+	cbRW     = &sync.RWMutex{}
 )
 
 // SetCallbackTarget sets the os.File target the callback functions for

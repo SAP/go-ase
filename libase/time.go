@@ -15,7 +15,7 @@ func TimeToMicroseconds(date time.Time) uint64 {
 	// Calculate Rata Die from JDN and convert to microseconds
 	rataDie := uint64(jd-1721425) * (uint64(time.Duration(24)*time.Hour) / 1000)
 	// While Sybase uses Rata Die it still seems to count year 0
-	rataDie = rataDie + uint64((time.Hour*24)*365/1000)
+	rataDie += uint64((time.Hour * 24) * 365 / 1000)
 
 	// Get hours, minutes and seconds as microseconds
 	hours := uint64(time.Duration(date.Hour())*time.Hour) / 1000
@@ -44,7 +44,7 @@ func MicrosecondsToTime(microseconds uint64) time.Time {
 	// Convert julian day to date
 	l := jD + 68569 + 2415021
 	n := 4 * l / 146097
-	l = l - (146097*n+3)/4
+	l -= (146097*n + 3) / 4
 	y := 4000 * (l + 1) / 1461001
 	l = l - 1461*y/4 + 31
 	m := 80 * l / 2447

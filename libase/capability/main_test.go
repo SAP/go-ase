@@ -29,7 +29,7 @@ var (
 		[]*Capability{Feature1, Feature2, Feature3, Bugfix1, Bugfix2},
 	}
 
-	AppVersion Version = nil
+	AppVersion Version
 )
 
 func init() {

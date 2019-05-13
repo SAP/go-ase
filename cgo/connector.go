@@ -37,9 +37,9 @@ func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
 	defer func() {
 		// In- and decrease connections count before and after closing
 		// connection to prevent the context being deallocated.
-		driverCtx.connections += 1
+		driverCtx.connections++
 		conn.Close()
-		driverCtx.connections -= 1
+		driverCtx.connections--
 	}()
 
 	return c, nil

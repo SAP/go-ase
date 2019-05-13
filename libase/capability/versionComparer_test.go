@@ -59,11 +59,9 @@ func TestVersionCompareSemantic(t *testing.T) {
 						t.Errorf("Received: %v", err)
 						return
 					}
-				} else {
-					if err != nil {
-						t.Errorf("Received unexpected error: %v", err)
-						return
-					}
+				} else if err != nil {
+					t.Errorf("Received unexpected error: %v", err)
+					return
 				}
 
 				if i != cas.result {

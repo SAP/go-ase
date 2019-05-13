@@ -85,12 +85,10 @@ func TestParseDsnUriFail(t *testing.T) {
 
 				if err == nil {
 					t.Errorf("Expected error, received nil")
-				} else {
-					if err.Error() != cas.errorMsg {
-						t.Errorf("Received invalid error message")
-						t.Errorf("Expected: %s", cas.errorMsg)
-						t.Errorf("Received: %s", err.Error())
-					}
+				} else if err.Error() != cas.errorMsg {
+					t.Errorf("Received invalid error message")
+					t.Errorf("Expected: %s", cas.errorMsg)
+					t.Errorf("Received: %s", err.Error())
 				}
 
 				if res != nil {
