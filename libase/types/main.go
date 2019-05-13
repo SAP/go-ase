@@ -11,19 +11,35 @@ import (
 type ASEType int
 
 func Type(name string) ASEType {
-	return string2type[name]
+	t, ok := string2type[name]
+	if !ok {
+		return ILLEGAL
+	}
+	return t
 }
 
 func (t ASEType) String() string {
-	return type2string[t]
+	s, ok := type2string[t]
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 func (t ASEType) GoReflectType() reflect.Type {
-	return type2reflect[t]
+	t, ok := type2reflect[t]
+	if !ok {
+		return nil
+	}
+	return t
 }
 
 func (t ASEType) GoType() interface{} {
-	return type2interface[t]
+	t, ok := type2interface[t]
+	if !ok {
+		return nil
+	}
+	return t
 }
 
 func FromGoType(value interface{}) (ASEType, error) {
