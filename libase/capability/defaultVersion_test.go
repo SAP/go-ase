@@ -29,12 +29,12 @@ type ExampleSatisfyInterface struct {
 }
 
 // Connect connects to the server, stores the server version in the
-// struct and calls the targets SetVersion
+// struct and calls the targets SetCapabilities
 func (v *ExampleSatisfyInterface) Connect() {
 	v.ServerVersion = "1.0.5"
 
 	// Set capabilities based on server version
-	ExampleVersionTarget.SetVersion(v)
+	ExampleVersionTarget.SetCapabilities(v)
 }
 
 func (v ExampleSatisfyInterface) VersionString() string {

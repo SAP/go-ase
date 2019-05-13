@@ -1,14 +1,6 @@
 package capability
 
-// Version defines the interface of a single version of a target.
-type Version interface {
-	VersionString() string
-	SetCapability(*Capability, bool)
-	Has(*Capability) bool
-}
-
-// DefaultVersion is an example implementation for Version and can also
-// be used for composition.
+// DefaultVersion implements the Version interface.
 type DefaultVersion struct {
 	// Spec is the string representation of the version.
 	// Depending on the used versioning scheme these may vary wildly.
@@ -16,8 +8,8 @@ type DefaultVersion struct {
 	capabilities map[*Capability]bool
 }
 
-// NewVersion returns an initialized DefaultVersion.
-func NewVersion(spec string) Version {
+// NewDefaultVersion returns an initialized DefaultVersion.
+func NewDefaultVersion(spec string) Version {
 	return &DefaultVersion{spec, map[*Capability]bool{}}
 }
 
