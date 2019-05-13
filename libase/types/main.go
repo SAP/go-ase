@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//go:generate go run ./gen.go
+//go:generate go run ./gen_types.go
 
 // ASEType reflects the data types ASE supports.
 type ASEType int
