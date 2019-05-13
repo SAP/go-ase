@@ -1,12 +1,5 @@
 package capability
 
-// Version defines the interface of a single version of a target.
-type Version interface {
-	VersionString() string
-	SetCapability(*Capability, bool)
-	Has(*Capability) bool
-}
-
 // DefaultVersion is an example implementation for Version and can also
 // be used for composition.
 type DefaultVersion struct {

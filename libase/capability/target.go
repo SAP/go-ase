@@ -11,6 +11,13 @@ type Target struct {
 	Capabilities []*Capability
 }
 
+// Version is the interface that allows a Target to set capabilities.
+type Version interface {
+	VersionString() string
+	SetCapability(*Capability, bool)
+	Has(*Capability) bool
+}
+
 // Version returns a new version and calls .SetVersion with it.
 func (target Target) Version(spec string) (Version, error) {
 	v := NewVersion(spec)
