@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	_ driver.Value = (*Null{{.T}})(nil)
+	_ driver.Valuer = (*Null{{.T}})(nil)
 	_ sql.Scanner = (*Null{{.T}})(nil)
 )
 
