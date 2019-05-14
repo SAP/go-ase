@@ -12,16 +12,16 @@ import (
 type DBTestFunc func(t *testing.T, db *sql.DB, tableName string)
 
 // TestForEachDB runs the given DBTestFunc against all registered
-// databases and connection types.
+// connection types.
 func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
-	dbs, err := GetDBs()
-	if err != nil {
-		t.Errorf("Error retrieving DBs: %v", err)
-		return
-	}
-
-	for connectName, db := range dbs {
+	for connectName, dbFn := range sqlDBMap {
+		db, err := dbFn()
+		if err != nil {
+			t.Errorf("Connection failed for '%s': %v", connectName, err)
+			continue
+		}
 		defer db.Close()
+
 		t.Run(connectName,
 			func(t *testing.T) {
 				testFn(t, db, testName)
