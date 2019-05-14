@@ -20,7 +20,7 @@ type connector struct {
 func NewConnector(dsn libdsn.DsnInfo) (driver.Connector, error) {
 	driverCtx, err := newCsContext(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize context: %v")
+		return nil, fmt.Errorf("Failed to initialize context: %v", err)
 	}
 
 	c := &connector{

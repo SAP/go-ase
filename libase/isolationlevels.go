@@ -39,7 +39,7 @@ func IsolationLevelFromGo(lvl sql.IsolationLevel) (IsolationLevel, error) {
 	}
 
 	if aseLvl == LevelInvalid {
-		return LevelInvalid, fmt.Errorf("Isolation level %v is not supported by ASE")
+		return LevelInvalid, fmt.Errorf("Isolation level %v is not supported by ASE", lvl)
 	}
 
 	return aseLvl, nil
