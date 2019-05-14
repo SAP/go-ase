@@ -53,17 +53,19 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 		"prefix": {
 			prefix: "NOTASE",
 			env: map[string]string{
-				"host": "testhost",
-				"port": "4901",
-				"user": "username",
-				"pass": "",
+				"host":         "testhost",
+				"port":         "4901",
+				"user":         "username",
+				"userstorekey": "sapsa",
+				"database":     "testdatabase",
 			},
 			expected: DsnInfo{
 				Host:         "testhost",
 				Port:         "4901",
 				Username:     "username",
 				Password:     "",
-				Database:     "",
+				Userstorekey: "sapsa",
+				Database:     "testdatabase",
 				ConnectProps: url.Values{},
 			},
 		},
@@ -76,6 +78,8 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 				if passPrefix == "" {
 					passPrefix = "ASE"
 				}
+
+				os.Clearenv()
 
 				fn, err := setEnv(passPrefix, cas.env)
 				if err != nil {
