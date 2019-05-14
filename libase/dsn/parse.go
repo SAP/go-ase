@@ -73,10 +73,7 @@ func filterUserStoreKey(ns []byte) bool {
 // filterNoUserStoreKey is the validator.FilterFunc for a DsnInfo struct
 // with Userstorekey unset.
 func filterNoUserStoreKey(ns []byte) bool {
-	if string(ns) == "DsnInfo.Userstorekey" {
-		return true
-	}
-	return false
+	return string(ns) == "DsnInfo.Userstorekey"
 }
 
 // parseDsnUri parses a DSN in URI form and returns the resulting
