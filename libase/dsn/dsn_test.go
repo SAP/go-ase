@@ -79,6 +79,8 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 					passPrefix = "ASE"
 				}
 
+				os.Clearenv()
+
 				fn, err := setEnv(passPrefix, cas.env)
 				if err != nil {
 					t.Errorf("Error preparing environment: %v", err)
