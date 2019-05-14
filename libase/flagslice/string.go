@@ -14,9 +14,7 @@ func (fss FlagStringSlice) String() string {
 
 // Slice returns the FlagStringSlice as a string slice.
 func (fss FlagStringSlice) Slice() []string {
-	var slice []string
-	slice = fss
-	return slice
+	return ([]string)(fss)
 }
 
 // Set appends the given value to the FlagStringSlice.
