@@ -14,7 +14,7 @@ func TestQueryFormat(t *testing.T) {
 		"string": {
 			query:  "select * from a where b like ?",
 			values: []driver.Value{"c"},
-			result: "select * from a where b like \"c\"",
+			result: "select * from a where b like c",
 		},
 		"ints": {
 			query:  "select * from aTable where x = ?",
@@ -22,7 +22,7 @@ func TestQueryFormat(t *testing.T) {
 			result: "select * from aTable where x = 10",
 		},
 		"mixed": {
-			query:  "select * from aTable where x like ? and y = ?",
+			query:  "select * from aTable where x like \"?\" and y = ?",
 			values: []driver.Value{"aString", 10},
 			result: "select * from aTable where x like \"aString\" and y = 10",
 		},
