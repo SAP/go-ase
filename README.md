@@ -229,6 +229,9 @@ Feel free to open issues for feature requests, bugs or general feedback [here][i
 
 Any help to improve this package is highly appreciated.
 
+For details on how to contribute please see the
+[contributing](CONTRIBUTING.md) file.
+
 ## To-Do (upcoming changes)
 
 A pure go driver is planned.
