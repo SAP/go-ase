@@ -19,11 +19,27 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) error {
-	fn, err := libtest.InitDBs(cgo.NewConnector)
+	simpleDSN, simpleTeardown, err := libtest.DSN(false)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize databases: %v", err)
+		return fmt.Errorf("Failed to setup simple DSN: %v", err)
 	}
-	defer fn()
+	defer simpleTeardown()
+
+	err = libtest.RegisterDSN("username password", *simpleDSN, cgo.NewConnector)
+	if err != nil {
+		return fmt.Errorf("Failed to setup simple databases: %v", err)
+	}
+
+	userstoreDSN, userstoreTeardown, err := libtest.DSN(true)
+	if err != nil {
+		return fmt.Errorf("Failed to setup userstore DSN: %v", err)
+	}
+	defer userstoreTeardown()
+
+	err = libtest.RegisterDSN("userstorekey", *userstoreDSN, cgo.NewConnector)
+	if err != nil {
+		return fmt.Errorf("Failed to setup userstorekey databases: %v", err)
+	}
 
 	rc := m.Run()
 	if rc != 0 {
