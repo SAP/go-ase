@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestForEachDB(testName string, t *testing.T, testFn DBTestFunc) {
 
 		t.Run(connectName,
 			func(t *testing.T) {
-				testFn(t, db, testName)
+				testFn(t, db, strings.Replace(testName+connectName, " ", "_", -1))
 			},
 		)
 	}
