@@ -200,23 +200,23 @@ Additional properties can be set by calling `d.ConnectProps.Add("prop1",
 
 Recognized values: `yes` or any string
 
-When set to `yes` the callback for client messages is set. By default
-these messages are printed to stderr.
+When set to `yes` all client messages will be printed to stderr.
+
+Please note that this is a debug property - for logging you should
+register your own message handler with the `GlobalClientMessageBroker`.
 
 When set to any other string the callback will not bet set.
-
-These messages signal a local error in Client-Library.
 
 ##### cgo-callback-server
 
 Recognized values: `yes` or any string
 
-When set to `yes` the callback for server messages is set. By default
-these messages printed to stderr.
+When set to `yes` all server messages will be printed to stderr.
+
+Please note that this is a debug property - for logging you should
+register your own message handler with the `GlobalServerMessageBroker`.
 
 When set to any other string the callback will not be set.
-
-These messages signal an error in the ASE while processing a request.
 
 ## Limitations
 
