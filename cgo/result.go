@@ -6,18 +6,18 @@ import (
 )
 
 //keep track of rows affected after inserts and updates
-type result struct {
+type Result struct {
 	rowsAffected int64
 }
 
 // Interface satisfaction checks
-var _ driver.Result = result{}
+var _ driver.Result = Result{}
 
-func (result result) LastInsertId() (int64, error) {
+func (result Result) LastInsertId() (int64, error) {
 	// TODO
 	return -1, errors.New("Feature not supported")
 }
 
-func (result result) RowsAffected() (int64, error) {
+func (result Result) RowsAffected() (int64, error) {
 	return result.rowsAffected, nil
 }
