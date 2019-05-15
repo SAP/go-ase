@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 // fromEnv reads an environment variable and returns the value.
@@ -34,10 +34,10 @@ func doCallbacks() bool {
 	return val == "yes"
 }
 
-// DSNFromEnv initializes a dsn.DsnInfo and fills it with information
+// DSNFromEnv initializes a libdsn.DsnInfo and fills it with information
 // from the environment.
-func DSNFromEnv() (*dsn.DsnInfo, error) {
-	dsnInfo := dsn.NewDsnInfo()
+func DSNFromEnv() (*libdsn.DsnInfo, error) {
+	dsnInfo := libdsn.NewDsnInfo()
 
 	var err error
 	dsnInfo.Host, err = fromEnv("ASE_HOST")
@@ -70,8 +70,8 @@ func DSNFromEnv() (*dsn.DsnInfo, error) {
 
 // DSNUserstoreFromEnv initializes a dsn.DsnInfo and retrieves the
 // userstorekey from the environment.
-func DSNUserstoreFromEnv() (*dsn.DsnInfo, error) {
-	dsnInfo := dsn.NewDsnInfo()
+func DSNUserstoreFromEnv() (*libdsn.DsnInfo, error) {
+	dsnInfo := libdsn.NewDsnInfo()
 
 	var err error
 
@@ -90,8 +90,8 @@ func DSNUserstoreFromEnv() (*dsn.DsnInfo, error) {
 
 // DSN creates a new dsn.DsnInfo, sets up a new database and returns the
 // DsnInfo and a function to tear down the database.
-func DSN(userstore bool) (*dsn.DsnInfo, func(), error) {
-	var dsn *dsn.DsnInfo
+func DSN(userstore bool) (*libdsn.DsnInfo, func(), error) {
+	var dsn *libdsn.DsnInfo
 	var err error
 	if !userstore {
 		dsn, err = DSNFromEnv()
@@ -129,13 +129,13 @@ var sqlDBMap = make(genSQLDBMap)
 
 // ConnectorCreator is the interface for function expected by InitDBs to
 // initialize driver.Connectors.
-type ConnectorCreator func(dsn.DsnInfo) (driver.Connector, error)
+type ConnectorCreator func(libdsn.DsnInfo) (driver.Connector, error)
 
 // RegisterDSN registers at least one new genSQLDBFn in genSQLDBMap
 // based on sql.Open.
 // If connectorFn is non-nil a second genSQLDBFn is stored with the
 // suffix `connector`.
-func RegisterDSN(name string, info dsn.DsnInfo, connectorFn ConnectorCreator) error {
+func RegisterDSN(name string, info libdsn.DsnInfo, connectorFn ConnectorCreator) error {
 	sqlDBMap[name] = func() (*sql.DB, error) {
 		db, err := sql.Open("ase", info.AsSimple())
 		if err != nil {

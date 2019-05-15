@@ -1,4 +1,4 @@
-package dsn
+package libdsn
 
 import (
 	"fmt"
