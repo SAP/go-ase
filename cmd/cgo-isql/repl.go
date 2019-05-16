@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -45,44 +44,44 @@ func repl(conn *ase.Connection) error {
 		}
 
 		line = strings.Join(cmds, " ")
-
-		line = line[:len(line)-1]
-
 		cmds = []string{}
-
 		rl.SetPrompt("> ")
 
-		cmd, err := conn.GenericExec(context.Background(), line)
+		err = parseAndExecQueries(conn, line)
 		if err != nil {
-			log.Printf("Query failed: %v", err)
-			continue
-		}
-		defer cmd.Drop()
-
-		for {
-			rows, result, err := cmd.Response()
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				cmd.Cancel()
-				log.Printf("Reading response failed: %v", err)
-				break
-			}
-
-			if rows != nil {
-				err = processRows(rows)
-				if err != nil {
-					log.Printf("Error processing rows: %v", err)
-				}
-			}
-
-			if result != nil {
-				err = processResult(result)
-				if err != nil {
-					log.Printf("error processing result: %v", err)
-				}
-			}
+			log.Println(err)
 		}
 	}
+}
+
+func parseAndExecQueries(conn *ase.Connection, line string) error {
+	builder := strings.Builder{}
+	currentlyQuoted := false
+
+	for _, chr := range line {
+		switch chr {
+		case '"', '\'':
+			if currentlyQuoted {
+				currentlyQuoted = false
+				builder.WriteRune(chr)
+			} else {
+				currentlyQuoted = true
+				builder.WriteRune(chr)
+			}
+		case ';':
+			if currentlyQuoted {
+				builder.WriteRune(chr)
+			} else {
+				err := process(conn, builder.String())
+				if err != nil {
+					return fmt.Errorf("Failed to process query: %v", err)
+				}
+				builder.Reset()
+			}
+		default:
+			builder.WriteRune(chr)
+		}
+	}
+
+	return nil
 }
