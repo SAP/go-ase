@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	ase "github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/cgo"
 	libdsn "github.com/SAP/go-ase/libase/dsn"
 	"github.com/SAP/go-ase/libase/flagslice"
 )
@@ -23,7 +23,7 @@ var (
 	fOpts = &flagslice.FlagStringSlice{}
 )
 
-func openDB() (*ase.Connection, error) {
+func openDB() (*cgo.Connection, error) {
 	dsn := libdsn.NewDsnInfoFromEnv("")
 
 	if *fHost != "" {
@@ -61,7 +61,7 @@ func openDB() (*ase.Connection, error) {
 		dsn.ConnectProps.Set(opt, value)
 	}
 
-	conn, err := ase.NewConnection(nil, *dsn)
+	conn, err := cgo.NewConnection(nil, *dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open connection: %v", err)
 	}
@@ -69,7 +69,7 @@ func openDB() (*ase.Connection, error) {
 	return conn, nil
 }
 
-func serverMessagePrint(msg ase.Message) {
+func serverMessagePrint(msg cgo.Message) {
 	fmt.Fprintf(os.Stderr, "\r%s", msg.Content())
 
 	if rl != nil {
@@ -81,8 +81,8 @@ func main() {
 	flag.Var(fOpts, "o", "Connection properties")
 	flag.Parse()
 
-	ase.GlobalServerMessageBroker.RegisterHandler(serverMessagePrint)
-	ase.GlobalClientMessageBroker.RegisterHandler(serverMessagePrint)
+	cgo.GlobalServerMessageBroker.RegisterHandler(serverMessagePrint)
+	cgo.GlobalClientMessageBroker.RegisterHandler(serverMessagePrint)
 
 	conn, err := openDB()
 	if err != nil {

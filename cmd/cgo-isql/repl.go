@@ -6,13 +6,13 @@ import (
 	"log"
 	"strings"
 
-	ase "github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/cgo"
 	"github.com/chzyer/readline"
 )
 
 var rl *readline.Instance
 
-func repl(conn *ase.Connection) error {
+func repl(conn *cgo.Connection) error {
 	var err error
 	rl, err = readline.New("> ")
 	if err != nil {
@@ -54,7 +54,7 @@ func repl(conn *ase.Connection) error {
 	}
 }
 
-func parseAndExecQueries(conn *ase.Connection, line string) error {
+func parseAndExecQueries(conn *cgo.Connection, line string) error {
 	builder := strings.Builder{}
 	currentlyQuoted := false
 

@@ -8,10 +8,10 @@ import (
 	"log"
 	"strconv"
 
-	ase "github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/cgo"
 )
 
-func process(conn *ase.Connection, query string) error {
+func process(conn *cgo.Connection, query string) error {
 	cmd, err := conn.GenericExec(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("Query failed: %v", err)
@@ -44,7 +44,7 @@ func process(conn *ase.Connection, query string) error {
 	}
 }
 
-func processRows(rows *ase.Rows) error {
+func processRows(rows *cgo.Rows) error {
 	colNames := rows.Columns()
 
 	fmt.Printf("|")
@@ -81,7 +81,7 @@ func processRows(rows *ase.Rows) error {
 	return nil
 }
 
-func processResult(result *ase.Result) error {
+func processResult(result *cgo.Result) error {
 	affectedRows, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("Retrieving the affected rows failed: %v", err)
