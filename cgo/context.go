@@ -115,18 +115,22 @@ func (context *csContext) drop() error {
 // applyDSN applies the relevant connection properties of a DSN to the
 // context.
 func (context *csContext) applyDSN(dsn libdsn.DsnInfo) error {
+	retval := C.ct_callback(context.ctx, nil, C.CS_SET, C.CS_CLIENTMSG_CB, C.ct_callback_client_message)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "C.ct_callback failed for client messages")
+	}
+
+	retval = C.ct_callback(context.ctx, nil, C.CS_SET, C.CS_SERVERMSG_CB, C.ct_callback_server_message)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "C.ct_callback failed for server messages")
+	}
+
 	if dsn.Prop("cgo-callback-client") == "yes" {
-		retval := C.ct_callback(context.ctx, nil, C.CS_SET, C.CS_CLIENTMSG_CB, C.ct_callback_client_message)
-		if retval != C.CS_SUCCEED {
-			return makeError(retval, "C.ct_callback failed for client messages")
-		}
+		GlobalClientMessageBroker.RegisterHandler(logCltMsg)
 	}
 
 	if dsn.Prop("cgo-callback-server") == "yes" {
-		retval := C.ct_callback(context.ctx, nil, C.CS_SET, C.CS_SERVERMSG_CB, C.ct_callback_server_message)
-		if retval != C.CS_SUCCEED {
-			return makeError(retval, "C.ct_callback failed for server messages")
-		}
+		GlobalServerMessageBroker.RegisterHandler(logSrvMsg)
 	}
 
 	return nil
