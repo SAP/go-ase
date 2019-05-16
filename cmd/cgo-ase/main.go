@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	_ "github.com/SAP/go-ase/cgo"
-	libdsn "github.com/SAP/go-ase/libase/dsn"
 	"github.com/SAP/go-ase/libase/flagslice"
+	"github.com/SAP/go-ase/libase/libdsn"
 	"github.com/bgentry/speakeasy"
 )
 

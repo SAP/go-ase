@@ -14,7 +14,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	libdsn "github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 //DriverName is the driver name to use with sql.Open for ase databases.

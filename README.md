@@ -133,7 +133,7 @@ The simple DSN is a key/value string: `username=user password=pass host=hostname
 
 Values with spaces must be quoted using single or double quotes.
 
-Each member of `libase.dsn.DsnInfo` can be set using any of their
+Each member of `libase.libdsn.DsnInfo` can be set using any of their
 possible json tags. E.g. `.Host` will receive the values from the keys
 `host` and `hostname`.
 
@@ -149,7 +149,7 @@ will only honour the last given value for a property.
 #### Connector
 
 As an alternative to the string DSNs `cgo.NewConnector` accepts
-a `dsn.DsnInfo` directly and returns a `driver.Connector`, which can be
+a `libdsn.DsnInfo` directly and returns a `driver.Connector`, which can be
 passed to `sql.OpenDB`:
 
 ```go
@@ -158,12 +158,12 @@ package main
 import (
     "database/sql"
 
-    "github.com/SAP/go-ase/libase/dsn"
+    "github.com/SAP/go-ase/libase/libdsn"
     ase "github.com/SAP/go-ase/cgo"
 )
 
 func main() {
-    d := dsn.NewDsnInfo()
+    d := libdsn.NewDsnInfo()
     d.Host = "hostname"
     d.Port = "4901"
     d.Username = "user"

@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SAP/go-ase/libase/dsn"
-	libdsn "github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 // context wraps C.CS_CONTEXT to ensure that the context is being closed
 // and deallocated after the last connection was closed.
 type csContext struct {
 	ctx *C.CS_CONTEXT
-	dsn dsn.DsnInfo
+	dsn libdsn.DsnInfo
 
 	// connections is a counter that keeps track of the number of
 	// connections using the context to communicate with an ASE
@@ -25,7 +24,7 @@ type csContext struct {
 	lock        sync.Mutex
 }
 
-func newCsContext(dsn dsn.DsnInfo) (*csContext, error) {
+func newCsContext(dsn libdsn.DsnInfo) (*csContext, error) {
 	ctx := &csContext{}
 	ctx.dsn = dsn
 

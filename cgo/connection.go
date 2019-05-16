@@ -11,7 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
-	"github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 // connection is the struct which represents a database connection.
@@ -36,7 +36,7 @@ var (
 // options in the dsn.
 //
 // If driverCtx is nil a new csContext will be initialized.
-func newConnection(driverCtx *csContext, dsn dsn.DsnInfo) (*connection, error) {
+func newConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*connection, error) {
 	if driverCtx == nil {
 		var err error
 		driverCtx, err = newCsContext(dsn)

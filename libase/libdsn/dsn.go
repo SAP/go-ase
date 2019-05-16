@@ -1,5 +1,5 @@
-// Package dsn handles data source names.
-package dsn
+// Package libdsn handles data source names.
+package libdsn
 
 import (
 	"fmt"

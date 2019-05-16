@@ -8,7 +8,7 @@ import (
 	"os"
 
 	_ "github.com/SAP/go-ase/cgo"
-	libdsn "github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	libdsn "github.com/SAP/go-ase/libase/dsn"
+	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 var _ driver.Connector = (*connector)(nil)
