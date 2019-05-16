@@ -1,3 +1,5 @@
+// The recorder example shows how the MessageRecorder can be used to
+// record non-sql server responses.
 package main
 
 import (
