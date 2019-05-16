@@ -32,6 +32,7 @@ func DoMain() error {
 	cgo.GlobalServerMessageBroker.RegisterHandler(recorder.HandleMessage)
 
 	fmt.Println("Calling dbcc")
+	// TODO: dbcc command with persistent output
 	_, err = db.Exec("dbcc checkalloc")
 	if err != nil {
 		return err
