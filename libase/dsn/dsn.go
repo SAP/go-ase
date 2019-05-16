@@ -1,3 +1,4 @@
+// Package dsn handles data source names.
 package dsn
 
 import (

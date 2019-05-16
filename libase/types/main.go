@@ -1,3 +1,4 @@
+// Package types defines valid ASE types and auxiliary methods.
 package types
 
 import (

@@ -1,3 +1,4 @@
+// Package cgo is the cgo implementation of go-ase.
 package cgo
 
 /*
