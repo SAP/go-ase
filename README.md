@@ -10,17 +10,26 @@ SAP ASE is the shorthand for [SAP Adaptive Server Enterprise][sap-ase],
 a relational model database server originally known as Sybase SQL
 Server.
 
-[cgo][cgo] enables Go to call C code and to link against shared objects.
+`go-ase` currently contains one implementation in [cgo] in the directory
+`cgo`. A pure go driver is planned.
 
-A pure go driver is planned.
+[cgo][cgo] enables Go to call C code and to link against shared objects.
 
 ## Requirements
 
 ### cgo
 
-The `cgo` driver requires the shared objects from the Client-Library to
-compile, which can be obtained by [installing the Client-Library
-SDK][cl-sdk-install-guide].
+The `cgo` driver requires the shared objects from either the ASE itself
+or Client-Library to compile.
+
+The required shared objects from ASE can be found in the installation
+path of the ASE under `OCS-16_0/lib`, where `16_0` is the version of
+your ASE installation.
+
+After [installing the Client-Library SDK][cl-sdk-install-guide] the
+shared objects can be found in the folder `lib` at the chosen
+installation path.
+
 The headers are provided at `cgo/includes`.
 
 ## Download and Usage
@@ -73,6 +82,11 @@ Execution:
 ```sh
 LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
 ```
+
+### Examples
+
+More examples can be found in the folder `examples/$type`, where `$type`
+is either `go` or `cgo`.
 
 ### Unit tests
 
