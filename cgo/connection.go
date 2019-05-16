@@ -15,28 +15,28 @@ import (
 )
 
 // connection is the struct which represents a database connection.
-type connection struct {
+type Connection struct {
 	conn      *C.CS_CONNECTION
 	driverCtx *csContext
 }
 
 // Interface satisfaction checks
 var (
-	_ driver.Conn               = (*connection)(nil)
-	_ driver.ConnBeginTx        = (*connection)(nil)
-	_ driver.ConnPrepareContext = (*connection)(nil)
-	_ driver.Execer             = (*connection)(nil)
-	_ driver.ExecerContext      = (*connection)(nil)
-	_ driver.Pinger             = (*connection)(nil)
-	_ driver.Queryer            = (*connection)(nil)
-	_ driver.QueryerContext     = (*connection)(nil)
+	_ driver.Conn               = (*Connection)(nil)
+	_ driver.ConnBeginTx        = (*Connection)(nil)
+	_ driver.ConnPrepareContext = (*Connection)(nil)
+	_ driver.Execer             = (*Connection)(nil)
+	_ driver.ExecerContext      = (*Connection)(nil)
+	_ driver.Pinger             = (*Connection)(nil)
+	_ driver.Queryer            = (*Connection)(nil)
+	_ driver.QueryerContext     = (*Connection)(nil)
 )
 
 // newConnection allocated initializes a new connection based on the
 // options in the dsn.
 //
 // If driverCtx is nil a new csContext will be initialized.
-func newConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*connection, error) {
+func NewConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*Connection, error) {
 	if driverCtx == nil {
 		var err error
 		driverCtx, err = newCsContext(dsn)
@@ -50,7 +50,7 @@ func newConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*connection, error
 		return nil, fmt.Errorf("Failed to ensure context: %v", err)
 	}
 
-	conn := &connection{
+	conn := &Connection{
 		driverCtx: driverCtx,
 	}
 
@@ -137,7 +137,7 @@ func newConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*connection, error
 }
 
 // Close closes and deallocates a connection.
-func (conn *connection) Close() error {
+func (conn *Connection) Close() error {
 	// Call context.drop when exiting this function to decrease the
 	// connection counter and potentially deallocate the context.
 	defer conn.driverCtx.dropConn()
@@ -156,7 +156,7 @@ func (conn *connection) Close() error {
 	return nil
 }
 
-func (conn *connection) ping() error {
+func (conn *Connection) ping() error {
 	rows, err := conn.Query("SELECT 'PING'", nil)
 	if err != nil {
 		return driver.ErrBadConn
@@ -179,7 +179,7 @@ func (conn *connection) ping() error {
 	return nil
 }
 
-func (conn *connection) Ping(ctx context.Context) error {
+func (conn *Connection) Ping(ctx context.Context) error {
 	recvErr := make(chan error, 1)
 	go func() {
 		recvErr <- conn.ping()
@@ -196,7 +196,7 @@ func (conn *connection) Ping(ctx context.Context) error {
 	}
 }
 
-func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, error) {
+func (conn *Connection) Exec(query string, args []driver.Value) (driver.Result, error) {
 	q, err := libase.QueryFormat(query, args...)
 	if err != nil {
 		return nil, err
@@ -205,20 +205,20 @@ func (conn *connection) Exec(query string, args []driver.Value) (driver.Result, 
 	return conn.ExecContext(context.Background(), q, nil)
 }
 
-func (conn *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+func (conn *Connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	q, err := libase.NamedQueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd, err := conn.execContext(ctx, q)
+	cmd, err := conn.GenericExec(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
-	defer cmd.drop()
+	defer cmd.Drop()
 
 	var result, resResult driver.Result
-	for _, result, err = cmd.resultsHelper(); err != io.EOF; _, result, err = cmd.resultsHelper() {
+	for _, result, err = cmd.Response(); err != io.EOF; _, result, err = cmd.Response() {
 		if err != nil {
 			return nil, fmt.Errorf("Received error reading results: %v", err)
 		}
@@ -231,7 +231,7 @@ func (conn *connection) ExecContext(ctx context.Context, query string, args []dr
 	return resResult, nil
 }
 
-func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, error) {
+func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
 	q, err := libase.QueryFormat(query, args...)
 	if err != nil {
 		return nil, err
@@ -240,18 +240,18 @@ func (conn *connection) Query(query string, args []driver.Value) (driver.Rows, e
 	return conn.QueryContext(context.Background(), q, nil)
 }
 
-func (conn *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+func (conn *Connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	q, err := libase.NamedQueryFormat(query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd, err := conn.execContext(ctx, q)
+	cmd, err := conn.GenericExec(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 
-	rows, _, err := cmd.resultsHelper()
+	rows, _, err := cmd.Response()
 	if err != nil {
 		return nil, fmt.Errorf("Received error while retrieving results: %v", err)
 	}

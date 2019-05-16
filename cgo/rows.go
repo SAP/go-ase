@@ -15,9 +15,9 @@ import (
 	"github.com/SAP/go-ase/libase/types"
 )
 
-// rows is the struct which represents a database result set
-type rows struct {
-	cmd *csCommand
+// Rows is the struct which represents a database result set
+type Rows struct {
+	cmd *Command
 
 	numCols int
 
@@ -36,15 +36,15 @@ type rows struct {
 
 // Interface satisfaction checks
 var (
-	_ driver.Rows                           = (*rows)(nil)
-	_ driver.RowsColumnTypeDatabaseTypeName = (*rows)(nil)
-	_ driver.RowsColumnTypeLength           = (*rows)(nil)
-	_ driver.RowsColumnTypeNullable         = (*rows)(nil)
-	_ driver.RowsColumnTypePrecisionScale   = (*rows)(nil)
-	_ driver.RowsColumnTypeScanType         = (*rows)(nil)
+	_ driver.Rows                           = (*Rows)(nil)
+	_ driver.RowsColumnTypeDatabaseTypeName = (*Rows)(nil)
+	_ driver.RowsColumnTypeLength           = (*Rows)(nil)
+	_ driver.RowsColumnTypeNullable         = (*Rows)(nil)
+	_ driver.RowsColumnTypePrecisionScale   = (*Rows)(nil)
+	_ driver.RowsColumnTypeScanType         = (*Rows)(nil)
 )
 
-func newRows(cmd *csCommand) (*rows, error) {
+func newRows(cmd *Command) (*Rows, error) {
 	var numCols C.CS_INT
 	retval := C.ct_res_info(cmd.cmd, C.CS_NUMDATA, unsafe.Pointer(&numCols), C.CS_UNUSED, nil)
 	if retval != C.CS_SUCCEED {
@@ -55,7 +55,7 @@ func newRows(cmd *csCommand) (*rows, error) {
 		return nil, fmt.Errorf("Result set with zero columnes")
 	}
 
-	r := &rows{
+	r := &Rows{
 		cmd:        cmd,
 		numCols:    int(numCols),
 		dataFmts:   make([]*C.CS_DATAFMT, int(numCols)),
@@ -111,7 +111,7 @@ func newRows(cmd *csCommand) (*rows, error) {
 	return r, nil
 }
 
-func (rows *rows) Close() error {
+func (rows *Rows) Close() error {
 	for i := 0; i < rows.numCols; i++ {
 		if rows.dataFmts[i] != nil {
 			C.free(unsafe.Pointer(rows.dataFmts[i]))
@@ -121,7 +121,7 @@ func (rows *rows) Close() error {
 		}
 	}
 
-	for r, _, err := rows.cmd.resultsHelper(); err != io.EOF; r, _, err = rows.cmd.resultsHelper() {
+	for r, _, err := rows.cmd.Response(); err != io.EOF; r, _, err = rows.cmd.Response() {
 		if err != nil {
 			return fmt.Errorf("Received error reading results: %v", err)
 		}
@@ -132,7 +132,7 @@ func (rows *rows) Close() error {
 	}
 
 	if !rows.cmd.isDynamic {
-		err := rows.cmd.drop()
+		err := rows.cmd.Drop()
 		if err != nil {
 			return fmt.Errorf("Error dropping command: %v", err)
 		}
@@ -142,7 +142,7 @@ func (rows *rows) Close() error {
 	return nil
 }
 
-func (rows *rows) Columns() []string {
+func (rows *Rows) Columns() []string {
 	ret := make([]string, rows.numCols)
 
 	for i, col := range rows.dataFmts {
@@ -152,7 +152,7 @@ func (rows *rows) Columns() []string {
 	return ret
 }
 
-func (rows *rows) Next(dest []driver.Value) error {
+func (rows *Rows) Next(dest []driver.Value) error {
 	retval := C.ct_fetch(rows.cmd.cmd, C.CS_UNUSED, C.CS_UNUSED, C.CS_UNUSED, nil)
 	switch retval {
 	case C.CS_SUCCEED:
@@ -199,15 +199,15 @@ func (rows *rows) Next(dest []driver.Value) error {
 	return nil
 }
 
-func (rows *rows) ColumnTypeDatabaseTypeName(index int) string {
+func (rows *Rows) ColumnTypeDatabaseTypeName(index int) string {
 	return rows.colASEType[index].String()
 }
 
-func (rows *rows) ColumnTypeNullable(index int) (bool, bool) {
+func (rows *Rows) ColumnTypeNullable(index int) (bool, bool) {
 	return (rows.dataFmts[index].status|C.CS_CANBENULL == C.CS_CANBENULL), true
 }
 
-func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+func (rows *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 	if rows.dataFmts[index].scale == 0 && rows.dataFmts[index].precision == 9 {
 		return 0, 0, false
 	}
@@ -215,7 +215,7 @@ func (rows *rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 	return int64(rows.dataFmts[index].scale), int64(rows.dataFmts[index].precision), true
 }
 
-func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
+func (rows *Rows) ColumnTypeLength(index int) (int64, bool) {
 	switch rows.colASEType[index] {
 	case types.BINARY:
 		return int64(rows.dataFmts[index].maxlength), true
@@ -226,6 +226,10 @@ func (rows *rows) ColumnTypeLength(index int) (int64, bool) {
 	}
 }
 
-func (rows *rows) ColumnTypeScanType(index int) reflect.Type {
+func (rows *Rows) ColumnTypeMaxLength(index int) int64 {
+	return int64(rows.dataFmts[index].maxlength)
+}
+
+func (rows *Rows) ColumnTypeScanType(index int) reflect.Type {
 	return rows.colASEType[index].GoReflectType()
 }

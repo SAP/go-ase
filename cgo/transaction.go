@@ -14,7 +14,7 @@ import (
 
 // transaction is the struct which represents a database transaction.
 type transaction struct {
-	conn *connection
+	conn *Connection
 	// ASE does not support read-only transactions - the connection
 	// itself however can be set as read-only.
 	// readonlyPreTx signals if a connection was marked as read-only
@@ -28,11 +28,11 @@ type transaction struct {
 // Interface satisfaction checks
 var _ driver.Tx = (*transaction)(nil)
 
-func (conn *connection) Begin() (driver.Tx, error) {
+func (conn *Connection) Begin() (driver.Tx, error) {
 	return conn.beginTx(driver.TxOptions{Isolation: driver.IsolationLevel(sql.LevelDefault), ReadOnly: false})
 }
 
-func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+func (conn *Connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	recvTx := make(chan driver.Tx, 1)
 	recvErr := make(chan error, 1)
 	go func() {
@@ -62,7 +62,7 @@ func (conn *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (dri
 	}
 }
 
-func (conn *connection) beginTx(opts driver.TxOptions) (driver.Tx, error) {
+func (conn *Connection) beginTx(opts driver.TxOptions) (driver.Tx, error) {
 	isolationLevel, err := libase.IsolationLevelFromGo(sql.IsolationLevel(opts.Isolation))
 	if err != nil {
 		return nil, err

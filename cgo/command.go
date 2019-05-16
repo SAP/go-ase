@@ -10,13 +10,13 @@ import (
 	"unsafe"
 )
 
-type csCommand struct {
+type Command struct {
 	cmd       *C.CS_COMMAND
 	isDynamic bool
 }
 
 // cancel cancels the current result set.
-func (cmd *csCommand) cancel() error {
+func (cmd *Command) Cancel() error {
 	retval := C.ct_cancel(nil, cmd.cmd, C.CS_CANCEL_ALL)
 	if retval != C.CS_SUCCEED {
 		return makeError(retval, "Error occurred while cancelling command")
@@ -26,7 +26,7 @@ func (cmd *csCommand) cancel() error {
 }
 
 // drop deallocates the command.
-func (cmd *csCommand) drop() error {
+func (cmd *Command) Drop() error {
 	retval := C.ct_cmd_drop(cmd.cmd)
 	if retval != C.CS_SUCCEED {
 		return makeError(retval, "Failed to drop command")
@@ -39,8 +39,8 @@ func (cmd *csCommand) drop() error {
 //
 // The return values are the command structure, a function to deallocate
 // the command structure and an error, if any occurred.
-func (conn *connection) exec(query string) (*csCommand, error) {
-	cmd := &csCommand{}
+func (conn *Connection) exec(query string) (*Command, error) {
+	cmd := &Command{}
 	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
 	if retval != C.CS_SUCCEED {
 		return nil, makeError(retval, "Failed to allocate command structure")
@@ -52,22 +52,22 @@ func (conn *connection) exec(query string) (*csCommand, error) {
 	// Set language command
 	retval = C.ct_command(cmd.cmd, C.CS_LANG_CMD, sql, C.CS_NULLTERM, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {
-		cmd.drop()
+		cmd.Drop()
 		return nil, makeError(retval, "Failed to set language command")
 	}
 
 	// Send command to ASE
 	retval = C.ct_send(cmd.cmd)
 	if retval != C.CS_SUCCEED {
-		cmd.drop()
+		cmd.Drop()
 		return nil, makeError(retval, "Failed to send command")
 	}
 
 	return cmd, nil
 }
 
-func (conn *connection) execContext(ctx context.Context, query string) (*csCommand, error) {
-	recvCmd := make(chan *csCommand, 1)
+func (conn *Connection) GenericExec(ctx context.Context, query string) (*Command, error) {
+	recvCmd := make(chan *Command, 1)
 	recvErr := make(chan error, 1)
 	go func() {
 		cmd, err := conn.exec(query)
@@ -88,9 +88,9 @@ func (conn *connection) execContext(ctx context.Context, query string) (*csComma
 	}
 }
 
-// dynamic initializes a csCommand as a prepared statement.
-func (conn *connection) dynamic(name string, query string) (*csCommand, error) {
-	cmd := &csCommand{}
+// dynamic initializes a Command as a prepared statement.
+func (conn *Connection) Dynamic(name string, query string) (*Command, error) {
+	cmd := &Command{}
 	cmd.isDynamic = true
 	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
 	if retval != C.CS_SUCCEED {
@@ -112,18 +112,18 @@ func (conn *connection) dynamic(name string, query string) (*csCommand, error) {
 	// Send command to ASE
 	retval = C.ct_send(cmd.cmd)
 	if retval != C.CS_SUCCEED {
-		cmd.drop()
+		cmd.Drop()
 		return nil, makeError(retval, "Failed to send command")
 	}
 
 	return cmd, nil
 }
 
-// resultsHelper reads a single response from the command structure and
+// Response reads a single response from the command structure and
 // handles it.
 //
 // When no more results are available this method returns io.EOF.
-func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
+func (cmd *Command) Response() (*Rows, *Result, error) {
 	var resultType C.CS_INT
 	retval := C.ct_results(cmd.cmd, &resultType)
 
@@ -134,10 +134,10 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 	case C.CS_END_RESULTS:
 		return nil, nil, io.EOF // no more responses available, quit
 	case C.CS_FAIL:
-		cmd.cancel()
+		cmd.Cancel()
 		return nil, nil, makeError(retval, "Command failed")
 	default:
-		cmd.cancel()
+		cmd.Cancel()
 		return nil, nil, makeError(retval, "Invalid return code")
 	}
 
@@ -148,7 +148,7 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 	case C.CS_ROW_RESULT, C.CS_STATUS_RESULT:
 		rows, err := newRows(cmd)
 		if err != nil {
-			cmd.cancel()
+			cmd.Cancel()
 			return nil, nil, err
 		}
 
@@ -166,23 +166,23 @@ func (cmd *csCommand) resultsHelper() (*rows, *result, error) {
 
 	// other result types
 	case C.CS_CMD_FAIL:
-		cmd.cancel()
+		cmd.Cancel()
 		return nil, nil, makeError(retval, "Command failed, cancelled")
 	case C.CS_CMD_DONE:
 		var rowsAffected C.CS_INT
 		retval := C.ct_res_info(cmd.cmd, C.CS_ROW_COUNT, unsafe.Pointer(&rowsAffected),
 			C.CS_UNUSED, nil)
 		if retval != C.CS_SUCCEED {
-			cmd.cancel()
+			cmd.Cancel()
 			return nil, nil, makeError(retval, "Failed to read affected rows")
 		}
 
-		return nil, &result{int64(rowsAffected)}, nil
+		return nil, &Result{int64(rowsAffected)}, nil
 	case C.CS_CMD_SUCCEED:
 		return nil, nil, nil
 
 	default:
-		cmd.cancel()
+		cmd.Cancel()
 		return nil, nil, fmt.Errorf("Unknown result type: %d", resultType)
 	}
 }

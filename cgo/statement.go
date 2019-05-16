@@ -20,7 +20,7 @@ import (
 type statement struct {
 	name     string
 	argCount int
-	cmd      *csCommand
+	cmd      *Command
 }
 
 // Interface satisfaction checks
@@ -35,11 +35,11 @@ var (
 	statementCounterM = sync.Mutex{}
 )
 
-func (conn *connection) Prepare(query string) (driver.Stmt, error) {
+func (conn *Connection) Prepare(query string) (driver.Stmt, error) {
 	return conn.prepare(query)
 }
 
-func (conn *connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+func (conn *Connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	recvStmt := make(chan driver.Stmt, 1)
 	recvErr := make(chan error, 1)
 	go func() {
@@ -67,7 +67,7 @@ func (conn *connection) PrepareContext(ctx context.Context, query string) (drive
 	}
 }
 
-func (conn *connection) prepare(query string) (driver.Stmt, error) {
+func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 	stmt := &statement{}
 
 	stmt.argCount = strings.Count(query, "?")
@@ -77,16 +77,16 @@ func (conn *connection) prepare(query string) (driver.Stmt, error) {
 	stmt.name = fmt.Sprintf("stmt%d", statementCounter)
 	statementCounterM.Unlock()
 
-	cmd, err := conn.dynamic(stmt.name, query)
+	cmd, err := conn.Dynamic(stmt.name, query)
 	if err != nil {
 		stmt.Close()
 		return nil, err
 	}
 
-	for err = nil; err != io.EOF; _, _, err = cmd.resultsHelper() {
+	for err = nil; err != io.EOF; _, _, err = cmd.Response() {
 		if err != nil {
 			stmt.Close()
-			cmd.cancel()
+			cmd.Cancel()
 			return nil, err
 		}
 	}
@@ -112,7 +112,7 @@ func (stmt *statement) Close() error {
 		}
 
 		var err error
-		for err = nil; err != io.EOF; _, _, err = stmt.cmd.resultsHelper() {
+		for err = nil; err != io.EOF; _, _, err = stmt.cmd.Response() {
 			if err != nil {
 				return err
 			}
@@ -241,7 +241,7 @@ func (stmt *statement) execResults() (driver.Result, error) {
 	var resResult driver.Result
 
 	for {
-		_, result, err := stmt.cmd.resultsHelper()
+		_, result, err := stmt.cmd.Response()
 		if err == io.EOF {
 			break
 		}
@@ -299,7 +299,7 @@ func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	rows, _, err := stmt.cmd.resultsHelper()
+	rows, _, err := stmt.cmd.Response()
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 	recvRows := make(chan driver.Rows, 1)
 	recvErr := make(chan error, 1)
 	go func() {
-		rows, _, err := stmt.cmd.resultsHelper()
+		rows, _, err := stmt.cmd.Response()
 		recvRows <- rows
 		close(recvRows)
 		recvErr <- err

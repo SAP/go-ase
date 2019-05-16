@@ -49,7 +49,7 @@ func (connector *connector) Connect(ctx context.Context) (driver.Conn, error) {
 	connChan := make(chan driver.Conn, 1)
 	errChan := make(chan error, 1)
 	go func() {
-		conn, err := newConnection(connector.driverCtx, connector.dsn)
+		conn, err := NewConnection(connector.driverCtx, connector.dsn)
 		connChan <- conn
 		close(connChan)
 		errChan <- err
