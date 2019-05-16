@@ -6,47 +6,30 @@ import "C"
 var (
 	// GlobalServerMessageBroker sends server messages to all registered
 	// handlers.
-	GlobalServerMessageBroker = newServerMessageBroker()
+	GlobalServerMessageBroker = newMessageBroker()
 	// GlobalClientMessageBroker sends client messages to all registered
 	// handlers.
-	GlobalClientMessageBroker = newClientMessageBroker()
+	GlobalClientMessageBroker = newMessageBroker()
 )
 
-// ServerMessageHandler describes the signature of a handler for server
-// messages.
-type ServerMessageHandler func(ServerMessage)
+// MessageHandler describes the signature of a handler for server- and
+// client messages.
+type MessageHandler func(Message)
 
-// ClientMessageHandler describes the signature of a handler for client
-// messages.
-type ClientMessageHandler func(ClientMessage)
-
-type serverMessageBroker struct {
-	handlers []ServerMessageHandler
+type messageBroker struct {
+	handlers []MessageHandler
 }
 
-func newServerMessageBroker() *serverMessageBroker {
-	return new(serverMessageBroker)
+func newMessageBroker() *messageBroker {
+	return new(messageBroker)
 }
 
-type clientMessageBroker struct {
-	handlers []ClientMessageHandler
-}
-
-func newClientMessageBroker() *clientMessageBroker {
-	return new(clientMessageBroker)
-}
-
-// RegisterHandler registers a handler for server messages.
-func (broker *serverMessageBroker) RegisterHandler(handler ServerMessageHandler) {
+// RegisterHandler registers a handler for messages.
+func (broker *messageBroker) RegisterHandler(handler MessageHandler) {
 	broker.handlers = append(broker.handlers, handler)
 }
 
-// RegisterHandler registers a handler for client messages.
-func (broker *clientMessageBroker) RegisterHandler(handler ClientMessageHandler) {
-	broker.handlers = append(broker.handlers, handler)
-}
-
-func (broker serverMessageBroker) recvMessage(csMsg *C.CS_SERVERMSG) {
+func (broker messageBroker) recvServerMessage(csMsg *C.CS_SERVERMSG) {
 	msg := newServerMessage(csMsg)
 
 	for _, handler := range broker.handlers {
@@ -54,7 +37,7 @@ func (broker serverMessageBroker) recvMessage(csMsg *C.CS_SERVERMSG) {
 	}
 }
 
-func (broker clientMessageBroker) recvMessage(csMsg *C.CS_CLIENTMSG) {
+func (broker messageBroker) recvClientMessage(csMsg *C.CS_CLIENTMSG) {
 	msg := newClientMessage(csMsg)
 
 	for _, handler := range broker.handlers {
