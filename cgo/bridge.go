@@ -53,13 +53,13 @@ func logSrvMsg(msg Message) {
 	fmt.Fprintf(os.Stderr, "\tsqlstate:    %s\n", srvMsg.SQLState)
 }
 
-// ctlMsg is a callback function which will be called from C when the
+// cltMsg is a callback function which will be called from C when the
 // client sends a message. The message is then passed to the
 // GlobalClientMessageBroker.
 // Don't change the following line. It is the directive for cgo to make
 // the function available from C.
-//export ctlMsg
-func ctlMsg(msg *C.CS_CLIENTMSG) C.CS_RETCODE {
+//export cltMsg
+func cltMsg(msg *C.CS_CLIENTMSG) C.CS_RETCODE {
 	GlobalClientMessageBroker.recvClientMessage(msg)
 	return C.CS_SUCCEED
 }

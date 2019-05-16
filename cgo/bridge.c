@@ -7,5 +7,5 @@ CS_RETCODE ct_callback_server_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_SE
 }
 
 CS_RETCODE ct_callback_client_message(CS_CONTEXT* ctx, CS_CONNECTION* con, CS_CLIENTMSG* msg) {
-	return ctlMsg(msg);
+	return cltMsg(msg);
 }
