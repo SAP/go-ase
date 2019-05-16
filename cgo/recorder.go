@@ -2,32 +2,32 @@ package cgo
 
 import "sync"
 
-// ServerMessageRecorder can be utilized to record non-SQL responses
+// MessageRecorder can be utilized to record non-SQL responses
 // from the server.
 //
 // See the example examples/cgo/recorder on how to utilize the
-// ServerMessageRecorder.
-type ServerMessageRecorder struct {
+// MessageRecorder.
+type MessageRecorder struct {
 	Messages []string
 	lock     sync.Mutex
 }
 
-// NewServerMessageRecorder returns an initialized
-// ServerMessageRecorder.
-func NewServerMessageRecorder() *ServerMessageRecorder {
-	return new(ServerMessageRecorder)
+// NewMessageRecorder returns an initialized
+// MessageRecorder.
+func NewMessageRecorder() *MessageRecorder {
+	return new(MessageRecorder)
 }
 
-// Resets prepares the ServerMessageRecorder to record a new message.
-func (rec *ServerMessageRecorder) Reset() {
+// Reset prepares the MessageRecorder to record a new message.
+func (rec *MessageRecorder) Reset() {
 	rec.lock.Lock()
 	defer rec.lock.Unlock()
 
 	rec.Messages = make([]string, 0)
 }
 
-// Handle implements the ServerMessageHandler interface.
-func (rec *ServerMessageRecorder) Handle(msg ServerMessage) {
+// HandleMessage implements the MessageHandler interface.
+func (rec *MessageRecorder) HandleMessage(msg Message) {
 	rec.lock.Lock()
 	defer rec.lock.Unlock()
 
@@ -36,12 +36,6 @@ func (rec *ServerMessageRecorder) Handle(msg ServerMessage) {
 
 // Text returns the received messages as a newline-separated string and
 // an error if not all lines were received.
-//
-// The recorder will be reset after the method has returned.
-func (rec ServerMessageRecorder) Text() (int, []string, error) {
-	defer rec.Reset()
-	rec.lock.Lock()
-	defer rec.lock.Unlock()
-
+func (rec MessageRecorder) Text() (int, []string, error) {
 	return len(rec.Messages), rec.Messages, nil
 }
