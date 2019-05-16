@@ -5,42 +5,40 @@ import (
 	"fmt"
 	"log"
 
-	ase "github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/cgo"
 	libdsn "github.com/SAP/go-ase/libase/dsn"
 )
 
 func main() {
-	err := doMain()
+	err := DoMain()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// TODO
-
-func doMain() error {
+func DoMain() error {
 	dsn := libdsn.NewDsnInfoFromEnv("")
 
+	fmt.Println("Opening database")
 	db, err := sql.Open("ase", dsn.AsSimple())
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to open connection to database: %v", err)
 	}
 	defer db.Close()
 
-	recorder := ase.NewServerMessageRecorder()
-	ase.GlobalServerMessageBroker.RegisterHandler(recorder.Handle)
+	fmt.Println("Creating MessageRecorder")
+	recorder := cgo.NewMessageRecorder()
+	fmt.Println("Registering handler with server message broker")
+	cgo.GlobalServerMessageBroker.RegisterHandler(recorder.HandleMessage)
 
+	fmt.Println("Calling dbcc")
 	_, err = db.Exec("dbcc checkalloc")
 	if err != nil {
 		return err
 	}
 
-	_, lines, err := recorder.Text()
-	if err != nil {
-		return err
-	}
-
-	for _, line := range lines {
+	fmt.Println("Received messages:")
+	for _, line := range recorder.Text() {
 		fmt.Print(line)
 	}
 
