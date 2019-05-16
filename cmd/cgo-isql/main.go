@@ -91,7 +91,15 @@ func main() {
 	}
 	defer conn.Close()
 
-	err = repl(conn)
+	if len(flag.Args()) > 0 {
+		// Positional arguments were supplied, execute these as SQL
+		// statements
+		query := strings.Join(flag.Args(), " ") + ";"
+		err = parseAndExecQueries(conn, query)
+	} else {
+		err = repl(conn)
+	}
+
 	if err != nil {
 		log.Println(err)
 		return
