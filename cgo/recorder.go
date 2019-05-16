@@ -34,8 +34,7 @@ func (rec *MessageRecorder) HandleMessage(msg Message) {
 	rec.Messages = append(rec.Messages, msg.Content())
 }
 
-// Text returns the received messages as a newline-separated string and
-// an error if not all lines were received.
-func (rec MessageRecorder) Text() (int, []string, error) {
-	return len(rec.Messages), rec.Messages, nil
+// Text returns the received messages.
+func (rec MessageRecorder) Text() []string {
+	return rec.Messages
 }
