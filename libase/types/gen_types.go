@@ -117,33 +117,51 @@ func main() {
 			type2interface[key] = "string(\"\")"
 		// bit
 		case "BIT":
-			type2reflect[key] = "reflect.TypeOf(uint64(0))"
-			type2interface[key] = "uint64(0)"
+			type2reflect[key] = "reflect.TypeOf(bool(false))"
+			type2interface[key] = "bool(false)"
 		// xml
 		case "XML":
 			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
 			type2interface[key] = "[]byte{0}"
 		// datetime
-		case "DATE", "TIME", "DATETIME4":
-			type2reflect[key] = "reflect.SliceOf(reflect.TypeOf(byte(0)))"
-			type2interface[key] = "[]byte{0}"
-		case "DATETIME", "BIGDATETIME", "BIGTIME":
+		case "BIGDATETIME":
+			type2reflect[key] = "reflect.TypeOf(time.Time{})"
+			type2interface[key] = "time.Time{}"
+		case "DATE", "TIME", "DATETIME4", "DATETIME", "BIGTIME":
 			type2reflect[key] = "reflect.TypeOf(time.Time{})"
 			type2interface[key] = "time.Time{}"
 		// numeric
-		case "TINYINT", "SMALLINT", "INT", "BIGINT":
+		case "TINYINT":
+			type2reflect[key] = "reflect.TypeOf(uint8(0))"
+			type2interface[key] = "uint8(0)"
+		case "SMALLINT":
+			type2reflect[key] = "reflect.TypeOf(int16(0))"
+			type2interface[key] = "int16(0)"
+		case "USMALLINT", "USHORT":
+			type2reflect[key] = "reflect.TypeOf(uint16(0))"
+			type2interface[key] = "uint16(0)"
+		case "INT":
+			type2reflect[key] = "reflect.TypeOf(int32(0))"
+			type2interface[key] = "int32(0)"
+		case "UINT":
+			type2reflect[key] = "reflect.TypeOf(uint32(0))"
+			type2interface[key] = "uint32(0)"
+		case "BIGINT":
 			type2reflect[key] = "reflect.TypeOf(int64(0))"
 			type2interface[key] = "int64(0)"
-		case "USMALLINT", "USHORT", "UINT", "UBIGINT", "NUMERIC", "LONG":
+		case "UBIGINT":
 			type2reflect[key] = "reflect.TypeOf(uint64(0))"
 			type2interface[key] = "uint64(0)"
-		case "DECIMAL", "FLOAT":
+		case "FLOAT":
 			type2reflect[key] = "reflect.TypeOf(float64(0))"
 			type2interface[key] = "float64(0)"
+		case "NUMERIC", "DECIMAL":
+			type2reflect[key] = "reflect.TypeOf(&Decimal{})"
+			type2interface[key] = "&Decimal{}"
 		// money
 		case "MONEY", "MONEY4":
-			type2reflect[key] = "reflect.TypeOf(uint64(0))"
-			type2interface[key] = "uint64(0)"
+			type2reflect[key] = "reflect.TypeOf(&Decimal{})"
+			type2interface[key] = "&Decimal{}"
 		// text
 		case "TEXT", "UNITEXT":
 			type2reflect[key] = "reflect.TypeOf(string(\"\"))"
