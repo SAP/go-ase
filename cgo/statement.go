@@ -183,6 +183,25 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		case types.USMALLINT, types.USHORT:
 			i := (C.CS_USMALLINT)(arg.Value.(uint16))
 			ptr = unsafe.Pointer(&i)
+		case types.DECIMAL, types.NUMERIC:
+			csDec := (*C.CS_DECIMAL)(C.calloc(1, C.sizeof_CS_DECIMAL))
+			defer C.free(unsafe.Pointer(csDec))
+
+			dec := arg.Value.(*types.Decimal)
+
+			csDec.precision = (C.CS_BYTE)(dec.Precision())
+			csDec.scale = (C.CS_BYTE)(dec.Scale())
+
+			offset := dec.ByteSize() - len(dec.Bytes())
+			for i, b := range dec.Bytes() {
+				csDec.array[i+offset] = (C.CS_BYTE)(b)
+			}
+
+			if dec.IsNegative() {
+				csDec.array[0] = 0x1
+			}
+
+			ptr = unsafe.Pointer(csDec)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}

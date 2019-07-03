@@ -183,6 +183,22 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			dest[i] = uint32(*((*C.CS_UBIGINT)(rows.colData[i])))
 		case types.USMALLINT, types.USHORT:
 			dest[i] = uint16(*((*C.CS_USMALLINT)(rows.colData[i])))
+		case types.DECIMAL, types.NUMERIC:
+			csDec := (*C.CS_DECIMAL)(rows.colData[i])
+
+			dec, err := types.NewDecimal(int(csDec.precision), int(csDec.scale))
+			if err != nil {
+				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
+			}
+
+			bs := C.GoBytes(unsafe.Pointer(&csDec.array), (C.int)(dec.ByteSize()))
+			dec.SetBytes(bs[1:])
+
+			if bs[0] == 0x1 {
+				dec.Negate()
+			}
+
+			dest[i] = dec
 
 		case types.BINARY:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)

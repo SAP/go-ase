@@ -2,6 +2,8 @@ package libtest
 
 import (
 	"math"
+
+	"github.com/SAP/go-ase/libase/types"
 )
 
 //go:generate go run ./gen_type.go BigInt int64
@@ -31,3 +33,37 @@ var samplesUnsignedInt = []uint32{0, 1000, 5000, 150000, 123456789, math.MaxUint
 
 //go:generate go run ./gen_type.go UnsignedSmallInt uint16 -columndef "unsigned smallint"
 var samplesUnsignedSmallInt = []uint16{0, 65535}
+
+//go:generate go run ./gen_type.go Decimal10 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(1,0) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesDecimal10 = []string{"0", "1", "9"}
+
+//go:generate go run ./gen_type.go Decimal380 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,0) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesDecimal380 = []string{"99999999999999999999999999999999999999"}
+
+//go:generate go run ./gen_type.go Decimal3838 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,38) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesDecimal3838 = []string{".99999999999999999999999999999999999999"}
+
+//go:generate go run ./gen_type.go Decimal github.com/SAP/go-ase/libase/*types.Decimal -columndef "decimal(38,19)" -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesDecimal = []string{
+	// ASE max
+	"1234567890123456789",
+	"9999999999999999999",
+	"-1234567890123456789",
+	"-9999999999999999999",
+	// ASE min
+	".1234567890123456789",
+	".9999999999999999999",
+	"-.1234567890123456789",
+	"-.9999999999999999999",
+	// default
+	"0",
+	// arbitrary
+	"1234.5678",
+}
+
+func compareDecimal(recv, expect *types.Decimal) bool {
+	if recv.String() != expect.String() {
+		return true
+	}
+	return false
+}
