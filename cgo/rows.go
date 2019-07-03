@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase/asetime"
@@ -280,7 +282,7 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			t = t.Add(time.Duration(dur) * time.Microsecond)
 
 			dest[i] = t
-		case types.CHAR, types.VARCHAR:
+		case types.CHAR, types.VARCHAR, types.TEXT:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		case types.BINARY, types.IMAGE:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
@@ -289,6 +291,33 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {
 				dest[i] = true
 			}
+
+		case types.UNICHAR, types.UNITEXT:
+			b := C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
+
+			runes := []rune{}
+
+			for i := 0; i < len(b); i++ {
+				// Determine if byte is a utf16 surrogate - if so two
+				// bytes must be consumed to form one utf16 code point
+				if utf16.IsSurrogate(rune(b[i])) {
+					r := utf16.DecodeRune(rune(b[i]), rune(b[i+1]))
+					runes = append(runes, r)
+					i++
+				} else {
+					runes = append(runes, rune(b[i]))
+				}
+			}
+
+			s := string(runes)
+			// Trim null bytes from the right - ASE always sends the
+			// maximum bytes for the TEXT datatype, causing the string
+			// to have a couple thousand null bytes. These are also
+			// carried over in a string() conversion and cause
+			// false-negatives in comparisons.
+			s = strings.TrimRight(s, "\x00")
+
+			dest[i] = s
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])
 		}
