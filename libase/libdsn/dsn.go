@@ -19,7 +19,7 @@ type DsnInfo struct {
 	Port         string     `json:"port" validate:"required"`
 	Username     string     `json:"user,username" validate:"required"`
 	Password     string     `json:"pass,passwd,password" validate:"required"`
-	Userstorekey string     `json:"userstorekey" validate:"required"`
+	Userstorekey string     `json:"userstorekey,key" validate:"required"`
 	Database     string     `json:"db,database"`
 	ConnectProps url.Values `json:"connectprops"`
 }
