@@ -162,6 +162,27 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		datalen := 0
 		var ptr unsafe.Pointer
 		switch stmt.columnTypes[i] {
+		case types.BIGINT:
+			i := (C.CS_BIGINT)(arg.Value.(int64))
+			ptr = unsafe.Pointer(&i)
+		case types.INT:
+			i := (C.CS_INT)(arg.Value.(int32))
+			ptr = unsafe.Pointer(&i)
+		case types.SMALLINT:
+			i := (C.CS_SMALLINT)(arg.Value.(int16))
+			ptr = unsafe.Pointer(&i)
+		case types.TINYINT:
+			i := (C.CS_TINYINT)(arg.Value.(uint8))
+			ptr = unsafe.Pointer(&i)
+		case types.UBIGINT:
+			ci := (C.CS_UBIGINT)(arg.Value.(uint64))
+			ptr = unsafe.Pointer(&ci)
+		case types.UINT:
+			i := (C.CS_UINT)(arg.Value.(uint32))
+			ptr = unsafe.Pointer(&i)
+		case types.USMALLINT, types.USHORT:
+			i := (C.CS_USMALLINT)(arg.Value.(uint16))
+			ptr = unsafe.Pointer(&i)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}

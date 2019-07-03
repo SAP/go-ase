@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-// DoTestInt tests the handling of the Int.
-func DoTestInt(t *testing.T) {
-	TestForEachDB("TestInt", t, testInt)
+// DoTestUnsignedSmallInt tests the handling of the UnsignedSmallInt.
+func DoTestUnsignedSmallInt(t *testing.T) {
+	TestForEachDB("TestUnsignedSmallInt", t, testUnsignedSmallInt)
 	//
 }
 
-func testInt(t *testing.T, db *sql.DB, tableName string) {
-	pass := make([]interface{}, len(samplesInt))
-	mySamples := make([]int32, len(samplesInt))
+func testUnsignedSmallInt(t *testing.T, db *sql.DB, tableName string) {
+	pass := make([]interface{}, len(samplesUnsignedSmallInt))
+	mySamples := make([]uint16, len(samplesUnsignedSmallInt))
 
-	for i, sample := range samplesInt {
+	for i, sample := range samplesUnsignedSmallInt {
 
 		mySample := sample
 
@@ -24,7 +24,7 @@ func testInt(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "int", pass...)
+	rows, err := SetupTableInsert(db, tableName, "unsigned smallint", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
@@ -32,7 +32,7 @@ func testInt(t *testing.T, db *sql.DB, tableName string) {
 	defer rows.Close()
 
 	i := 0
-	var recv int32
+	var recv uint16
 	for rows.Next() {
 		err = rows.Scan(&recv)
 		if err != nil {
