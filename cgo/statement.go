@@ -18,9 +18,10 @@ import (
 )
 
 type statement struct {
-	name     string
-	argCount int
-	cmd      *Command
+	name        string
+	argCount    int
+	cmd         *Command
+	columnTypes []types.ASEType
 }
 
 // Interface satisfaction checks
@@ -92,6 +93,12 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 	}
 
 	stmt.cmd = cmd
+
+	err = stmt.fillColumnTypes()
+	if err != nil {
+		stmt.Close()
+		return nil, fmt.Errorf("Failed to retrieve argument types: %v", err)
+	}
 
 	return stmt, nil
 }
@@ -338,4 +345,59 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 			return rows, err
 		}
 	}
+}
+
+func (stmt *statement) fillColumnTypes() error {
+	name := C.CString(stmt.name)
+	defer C.free(unsafe.Pointer(name))
+
+	// Instruct server to send data to descriptor
+	retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_DESCRIBE_INPUT, name,
+		C.CS_NULLTERM, nil, C.CS_UNUSED)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "Error when preparing input description")
+	}
+
+	retval = C.ct_send(stmt.cmd.cmd)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "Error sending command to server")
+	}
+
+	for {
+		_, _, resultType, err := stmt.cmd.Response()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("Received error while receiving input description: %v", err)
+		}
+
+		if resultType != C.CS_DESCRIBE_RESULT {
+			continue
+		}
+
+		// Receive number of arguments
+		var paramCount C.CS_INT
+		retval = C.ct_res_info(stmt.cmd.cmd, C.CS_NUMDATA, unsafe.Pointer(&paramCount), C.CS_UNUSED, nil)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "Failed to retrieve parameter count")
+		}
+
+		stmt.argCount = int(paramCount)
+		stmt.columnTypes = make([]types.ASEType, stmt.argCount)
+
+		for i := 0; i < stmt.argCount; i++ {
+			datafmt := (*C.CS_DATAFMT)(C.calloc(1, C.sizeof_CS_DATAFMT))
+
+			retval = C.ct_describe(stmt.cmd.cmd, (C.CS_INT)(i+1), datafmt)
+			if retval != C.CS_SUCCEED {
+				return makeError(retval, "Failed to retrieve description of parameter %d", i)
+			}
+
+			stmt.columnTypes[i] = types.ASEType(datafmt.datatype)
+		}
+
+	}
+
+	return nil
 }
