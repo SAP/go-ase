@@ -2,6 +2,7 @@
 package types
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"time"
@@ -69,4 +70,30 @@ func FromGoType(value interface{}) (ASEType, error) {
 	default:
 		return ILLEGAL, fmt.Errorf("Invalid type for ASE: %v", value)
 	}
+}
+
+type ValueConverter struct{}
+
+var DefaultValueConverter = ValueConverter{}
+
+func (conv ValueConverter) ConvertValue(v interface{}) (driver.Value, error) {
+	if driver.IsValue(v) {
+		return v, nil
+	}
+
+	switch v.(type) {
+	case int:
+		return int64(v.(int)), nil
+	case uint:
+		return uint64(v.(uint)), nil
+	}
+
+	sv := reflect.TypeOf(v)
+	for _, kind := range type2reflect {
+		if kind == sv {
+			return v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unsupported type %T, a %s", v, sv.Kind())
 }
