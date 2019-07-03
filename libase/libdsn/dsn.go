@@ -39,6 +39,11 @@ func NewDsnInfo() *DsnInfo {
 // Recognized environments variables are in the form of <prefix>_<json
 // tag>. E.g. `.Host` with the prefix `""` would recognize `ASE_HOST`
 // and `ASE_HOSTNAME`.
+//
+// Properties with dashes are recognized with double underscored
+// instead.
+// E.g. the property `cgo-callback-client` can be passed as
+// `CGO__CALLBACK__CLIENT`.
 func NewDsnInfoFromEnv(prefix string) *DsnInfo {
 	dsn := NewDsnInfo()
 
@@ -57,6 +62,7 @@ func NewDsnInfoFromEnv(prefix string) *DsnInfo {
 		}
 
 		key = strings.ToLower(strings.TrimPrefix(key, prefix))
+		key = strings.ReplaceAll(key, "__", "-")
 		if field, ok := ttf[key]; ok {
 			field.SetString(value)
 		} else {
