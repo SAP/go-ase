@@ -199,11 +199,13 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			}
 
 			dest[i] = dec
+		case types.FLOAT:
+			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
+		case types.REAL:
+			dest[i] = float64(*((*C.CS_REAL)(rows.colData[i])))
 
 		case types.BINARY:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-		case types.FLOAT:
-			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
 		case types.BIT:
 			dest[i] = false
 			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {

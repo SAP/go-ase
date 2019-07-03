@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-// DoTestFloat tests the handling of the Float.
-func DoTestFloat(t *testing.T) {
-	TestForEachDB("TestFloat", t, testFloat)
+// DoTestReal tests the handling of the Real.
+func DoTestReal(t *testing.T) {
+	TestForEachDB("TestReal", t, testReal)
 	//
 }
 
-func testFloat(t *testing.T, db *sql.DB, tableName string) {
-	pass := make([]interface{}, len(samplesFloat))
-	mySamples := make([]float64, len(samplesFloat))
+func testReal(t *testing.T, db *sql.DB, tableName string) {
+	pass := make([]interface{}, len(samplesReal))
+	mySamples := make([]float64, len(samplesReal))
 
-	for i, sample := range samplesFloat {
+	for i, sample := range samplesReal {
 
 		mySample := sample
 
@@ -24,7 +24,7 @@ func testFloat(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "float", pass...)
+	rows, err := SetupTableInsert(db, tableName, "real", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return

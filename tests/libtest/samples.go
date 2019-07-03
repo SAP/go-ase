@@ -67,3 +67,14 @@ func compareDecimal(recv, expect *types.Decimal) bool {
 	}
 	return false
 }
+
+//go:generate go run ./gen_type.go Float float64
+// TODO: -null database/sql.NullFloat64
+var samplesFloat = []float64{math.SmallestNonzeroFloat64, math.MaxFloat64}
+
+//go:generate go run ./gen_type.go Real float64
+// TODO: -null database/sql.NullFloat64
+var samplesReal = []float64{
+	math.SmallestNonzeroFloat32,
+	math.MaxFloat32,
+}
