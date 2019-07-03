@@ -2,6 +2,7 @@ package libtest
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/SAP/go-ase/libase/types"
@@ -165,4 +166,24 @@ func convertDuration(s string) (time.Time, error) {
 	}
 
 	return time.Time{}.Add(d), nil
+}
+
+//go:generate go run ./gen_type.go VarChar string -columndef varchar(13) -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesVarChar = samplesChar
+
+//go:generate go run ./gen_type.go Char string -columndef char(13) -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesChar = []string{"", "test", "a longer test"}
+
+//go:generate go run ./gen_type.go NChar string -columndef nchar(13) -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesNChar = samplesChar
+
+//go:generate go run ./gen_type.go NVarChar string -columndef nvarchar(13) -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesNVarChar = samplesChar
+
+func compareChar(recv, expect string) bool {
+	return strings.Compare(strings.TrimSpace(recv), expect) != 0
 }
