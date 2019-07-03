@@ -1,6 +1,7 @@
 package libtest
 
 import (
+	"bytes"
 	"math"
 	"strings"
 	"time"
@@ -187,3 +188,26 @@ var samplesNVarChar = samplesChar
 func compareChar(recv, expect string) bool {
 	return strings.Compare(strings.TrimSpace(recv), expect) != 0
 }
+
+//go:generate go run ./gen_type.go Binary []byte -columndef "binary(13)" -compare compareBinary
+// TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
+var samplesBinary = [][]byte{
+	[]byte("test"),
+	[]byte("a longer test"),
+}
+
+//go:generate go run ./gen_type.go VarBinary []byte -columndef "varbinary(13)" -compare compareBinary
+// TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
+var samplesVarBinary = samplesBinary
+
+func compareBinary(recv, expect []byte) bool {
+	return bytes.Compare(bytes.Trim(recv, "\x00"), expect) != 0
+}
+
+//go:generate go run ./gen_type.go Bit bool
+// Cannot be nulled
+var samplesBit = []bool{true, false}
+
+//go:generate go run ./gen_type.go Image []byte -compare compareBinary
+// TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
+var samplesImage = [][]byte{[]byte("test"), []byte("a longer test")}

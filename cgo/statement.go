@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -310,6 +311,37 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(varchar)
+		case types.BINARY, types.IMAGE:
+			ptr = C.CBytes(arg.Value.([]byte))
+			defer C.free(ptr)
+			datalen = len(arg.Value.([]byte))
+
+			// IMAGE does not support null padding
+			if stmt.columnTypes[i] == types.BINARY {
+				datafmt.format = C.CS_FMT_PADNULL
+			}
+
+			// The maximum length of slices is constrained by the
+			// ability to address elements by integers - hence the
+			// maximum length we can retrieve is MaxInt64.
+			datafmt.maxlength = (C.CS_INT)(math.MaxInt32)
+		case types.VARBINARY:
+			varbin := (*C.CS_VARBINARY)(C.calloc(1, C.sizeof_CS_VARBINARY))
+			defer C.free(unsafe.Pointer(varbin))
+			varbin.len = (C.CS_SMALLINT)(len(arg.Value.([]byte)))
+
+			for i, b := range arg.Value.([]byte) {
+				varbin.array[i] = (C.CS_BYTE)(b)
+			}
+
+			ptr = unsafe.Pointer(varbin)
+		case types.BIT:
+			b := (C.CS_BOOL)(0)
+			if arg.Value.(bool) {
+				b = (C.CS_BOOL)(1)
+			}
+			ptr = unsafe.Pointer(&b)
+			datalen = 1
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
