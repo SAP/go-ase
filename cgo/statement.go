@@ -10,7 +10,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -152,59 +151,19 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		defer C.free(unsafe.Pointer(datafmt))
 		datafmt.status = C.CS_INPUTVALUE
 		datafmt.namelen = C.CS_NULLTERM
-		asetype, err := types.FromGoType(arg.Value)
-		if err != nil {
-			return fmt.Errorf("Failed to retrieve ASEType for driver.Value: %v", err)
+
+		switch stmt.columnTypes[i] {
+		case types.IMAGE:
+			datafmt.datatype = (C.CS_INT)(types.BINARY)
+		default:
+			datafmt.datatype = (C.CS_INT)(stmt.columnTypes[i])
 		}
-		datafmt.datatype = (C.CS_INT)(asetype)
 
 		datalen := 0
 		var ptr unsafe.Pointer
-		switch value := arg.Value.(type) {
-		case int64:
-			i := (C.CS_BIGINT)(value)
-			ptr = unsafe.Pointer(&i)
-		case uint64:
-			i := (C.CS_UBIGINT)(value)
-			ptr = unsafe.Pointer(&i)
-		case float64:
-			i := (C.CS_FLOAT)(value)
-			ptr = unsafe.Pointer(&i)
-		case bool:
-			b := (C.CS_BOOL)(0)
-			if value {
-				b = (C.CS_BOOL)(1)
-			}
-			ptr = unsafe.Pointer(&b)
-			datalen = 1
-		case []byte:
-			if len(value) == 0 {
-				ptr = C.CBytes([]byte{})
-				defer C.free(ptr)
-				datalen = 0
-			} else {
-				ptr = C.CBytes(arg.Value.([]byte))
-				defer C.free(ptr)
-				datalen = len(arg.Value.([]byte))
-			}
-			datafmt.format = C.CS_FMT_PADNULL
-		case string:
-			if len(value) == 0 {
-				ptr = unsafe.Pointer(C.CString(""))
-				defer C.free(ptr)
-				datalen = 0
-			} else {
-				ptr = unsafe.Pointer(C.CString(value))
-				defer C.free(ptr)
-				datalen = len(value)
-			}
-			datafmt.format = C.CS_FMT_NULLTERM
-			datafmt.maxlength = C.CS_MAX_CHAR
-		case time.Time:
-			microseconds := (C.CS_UBIGINT)(libase.TimeToMicroseconds(arg.Value.(time.Time)))
-			ptr = unsafe.Pointer(&microseconds)
+		switch stmt.columnTypes[i] {
 		default:
-			return fmt.Errorf("Unable to transform to Client-Library: %v", arg.Value)
+			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
 
 		var csDatalen C.CS_INT
