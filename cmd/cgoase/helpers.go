@@ -19,7 +19,7 @@ func process(conn *cgo.Connection, query string) error {
 	defer cmd.Drop()
 
 	for {
-		rows, result, err := cmd.Response()
+		rows, result, _, err := cmd.Response()
 		if err != nil {
 			if err == io.EOF {
 				return nil

@@ -83,7 +83,7 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 		return nil, err
 	}
 
-	for err = nil; err != io.EOF; _, _, err = cmd.Response() {
+	for err = nil; err != io.EOF; _, _, _, err = cmd.Response() {
 		if err != nil {
 			stmt.Close()
 			cmd.Cancel()
@@ -112,7 +112,7 @@ func (stmt *statement) Close() error {
 		}
 
 		var err error
-		for err = nil; err != io.EOF; _, _, err = stmt.cmd.Response() {
+		for err = nil; err != io.EOF; _, _, _, err = stmt.cmd.Response() {
 			if err != nil {
 				return err
 			}
@@ -241,7 +241,7 @@ func (stmt *statement) execResults() (driver.Result, error) {
 	var resResult driver.Result
 
 	for {
-		_, result, err := stmt.cmd.Response()
+		_, result, _, err := stmt.cmd.Response()
 		if err == io.EOF {
 			break
 		}
@@ -299,7 +299,7 @@ func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	rows, _, err := stmt.cmd.Response()
+	rows, _, _, err := stmt.cmd.Response()
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 	recvRows := make(chan driver.Rows, 1)
 	recvErr := make(chan error, 1)
 	go func() {
-		rows, _, err := stmt.cmd.Response()
+		rows, _, _, err := stmt.cmd.Response()
 		recvRows <- rows
 		close(recvRows)
 		recvErr <- err

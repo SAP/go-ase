@@ -121,7 +121,7 @@ func (rows *Rows) Close() error {
 		}
 	}
 
-	for r, _, err := rows.cmd.Response(); err != io.EOF; r, _, err = rows.cmd.Response() {
+	for r, _, _, err := rows.cmd.Response(); err != io.EOF; r, _, _, err = rows.cmd.Response() {
 		if err != nil {
 			return fmt.Errorf("Received error reading results: %v", err)
 		}
