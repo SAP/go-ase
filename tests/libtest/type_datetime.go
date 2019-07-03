@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-// DoTestTime tests the handling of the Time.
-func DoTestTime(t *testing.T) {
-	TestForEachDB("TestTime", t, testTime)
+// DoTestDateTime tests the handling of the DateTime.
+func DoTestDateTime(t *testing.T) {
+	TestForEachDB("TestDateTime", t, testDateTime)
 	//
 }
 
-func testTime(t *testing.T, db *sql.DB, tableName string) {
-	pass := make([]interface{}, len(samplesTime))
-	mySamples := make([]time.Time, len(samplesTime))
+func testDateTime(t *testing.T, db *sql.DB, tableName string) {
+	pass := make([]interface{}, len(samplesDateTime))
+	mySamples := make([]time.Time, len(samplesDateTime))
 
-	for i, sample := range samplesTime {
+	for i, sample := range samplesDateTime {
 
 		mySample := sample
 
@@ -26,7 +26,7 @@ func testTime(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "time", pass...)
+	rows, err := SetupTableInsert(db, tableName, "datetime", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return

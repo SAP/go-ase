@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-// DoTestTime tests the handling of the Time.
-func DoTestTime(t *testing.T) {
-	TestForEachDB("TestTime", t, testTime)
+// DoTestBigTime tests the handling of the BigTime.
+func DoTestBigTime(t *testing.T) {
+	TestForEachDB("TestBigTime", t, testBigTime)
 	//
 }
 
-func testTime(t *testing.T, db *sql.DB, tableName string) {
-	pass := make([]interface{}, len(samplesTime))
-	mySamples := make([]time.Time, len(samplesTime))
+func testBigTime(t *testing.T, db *sql.DB, tableName string) {
+	pass := make([]interface{}, len(samplesBigTime))
+	mySamples := make([]time.Time, len(samplesBigTime))
 
-	for i, sample := range samplesTime {
+	for i, sample := range samplesBigTime {
 
 		mySample := sample
 
@@ -26,7 +26,7 @@ func testTime(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "time", pass...)
+	rows, err := SetupTableInsert(db, tableName, "bigtime", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return

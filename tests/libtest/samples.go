@@ -2,6 +2,7 @@ package libtest
 
 import (
 	"math"
+	"time"
 
 	"github.com/SAP/go-ase/libase/types"
 )
@@ -101,4 +102,67 @@ var samplesMoney4 = []string{
 	"0.0",
 	// arbitrary
 	"1234.5678",
+}
+
+//go:generate go run ./gen_type.go Date time.Time
+var samplesDate = []time.Time{
+	// Sybase & Golang zero value
+	time.Time{},
+	// Sybase max
+	time.Date(9999, time.December, 31, 0, 0, 0, 0, time.UTC),
+}
+
+//go:generate go run ./gen_type.go Time time.Time
+var samplesTime = []time.Time{
+	// Sybase & Golang zero-value; 00:00:00.00
+	time.Time{},
+	// 13:15:55.123
+	time.Date(1, time.January, 1, 13, 15, 55, 123000000, time.UTC),
+	// Sybase max: 23:59:59.990
+	time.Date(1, time.January, 1, 23, 59, 59, 996000000, time.UTC),
+}
+
+//go:generate go run ./gen_type.go SmallDateTime time.Time
+var samplesSmallDateTime = []time.Time{
+	// Sybase zero-value; January 1, 1900 Midnight
+	time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC),
+	// Sybase max: 06.06.2079 23:59
+	time.Date(2079, time.June, 6, 23, 59, 0, 0, time.UTC),
+}
+
+//go:generate go run ./gen_type.go DateTime time.Time
+var samplesDateTime = []time.Time{
+	// Sybase min: January 1, 1753 Midnight
+	time.Date(1753, time.January, 1, 0, 0, 0, 0, time.UTC),
+	// Sybase zero-value; January 1, 1900 Midnight
+	time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC),
+	// Sybase max: 31.12.9999 23:59:59.996
+	time.Date(9999, time.December, 31, 23, 59, 59, 996000000, time.UTC),
+}
+
+//go:generate go run ./gen_type.go BigDateTime time.Time
+// TODO: -null github.com/SAP/go-ase/libase/types.NullTime
+var samplesBigDateTime = []time.Time{
+	// Sybase & Golang zero-value; January 1, 0001 Midnight
+	time.Time{},
+	time.Date(2019, time.March, 29, 9, 26, 0, 0, time.UTC),
+	// Sybase max
+	time.Date(9999, time.December, 31, 23, 59, 59, 999999000, time.UTC),
+}
+
+//go:generate go run ./gen_type.go BigTime time.Time
+var samplesBigTime = []time.Time{
+	// Sybase & Golang zero-value; 00:00:00.00
+	time.Time{},
+	// Sybase max: 23:59:59.999999
+	time.Date(1, time.January, 1, 23, 59, 59, 999999000, time.UTC),
+}
+
+func convertDuration(s string) (time.Time, error) {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Time{}.Add(d), nil
 }
