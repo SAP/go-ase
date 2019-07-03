@@ -8,6 +8,7 @@ import "unsafe"
 // adhere to.
 type Message interface {
 	MessageNumber() uint64
+	MessageSeverity() int64
 	Content() string
 }
 
@@ -40,6 +41,10 @@ func (msg ServerMessage) MessageNumber() uint64 {
 	return msg.MsgNumber
 }
 
+func (msg ServerMessage) MessageSeverity() int64 {
+	return msg.Severity
+}
+
 func (msg ServerMessage) Content() string {
 	return msg.Text
 }
@@ -69,6 +74,10 @@ func newClientMessage(msg *C.CS_CLIENTMSG) *ClientMessage {
 
 func (msg ClientMessage) MessageNumber() uint64 {
 	return msg.MsgNumber
+}
+
+func (msg ClientMessage) MessageSeverity() int64 {
+	return msg.Severity
 }
 
 func (msg ClientMessage) Content() string {
