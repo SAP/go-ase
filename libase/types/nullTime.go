@@ -17,6 +17,12 @@ type NullTime struct {
 }
 
 func (nullTime *NullTime) Scan(value interface{}) error {
+	if value == nil {
+		nullTime.Time = time.Time{}
+		nullTime.Valid = false
+		return nil
+	}
+
 	nullTime.Time, nullTime.Valid = value.(time.Time)
 	return nil
 }
