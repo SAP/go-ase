@@ -41,6 +41,9 @@ func testMain(m *testing.M) error {
 		return fmt.Errorf("Failed to setup userstorekey databases: %v", err)
 	}
 
+	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
+	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
+
 	rc := m.Run()
 	if rc != 0 {
 		return fmt.Errorf("Tests failed with %d", rc)
