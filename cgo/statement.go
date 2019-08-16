@@ -202,6 +202,12 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(csDec)
+		case types.FLOAT:
+			i := (C.CS_FLOAT)(arg.Value.(float64))
+			ptr = unsafe.Pointer(&i)
+		case types.REAL:
+			i := (C.CS_REAL)(arg.Value.(float64))
+			ptr = unsafe.Pointer(&i)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
