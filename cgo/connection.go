@@ -220,7 +220,7 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 	defer cmd.Drop()
 
 	var result, resResult driver.Result
-	for _, result, err = cmd.Response(); err != io.EOF; _, result, err = cmd.Response() {
+	for _, result, _, err = cmd.Response(); err != io.EOF; _, result, _, err = cmd.Response() {
 		if err != nil {
 			return nil, fmt.Errorf("Received error reading results: %v", err)
 		}
@@ -253,7 +253,7 @@ func (conn *Connection) QueryContext(ctx context.Context, query string, args []d
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
 
-	rows, _, err := cmd.Response()
+	rows, _, _, err := cmd.Response()
 	if err != nil {
 		return nil, fmt.Errorf("Received error while retrieving results: %v", err)
 	}

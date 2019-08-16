@@ -10,7 +10,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -18,9 +17,10 @@ import (
 )
 
 type statement struct {
-	name     string
-	argCount int
-	cmd      *Command
+	name        string
+	argCount    int
+	cmd         *Command
+	columnTypes []types.ASEType
 }
 
 // Interface satisfaction checks
@@ -83,7 +83,7 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 		return nil, err
 	}
 
-	for err = nil; err != io.EOF; _, _, err = cmd.Response() {
+	for err = nil; err != io.EOF; _, _, _, err = cmd.Response() {
 		if err != nil {
 			stmt.Close()
 			cmd.Cancel()
@@ -92,6 +92,12 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 	}
 
 	stmt.cmd = cmd
+
+	err = stmt.fillColumnTypes()
+	if err != nil {
+		stmt.Close()
+		return nil, fmt.Errorf("Failed to retrieve argument types: %v", err)
+	}
 
 	return stmt, nil
 }
@@ -112,7 +118,7 @@ func (stmt *statement) Close() error {
 		}
 
 		var err error
-		for err = nil; err != io.EOF; _, _, err = stmt.cmd.Response() {
+		for err = nil; err != io.EOF; _, _, _, err = stmt.cmd.Response() {
 			if err != nil {
 				return err
 			}
@@ -145,59 +151,19 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		defer C.free(unsafe.Pointer(datafmt))
 		datafmt.status = C.CS_INPUTVALUE
 		datafmt.namelen = C.CS_NULLTERM
-		asetype, err := types.FromGoType(arg.Value)
-		if err != nil {
-			return fmt.Errorf("Failed to retrieve ASEType for driver.Value: %v", err)
+
+		switch stmt.columnTypes[i] {
+		case types.IMAGE:
+			datafmt.datatype = (C.CS_INT)(types.BINARY)
+		default:
+			datafmt.datatype = (C.CS_INT)(stmt.columnTypes[i])
 		}
-		datafmt.datatype = (C.CS_INT)(asetype)
 
 		datalen := 0
 		var ptr unsafe.Pointer
-		switch value := arg.Value.(type) {
-		case int64:
-			i := (C.CS_BIGINT)(value)
-			ptr = unsafe.Pointer(&i)
-		case uint64:
-			i := (C.CS_UBIGINT)(value)
-			ptr = unsafe.Pointer(&i)
-		case float64:
-			i := (C.CS_FLOAT)(value)
-			ptr = unsafe.Pointer(&i)
-		case bool:
-			b := (C.CS_BOOL)(0)
-			if value {
-				b = (C.CS_BOOL)(1)
-			}
-			ptr = unsafe.Pointer(&b)
-			datalen = 1
-		case []byte:
-			if len(value) == 0 {
-				ptr = C.CBytes([]byte{})
-				defer C.free(ptr)
-				datalen = 0
-			} else {
-				ptr = C.CBytes(arg.Value.([]byte))
-				defer C.free(ptr)
-				datalen = len(arg.Value.([]byte))
-			}
-			datafmt.format = C.CS_FMT_PADNULL
-		case string:
-			if len(value) == 0 {
-				ptr = unsafe.Pointer(C.CString(""))
-				defer C.free(ptr)
-				datalen = 0
-			} else {
-				ptr = unsafe.Pointer(C.CString(value))
-				defer C.free(ptr)
-				datalen = len(value)
-			}
-			datafmt.format = C.CS_FMT_NULLTERM
-			datafmt.maxlength = C.CS_MAX_CHAR
-		case time.Time:
-			microseconds := (C.CS_UBIGINT)(libase.TimeToMicroseconds(arg.Value.(time.Time)))
-			ptr = unsafe.Pointer(&microseconds)
+		switch stmt.columnTypes[i] {
 		default:
-			return fmt.Errorf("Unable to transform to Client-Library: %v", arg.Value)
+			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
 
 		var csDatalen C.CS_INT
@@ -241,7 +207,7 @@ func (stmt *statement) execResults() (driver.Result, error) {
 	var resResult driver.Result
 
 	for {
-		_, result, err := stmt.cmd.Response()
+		_, result, _, err := stmt.cmd.Response()
 		if err == io.EOF {
 			break
 		}
@@ -299,7 +265,7 @@ func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	rows, _, err := stmt.cmd.Response()
+	rows, _, _, err := stmt.cmd.Response()
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +282,7 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 	recvRows := make(chan driver.Rows, 1)
 	recvErr := make(chan error, 1)
 	go func() {
-		rows, _, err := stmt.cmd.Response()
+		rows, _, _, err := stmt.cmd.Response()
 		recvRows <- rows
 		close(recvRows)
 		recvErr <- err
@@ -338,4 +304,59 @@ func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValu
 			return rows, err
 		}
 	}
+}
+
+func (stmt *statement) fillColumnTypes() error {
+	name := C.CString(stmt.name)
+	defer C.free(unsafe.Pointer(name))
+
+	// Instruct server to send data to descriptor
+	retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_DESCRIBE_INPUT, name,
+		C.CS_NULLTERM, nil, C.CS_UNUSED)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "Error when preparing input description")
+	}
+
+	retval = C.ct_send(stmt.cmd.cmd)
+	if retval != C.CS_SUCCEED {
+		return makeError(retval, "Error sending command to server")
+	}
+
+	for {
+		_, _, resultType, err := stmt.cmd.Response()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("Received error while receiving input description: %v", err)
+		}
+
+		if resultType != C.CS_DESCRIBE_RESULT {
+			continue
+		}
+
+		// Receive number of arguments
+		var paramCount C.CS_INT
+		retval = C.ct_res_info(stmt.cmd.cmd, C.CS_NUMDATA, unsafe.Pointer(&paramCount), C.CS_UNUSED, nil)
+		if retval != C.CS_SUCCEED {
+			return makeError(retval, "Failed to retrieve parameter count")
+		}
+
+		stmt.argCount = int(paramCount)
+		stmt.columnTypes = make([]types.ASEType, stmt.argCount)
+
+		for i := 0; i < stmt.argCount; i++ {
+			datafmt := (*C.CS_DATAFMT)(C.calloc(1, C.sizeof_CS_DATAFMT))
+
+			retval = C.ct_describe(stmt.cmd.cmd, (C.CS_INT)(i+1), datafmt)
+			if retval != C.CS_SUCCEED {
+				return makeError(retval, "Failed to retrieve description of parameter %d", i)
+			}
+
+			stmt.columnTypes[i] = types.ASEType(datafmt.datatype)
+		}
+
+	}
+
+	return nil
 }
