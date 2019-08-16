@@ -94,8 +94,6 @@ func newRows(cmd *Command) (*Rows, error) {
 			r.dataFmts[i].format = C.CS_FMT_NULLTERM
 		case C.CS_TEXT_TYPE, C.CS_UNITEXT_TYPE:
 			r.dataFmts[i].format = C.CS_FMT_NULLTERM
-		case C.CS_IMAGE_TYPE:
-			r.dataFmts[i].format = C.CS_FMT_NULLTERM
 		}
 
 		// Allocate memory according maxlength of column
@@ -284,8 +282,7 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			dest[i] = t
 		case types.CHAR, types.VARCHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
-
-		case types.BINARY:
+		case types.BINARY, types.IMAGE:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
 		case types.BIT:
 			dest[i] = false
