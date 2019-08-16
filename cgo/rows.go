@@ -282,6 +282,8 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			t = t.Add(time.Duration(dur) * time.Microsecond)
 
 			dest[i] = t
+		case types.CHAR, types.VARCHAR:
+			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 
 		case types.BINARY:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
@@ -290,8 +292,6 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {
 				dest[i] = true
 			}
-		case types.CHAR:
-			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])
 		}

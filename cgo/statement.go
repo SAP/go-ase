@@ -293,6 +293,23 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
+		case types.CHAR:
+			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
+			defer C.free(ptr)
+
+			datalen = len(arg.Value.(string))
+			datafmt.format = C.CS_FMT_NULLTERM
+			datafmt.maxlength = C.CS_MAX_CHAR
+		case types.VARCHAR:
+			varchar := (*C.CS_VARCHAR)(C.calloc(1, C.sizeof_CS_VARCHAR))
+			defer C.free(unsafe.Pointer(varchar))
+			varchar.len = (C.CS_SMALLINT)(len(arg.Value.(string)))
+
+			for i, chr := range arg.Value.(string) {
+				varchar.str[i] = (C.CS_CHAR)(chr)
+			}
+
+			ptr = unsafe.Pointer(varchar)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
