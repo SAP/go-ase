@@ -61,6 +61,9 @@ func openDB() (*cgo.Connection, error) {
 		dsn.ConnectProps.Set(opt, value)
 	}
 
+	cgo.GlobalServerMessageBroker.RegisterHandler(handleMessage)
+	cgo.GlobalClientMessageBroker.RegisterHandler(handleMessage)
+
 	conn, err := cgo.NewConnection(nil, *dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open connection: %v", err)
