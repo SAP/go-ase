@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/libase/types"
 )
 
 func process(conn *cgo.Connection, query string) error {
@@ -73,7 +74,12 @@ func processRows(rows *cgo.Rows) error {
 
 		for i, cell := range cells {
 			s := "| %-" + strconv.Itoa(int(rows.ColumnTypeMaxLength(i))) + "v "
-			fmt.Printf(s, (interface{})(cell))
+			switch cell.(type) {
+			case *types.Decimal:
+				fmt.Printf(s, cell.(*types.Decimal).String())
+			default:
+				fmt.Printf(s, (interface{})(cell))
+			}
 		}
 		fmt.Printf("|\n")
 	}
