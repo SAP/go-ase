@@ -12,6 +12,7 @@ import (
 
 	"github.com/SAP/go-ase/libase"
 	"github.com/SAP/go-ase/libase/libdsn"
+	"github.com/SAP/go-ase/libase/types"
 )
 
 // connection is the struct which represents a database connection.
@@ -30,6 +31,7 @@ var (
 	_ driver.Pinger             = (*Connection)(nil)
 	_ driver.Queryer            = (*Connection)(nil)
 	_ driver.QueryerContext     = (*Connection)(nil)
+	_ driver.NamedValueChecker  = (*Connection)(nil)
 )
 
 // newConnection allocated initializes a new connection based on the
@@ -257,4 +259,14 @@ func (conn *Connection) QueryContext(ctx context.Context, query string, args []d
 	}
 
 	return rows, nil
+}
+
+func (conn *Connection) CheckNamedValue(nv *driver.NamedValue) error {
+	v, err := types.DefaultValueConverter.ConvertValue(nv.Value)
+	if err != nil {
+		return err
+	}
+
+	nv.Value = v
+	return nil
 }
