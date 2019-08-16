@@ -6,6 +6,7 @@ package cgo
 import "C"
 import (
 	"database/sql/driver"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"reflect"
@@ -203,6 +204,32 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
 		case types.REAL:
 			dest[i] = float64(*((*C.CS_REAL)(rows.colData[i])))
+		case types.MONEY:
+			bs := C.GoBytes(rows.colData[i], 8)
+			dec, err := types.NewDecimal(types.ASEMoneyPrecision, types.ASEMoneyScale)
+			if err != nil {
+				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
+			}
+
+			mnyhigh := binary.LittleEndian.Uint32(bs[:4])
+			mnylow := binary.LittleEndian.Uint32(bs[4:])
+
+			mny := int64(int64(mnyhigh)<<32 + int64(mnylow))
+
+			dec.SetInt64(mny)
+
+			dest[i] = dec
+		case types.MONEY4:
+			bs := C.GoBytes(rows.colData[i], 4)
+
+			dec, err := types.NewDecimal(types.ASESmallMoneyPrecision, types.ASESmallMoneyScale)
+			if err != nil {
+				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
+			}
+
+			dec.SetInt64(int64(binary.LittleEndian.Uint32(bs)))
+
+			dest[i] = dec
 
 		case types.BINARY:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)

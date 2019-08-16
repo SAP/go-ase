@@ -6,6 +6,7 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
@@ -208,6 +209,25 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		case types.REAL:
 			i := (C.CS_REAL)(arg.Value.(float64))
 			ptr = unsafe.Pointer(&i)
+		case types.MONEY, types.MONEY4:
+			var b []byte
+			if stmt.columnTypes[i] == types.MONEY {
+				b = make([]byte, 8)
+			} else {
+				b = make([]byte, 4)
+			}
+			dec := arg.Value.(*types.Decimal)
+			deci := dec.Int()
+
+			if stmt.columnTypes[i] == types.MONEY {
+				binary.LittleEndian.PutUint32(b[:4], uint32(deci.Int64()>>32))
+				binary.LittleEndian.PutUint32(b[4:], uint32(deci.Int64()))
+			} else {
+				binary.LittleEndian.PutUint32(b, uint32(deci.Int64()))
+			}
+
+			ptr = C.CBytes(b)
+			defer C.free(ptr)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}

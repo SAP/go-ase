@@ -78,3 +78,27 @@ var samplesReal = []float64{
 	math.SmallestNonzeroFloat32,
 	math.MaxFloat32,
 }
+
+//go:generate go run ./gen_type.go Money github.com/SAP/go-ase/libase/*types.Decimal -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesMoney = []string{
+	// ASE min
+	"-922337203685477.5807",
+	// ASE max
+	"922337203685477.5807",
+	// default
+	"0.0",
+	// arbitrary
+	"1234.5678",
+}
+
+//go:generate go run ./gen_type.go Money4 github.com/SAP/go-ase/libase/*types.Decimal -columndef smallmoney -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+var samplesMoney4 = []string{
+	// ASE min
+	"-214748.3648",
+	// ASE max
+	"214748.3647",
+	// default
+	"0.0",
+	// arbitrary
+	"1234.5678",
+}
