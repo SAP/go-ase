@@ -52,38 +52,53 @@ func testMain(m *testing.M) error {
 	return nil
 }
 
-func TestInt64(t *testing.T) {
-	libtest.DoTestInt64(t)
-}
+// Exact numeric integer
+func TestBigInt(t *testing.T)           { libtest.DoTestBigInt(t) }
+func TestInt(t *testing.T)              { libtest.DoTestInt(t) }
+func TestSmallInt(t *testing.T)         { libtest.DoTestSmallInt(t) }
+func TestTinyInt(t *testing.T)          { libtest.DoTestTinyInt(t) }
+func TestUnsignedBigInt(t *testing.T)   { libtest.DoTestUnsignedBigInt(t) }
+func TestUnsignedInt(t *testing.T)      { libtest.DoTestUnsignedInt(t) }
+func TestUnsignedSmallInt(t *testing.T) { libtest.DoTestUnsignedSmallInt(t) }
 
-func TestUint64(t *testing.T) {
-	libtest.DoTestUint64(t)
-}
+// Exact numeric decimal
+func TestDecimal(t *testing.T)     { libtest.DoTestDecimal(t) }
+func TestDecimal10(t *testing.T)   { libtest.DoTestDecimal10(t) }
+func TestDecimal380(t *testing.T)  { libtest.DoTestDecimal380(t) }
+func TestDecimal3838(t *testing.T) { libtest.DoTestDecimal3838(t) }
 
-func TestFloat64(t *testing.T) {
-	libtest.DoTestFloat64(t)
-}
+// Approximate numeric
+func TestFloat(t *testing.T) { libtest.DoTestFloat(t) }
+func TestReal(t *testing.T)  { libtest.DoTestReal(t) }
 
-func TestBool(t *testing.T) {
-	libtest.DoTestBool(t)
-}
+// Money
+func TestMoney(t *testing.T)  { libtest.DoTestMoney(t) }
+func TestMoney4(t *testing.T) { libtest.DoTestMoney4(t) }
 
-func TestBytes(t *testing.T) {
-	libtest.DoTestBytes(t)
-}
+// Date and time
+func TestDate(t *testing.T)          { libtest.DoTestDate(t) }
+func TestTime(t *testing.T)          { libtest.DoTestTime(t) }
+func TestSmallDateTime(t *testing.T) { libtest.DoTestSmallDateTime(t) }
+func TestDateTime(t *testing.T)      { libtest.DoTestDateTime(t) }
+func TestBigDateTime(t *testing.T)   { libtest.DoTestBigDateTime(t) }
+func TestBigTime(t *testing.T)       { libtest.DoTestBigTime(t) }
 
-func TestString(t *testing.T) {
-	libtest.DoTestString(t)
-}
+// Character
+func TestVarChar(t *testing.T)  { libtest.DoTestVarChar(t) }
+func TestChar(t *testing.T)     { libtest.DoTestChar(t) }
+func TestNChar(t *testing.T)    { libtest.DoTestNChar(t) }
+func TestNVarChar(t *testing.T) { libtest.DoTestNVarChar(t) }
 
-func TestTime(t *testing.T) {
-	libtest.DoTestTime(t)
-}
+// Binary
+func TestBinary(t *testing.T)    { libtest.DoTestBinary(t) }
+func TestVarBinary(t *testing.T) { libtest.DoTestVarBinary(t) }
 
-func TestSQLTx(t *testing.T) {
-	libtest.DoTestSQLTx(t)
-}
+// Bit
+func TestBit(t *testing.T) { libtest.DoTestBit(t) }
 
-func TestSQLExec(t *testing.T) {
-	libtest.DoTestSQLExec(t)
-}
+// Image
+func TestImage(t *testing.T) { libtest.DoTestImage(t) }
+
+// Routines
+func TestSQLTx(t *testing.T)   { libtest.DoTestSQLTx(t) }
+func TestSQLExec(t *testing.T) { libtest.DoTestSQLExec(t) }

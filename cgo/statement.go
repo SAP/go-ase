@@ -151,6 +151,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 	}
 
 	for i, arg := range args {
+		// TODO place binding in function to achieve an earlier free
 		datafmt := (*C.CS_DATAFMT)(C.calloc(1, C.sizeof_CS_DATAFMT))
 		defer C.free(unsafe.Pointer(datafmt))
 		datafmt.status = C.CS_INPUTVALUE
@@ -163,8 +164,14 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			datafmt.datatype = (C.CS_INT)(stmt.columnTypes[i])
 		}
 
+		// datalen is the length of the data in bytes.
 		datalen := 0
+
 		var ptr unsafe.Pointer
+		// TODO: This entire case could be moved into a function, since
+		// the values set here are always the same - the expected values
+		// for ct_param.
+		// This function could also check for null values early.
 		switch stmt.columnTypes[i] {
 		case types.BIGINT:
 			i := (C.CS_BIGINT)(arg.Value.(int64))

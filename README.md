@@ -220,16 +220,25 @@ When set to any other string the callback will not be set.
 
 ## Limitations
 
-### Supported ASE data types
+### Unsupported ASE data types
 
-| ASE data type | Golang data type  |
-| ------------- | ----------------- |
-| BIGINT        | int64             |
-| FLOAT         | float64           |
-| BIT           | bool              |
-| BINARY        | []byte            |
-| CHAR          | string            |
-| BIGDATETIME   | time.Time         |
+Currently the following data types are not supported:
+
+- Timestamp
+- Unichar
+- Univarchar
+- Text
+- Unitext
+
+### Null types in cgo
+
+Due to the limitations of the Client-Library it is not possible to
+support null types.
+
+Additionally columns of the following data types must be nullable:
+
+- Image
+- Binary
 
 ## Known Issues
 
