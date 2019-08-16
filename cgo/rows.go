@@ -169,16 +169,23 @@ func (rows *Rows) Next(dest []driver.Value) error {
 
 	for i := 0; i < len(rows.colData); i++ {
 		switch rows.colASEType[i] {
-		case types.BINARY:
-			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-		case types.INT:
-			dest[i] = int64(int32(*((*C.CS_BIGINT)(rows.colData[i]))))
 		case types.BIGINT:
 			dest[i] = int64(*((*C.CS_BIGINT)(rows.colData[i])))
-		case types.UINT:
-			dest[i] = uint64(uint32(*((*C.CS_UBIGINT)(rows.colData[i]))))
+		case types.INT:
+			dest[i] = int32(*((*C.CS_INT)(rows.colData[i])))
+		case types.SMALLINT:
+			dest[i] = int16(*((*C.CS_SMALLINT)(rows.colData[i])))
+		case types.TINYINT:
+			dest[i] = uint8(*((*C.CS_TINYINT)(rows.colData[i])))
 		case types.UBIGINT:
 			dest[i] = uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
+		case types.UINT:
+			dest[i] = uint32(*((*C.CS_UBIGINT)(rows.colData[i])))
+		case types.USMALLINT, types.USHORT:
+			dest[i] = uint16(*((*C.CS_USMALLINT)(rows.colData[i])))
+
+		case types.BINARY:
+			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
 		case types.FLOAT:
 			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
 		case types.BIT:

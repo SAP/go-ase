@@ -6,17 +6,17 @@ import (
 	"testing"
 )
 
-// DoTestInt tests the handling of the Int.
-func DoTestInt(t *testing.T) {
-	TestForEachDB("TestInt", t, testInt)
+// DoTestTinyInt tests the handling of the TinyInt.
+func DoTestTinyInt(t *testing.T) {
+	TestForEachDB("TestTinyInt", t, testTinyInt)
 	//
 }
 
-func testInt(t *testing.T, db *sql.DB, tableName string) {
-	pass := make([]interface{}, len(samplesInt))
-	mySamples := make([]int32, len(samplesInt))
+func testTinyInt(t *testing.T, db *sql.DB, tableName string) {
+	pass := make([]interface{}, len(samplesTinyInt))
+	mySamples := make([]uint8, len(samplesTinyInt))
 
-	for i, sample := range samplesInt {
+	for i, sample := range samplesTinyInt {
 
 		mySample := sample
 
@@ -24,7 +24,7 @@ func testInt(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "int", pass...)
+	rows, err := SetupTableInsert(db, tableName, "tinyint", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
@@ -32,7 +32,7 @@ func testInt(t *testing.T, db *sql.DB, tableName string) {
 	defer rows.Close()
 
 	i := 0
-	var recv int32
+	var recv uint8
 	for rows.Next() {
 		err = rows.Scan(&recv)
 		if err != nil {
