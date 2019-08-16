@@ -37,6 +37,13 @@ type Null{{.T}} struct {
 }
 
 func (null{{.T}} *Null{{.T}}) Scan(value interface{}) error {
+	if value == nil {
+		null{{.T}}.{{.T}} = {{.GoT}}{}
+		null{{.T}}.Valid = false
+		return nil
+	}
+
+
 	null{{.T}}.{{.T}}, null{{.T}}.Valid = value.({{.GoT}})
 	return nil
 }
