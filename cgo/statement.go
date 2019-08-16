@@ -11,9 +11,11 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/asetime"
 	"github.com/SAP/go-ase/libase/types"
 )
 
@@ -227,6 +229,69 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = C.CBytes(b)
+			defer C.free(ptr)
+		case types.DATE:
+			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
+			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
+
+			bs := make([]byte, 4)
+			binary.LittleEndian.PutUint32(bs, uint32(t.Days()))
+
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
+		case types.TIME:
+			dur := asetime.DurationFromTime(arg.Value.(time.Time))
+
+			fract := asetime.MillisecondToFractionalSecond(dur.Microseconds())
+
+			bs := make([]byte, 4)
+			binary.LittleEndian.PutUint32(bs, uint32(fract))
+
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
+		case types.DATETIME4:
+			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
+			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
+
+			days := t.Days()
+			s := asetime.ASEDuration(t.Microseconds() - days*int(asetime.Day))
+
+			bs := make([]byte, 4)
+			binary.LittleEndian.PutUint16(bs[:2], uint16(days))
+			binary.LittleEndian.PutUint16(bs[2:], uint16(s.Minutes()))
+
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
+		case types.DATETIME:
+			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
+			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
+
+			days := t.Days()
+			s := t.Microseconds() - days*int(asetime.Day)
+			s = asetime.MillisecondToFractionalSecond(s)
+
+			bs := make([]byte, 8)
+
+			binary.LittleEndian.PutUint32(bs[:4], uint32(days))
+			binary.LittleEndian.PutUint32(bs[4:], uint32(s))
+
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
+		case types.BIGDATETIME:
+			dur := asetime.DurationFromDateTime(arg.Value.(time.Time))
+
+			bs := make([]byte, 8)
+			binary.LittleEndian.PutUint64(bs, uint64(dur))
+
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
+		case types.BIGTIME:
+			dur := asetime.DurationFromTime(arg.Value.(time.Time))
+
+			bs := make([]byte, 8)
+			binary.LittleEndian.PutUint64(bs, uint64(dur))
+
+			ptr = C.CBytes(bs)
 			defer C.free(ptr)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])

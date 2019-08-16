@@ -10,9 +10,10 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 	"unsafe"
 
-	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/asetime"
 	"github.com/SAP/go-ase/libase/types"
 )
 
@@ -230,6 +231,57 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			dec.SetInt64(int64(binary.LittleEndian.Uint32(bs)))
 
 			dest[i] = dec
+		case types.DATE:
+			b := C.GoBytes(rows.colData[i], 4)
+			r := int32(binary.LittleEndian.Uint32(b))
+			days := asetime.ASEDuration(r) * asetime.Day
+			dest[i] = asetime.Epoch1900().AddDate(0, 0, days.Days())
+		case types.TIME:
+			b := C.GoBytes(rows.colData[i], 4)
+			n := int(int32(binary.LittleEndian.Uint32(b)))
+			dur := asetime.FractionalSecondToMillisecond(n)
+			t := time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)
+			dest[i] = t.Add(time.Duration(dur.Milliseconds()) * time.Millisecond)
+		case types.DATETIME4:
+			b := C.GoBytes(rows.colData[i], 4)
+
+			days := binary.LittleEndian.Uint16(b[:2])
+			mins := binary.LittleEndian.Uint16(b[2:])
+
+			t := asetime.Epoch1900()
+			t = t.AddDate(0, 0, int(days))
+			t = t.Add(time.Duration(int(mins)) * time.Minute)
+
+			dest[i] = t
+		case types.DATETIME:
+			b := C.GoBytes(rows.colData[i], 8)
+
+			days := asetime.ASEDuration(int32(binary.LittleEndian.Uint32(b[:4]))) * asetime.Day
+			s := asetime.FractionalSecondToMillisecond(int(binary.LittleEndian.Uint32(b[4:])))
+
+			t := asetime.Epoch1900()
+			t = t.AddDate(0, 0, days.Days())
+			t = t.Add(time.Duration(s.Microseconds()) * time.Microsecond)
+
+			dest[i] = t
+		case types.BIGDATETIME:
+			bs := C.GoBytes(rows.colData[i], 8)
+			dur := asetime.ASEDuration(binary.LittleEndian.Uint64(bs))
+
+			t := time.Date(0, time.January, 1, 0, 0, 0, 0, time.UTC)
+			t = t.AddDate(0, 0, dur.Days())
+			ms := dur.Microseconds() - (dur.Days() * int(asetime.Day))
+			t = t.Add(time.Duration(ms) * time.Microsecond)
+
+			dest[i] = t
+		case types.BIGTIME:
+			bs := C.GoBytes(rows.colData[i], 8)
+			dur := asetime.ASEDuration(binary.LittleEndian.Uint64(bs))
+
+			t := asetime.EpochRataDie()
+			t = t.Add(time.Duration(dur) * time.Microsecond)
+
+			dest[i] = t
 
 		case types.BINARY:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
@@ -240,9 +292,6 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			}
 		case types.CHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
-		case types.BIGDATETIME:
-			microseconds := uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
-			dest[i] = libase.MicrosecondsToTime(microseconds)
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])
 		}
