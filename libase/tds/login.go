@@ -109,16 +109,18 @@ func (config *LoginConfig) pack() (Package, error) {
 	// lhostproc, lhplen
 	writeString(buf, config.HostProc, TDS_MAXNAME)
 
-	// lint2 -> little endian
-	buf.WriteByte(0x2)
-	// lint4 -> little endian
-	buf.WriteByte(0x0)
+	// TODO create consts for parameters
+
+	// lint2 -> big endian
+	buf.WriteByte(0x3)
+	// lint4 -> big endian
+	buf.WriteByte(0x1)
 	// lchar -> ASCII
 	buf.WriteByte(0x6)
-	// lflt -> little endian
-	buf.WriteByte(0x4)
-	// ldate -> little endian
-	buf.WriteByte(0x8)
+	// lflt -> big endian
+	buf.WriteByte(0x10)
+	// ldate -> big endian
+	buf.WriteByte(0x9)
 
 	// lusedb
 	buf.WriteByte(0x0)
@@ -160,10 +162,10 @@ func (config *LoginConfig) pack() (Package, error) {
 	// lnoshort - do not convert short data types
 	buf.WriteByte(0x0)
 
-	// lflt4 little endian
-	buf.WriteByte(0x12)
-	// ldate4 little endian
-	buf.WriteByte(0x16)
+	// lflt4 big endian
+	buf.WriteByte(0x13)
+	// ldate4 big endian
+	buf.WriteByte(0x17)
 
 	// llanguage, llanglen
 	writeString(buf, config.Language, TDS_MAXNAME)
