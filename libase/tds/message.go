@@ -1,7 +1,6 @@
 package tds
 
 import (
-	"context"
 	"fmt"
 	"io"
 )
@@ -30,20 +29,14 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 	errCh := make(chan error, 1)
 	defer func() { close(errCh) }()
 
-	// ctx singals goroutines to exit their event loop
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	byteCh := newChannel()
 
-	// Split input into packets.
-	// A size of two should be enough to ensure consistent throughput.
-	// TODO channel size configurable? Depending on the PDU size
-	// (default 512b, max 32767b -> 32Mb), which can put significant
-	// strain on the client machine with multiplexed connections
-	packetCh := make(chan *Packet, 2)
-	go msg.readFromPackets(ctx, errCh, reader, packetCh)
+	// Split input into packets and write the bodies into the byte
+	// channel
+	go msg.readFromPackets(errCh, reader, byteCh)
 
 	packageCh := make(chan Package, 1)
-	go msg.readFromPackages(ctx, errCh, packetCh, packageCh)
+	go msg.readFromPackages(errCh, byteCh, packageCh)
 
 	for {
 		select {
@@ -67,16 +60,10 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 	return nil
 }
 
-func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reader io.Reader, packetCh chan *Packet) {
-	defer close(packetCh)
+func (msg *Message) readFromPackets(errCh chan error, reader io.Reader, byteCh *channel) {
+	defer byteCh.Close()
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
 		packet := &Packet{}
 		_, err := packet.ReadFrom(reader)
 		if err != nil {
@@ -84,7 +71,7 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 			return
 		}
 
-		packetCh <- packet
+		byteCh.WriteBytes(packet.Data)
 
 		if packet.Header.Status == TDS_BUFSTAT_EOM {
 			return
@@ -92,67 +79,38 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 	}
 }
 
-func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, packetCh chan *Packet, packageCh chan Package) {
+func (msg *Message) readFromPackages(errCh chan error, byteCh *channel, packageCh chan Package) {
 	defer close(packageCh)
 
-	// package.Data is written to byteCh for packages to retrieve
-	// from
-	byteCh := newChannel()
-	defer func() { byteCh.Close() }()
-
-	var pkg Package
-
+	var lastpkg Package
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case packet, ok := <-packetCh:
-			if !ok {
-				packetCh = nil
+		tokenByte, err := byteCh.Byte()
+		if err != nil {
+			if err == ErrChannelExhausted {
 				continue
 			}
-
-			bs := packet.Data
-
-			// Create new package if pkg is currently unset
-			if pkg == nil {
-				// retrieve and validate TDSToken
-				token := (TDSToken)(bs[0])
-
-				// cut off token from data
-				bs = bs[1:]
-
-				// create new package based on token
-				var err error
-				pkg, err = LookupPackage(token)
-				if !ok {
-					errCh <- err
-					return
-				}
-
-				// Start goroutine reading from byte channel
-				go pkg.ReadFrom(byteCh)
-			}
-
-			// Write bytes to bytechannel
-			byteCh.WriteBytes(bs)
-		default:
-		}
-
-		// Check if current package is finished
-		if pkg != nil && pkg.Finished() {
-			if err := pkg.Error(); err != nil {
-				errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)
+			if err == ErrChannelClosed {
 				return
 			}
-
-			// Send package to channel and set for next loop
-			packageCh <- pkg
-			pkg = nil
-		}
-
-		if packetCh == nil && pkg == nil {
+			errCh <- fmt.Errorf("error reading token byte from channel: %w", err)
 			return
 		}
+
+		pkg, err := LookupPackage(TDSToken(tokenByte))
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		// Start goroutine reading from byte channel
+		pkg.ReadFrom(byteCh)
+
+		if err := pkg.Error(); err != nil {
+			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)
+			return
+		}
+
+		packageCh <- pkg
+		lastpkg = pkg
 	}
 }
