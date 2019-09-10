@@ -1,5 +1,7 @@
 package tds
 
+import "fmt"
+
 type ErrorPackage struct {
 	Length       uint16
 	ErrorNumber  int32
@@ -13,18 +15,12 @@ type ErrorPackage struct {
 	ProcName     string
 	LineNr       uint16
 
-	ch   *channel
-	err  error
-	done bool
+	channelWrapper
 }
 
 func (pkg *ErrorPackage) ReadFrom(ch *channel) {
 	pkg.ch = ch
-
-	defer func() {
-		pkg.done = true
-		pkg.ch = nil
-	}()
+	defer pkg.Finish()
 
 	pkg.Length, pkg.err = ch.Uint16()
 	if pkg.err != nil {
@@ -67,27 +63,13 @@ func (pkg *ErrorPackage) ReadFrom(ch *channel) {
 	}
 
 	pkg.LineNr, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
-	}
 }
 
-func (pkg ErrorPackage) Error() error {
-	if pkg.err == ErrChannelExhausted {
-		return nil
-	}
-
-	return pkg.err
-}
-
-func (pkg ErrorPackage) Finished() bool {
-	return pkg.done
+// TODO
+func (pkg ErrorPackage) Packets() chan Packet {
+	return nil
 }
 
 func (pkg ErrorPackage) String() string {
-	return pkg.ErrorMsg
-}
-
-func (pkg ErrorPackage) Packets() chan Packet {
-	return nil
+	return fmt.Sprintf("%d: %s", pkg.ErrorNumber, pkg.ErrorMsg)
 }
