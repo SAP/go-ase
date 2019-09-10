@@ -12,9 +12,6 @@ var (
 type channel struct {
 	ch     chan byte
 	closed bool
-
-	// exhausted     bool
-	// exhaustedCond *sync.Cond
 }
 
 func newChannel() *channel {
@@ -51,6 +48,10 @@ func (cr *channel) Read(p []byte) (int, error) {
 // Read
 
 func (cr *channel) Bytes(n int) ([]byte, error) {
+	if n == 0 {
+		return []byte{}, nil
+	}
+
 	bs := make([]byte, n)
 	for n := range bs {
 		// Keep reading until the channel is closed
@@ -126,11 +127,6 @@ func (cr *channel) WriteBytes(bs []byte) {
 	for _, b := range bs {
 		cr.ch <- b
 	}
-
-	// cr.exhaustedCond.L.Lock()
-	// cr.exhausted = false
-	// cr.exhaustedCond.L.Unlock()
-	// cr.exhaustedCond.Signal()
 }
 
 func (cr *channel) WriteByte(b byte) {
