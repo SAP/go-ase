@@ -25,7 +25,23 @@ type Package interface {
 	fmt.Stringer
 }
 
-// TODO func to return a copy
-var tokenToPackage = map[TDSToken]Package{
-	TDS_ERROR: &ErrorPackage{},
+func LookupPackage(token TDSToken) (Package, error) {
+	switch token {
+	case TDS_EED:
+		return &EEDPackage{}, nil
+	case TDS_ERROR:
+		return &ErrorPackage{}, nil
+	case TDS_LOGINACK:
+		return &LoginAckPackage{}, nil
+	case TDS_DONE:
+		return &DonePackage{}, nil
+	case TDS_MSG:
+		return &MsgPackage{}, nil
+	case TDS_PARAMFMT:
+		return &ParamFmtPackage{}, nil
+	case TDS_PARAMS:
+		return &ParamsPackage{}, nil
+	}
+
+	return nil, fmt.Errorf("no package type found for token '%s'", token)
 }

@@ -123,9 +123,10 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, pack
 				bs = bs[1:]
 
 				// create new package based on token
-				pkg, ok = tokenToPackage[token]
+				var err error
+				pkg, err = LookupPackage(token)
 				if !ok {
-					errCh <- fmt.Errorf("no package found for token: %s", token)
+					errCh <- err
 					return
 				}
 
