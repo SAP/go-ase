@@ -2,6 +2,7 @@ package tds
 
 import (
 	"errors"
+	"io"
 )
 
 var (
@@ -36,13 +37,18 @@ func (ch *channel) Close() {
 
 // Read satisfies the io.Reader interface
 func (ch *channel) Read(p []byte) (int, error) {
-	bs, err := ch.Bytes(len(p))
-
-	for n, b := range bs {
-		p[n] = b
+	var err error
+	for i := range p {
+		p[i], err = ch.Byte()
+		if err != nil {
+			if err == io.EOF || err == ErrChannelExhausted {
+				return i, io.EOF
+			}
+			return i, err
+		}
 	}
 
-	return len(bs), err
+	return len(p), nil
 }
 
 // Read
