@@ -9,6 +9,11 @@ type ParamFmtPackage struct {
 	ParamsCount uint16
 	Params      []FieldData
 
+	Names       []string
+	Stati       []uint8
+	UserTypes   []int32
+	LocaleInfos []string
+
 	channelWrapper
 }
 
@@ -27,8 +32,38 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) {
 	}
 
 	pkg.Params = make([]FieldData, pkg.ParamsCount)
+	pkg.Names = make([]string, pkg.ParamsCount)
+	pkg.Stati = make([]uint8, pkg.ParamsCount)
+	pkg.UserTypes = make([]int32, pkg.ParamsCount)
+	pkg.LocaleInfos = make([]string, pkg.ParamsCount)
 
 	for i := 0; i < int(pkg.ParamsCount); i++ {
+		nameLength, err := ch.Uint8()
+		if err != nil {
+			pkg.err = fmt.Errorf("failed to retrieve name length for field %d: %w", err)
+			return
+		}
+
+		if nameLength > 0 {
+			pkg.Names[i], err = ch.String(int(nameLength))
+			if err != nil {
+				pkg.err = fmt.Errorf("failed to retrieve name for field %d: %w", err)
+				return
+			}
+		}
+
+		pkg.Stati[i], err = ch.Uint8()
+		if err != nil {
+			pkg.err = fmt.Errorf("failed to retrieve status for field %d: %w", err)
+			return
+		}
+
+		pkg.UserTypes[i], err = ch.Int32()
+		if err != nil {
+			pkg.err = fmt.Errorf("failed to retrieve usertype for field %d: %w", err)
+			return
+		}
+
 		token, err := ch.Byte()
 		if err != nil {
 			pkg.err = fmt.Errorf("failed to retrieve token for field %d: %w",
@@ -49,6 +84,20 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) {
 			pkg.err = fmt.Errorf("error occurred reading param field %d format: %w",
 				i, err)
 			return
+		}
+
+		localeLen, err := ch.Uint8()
+		if err != nil {
+			pkg.err = fmt.Errorf("error occurred reading locale length for field %d: %w", err)
+			return
+		}
+
+		if localeLen > 0 {
+			pkg.LocaleInfos[i], err = ch.String(int(localeLen))
+			if err != nil {
+				pkg.err = fmt.Errorf("error occurred reading locale info for field %d: %w", err)
+				return
+			}
 		}
 
 		pkg.Params[i] = field
