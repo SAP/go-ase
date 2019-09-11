@@ -30,7 +30,7 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 
 	// errCh will receive errors from the goroutines and exit
 	errCh := make(chan error, 1)
-	defer func() { close(errCh) }()
+	defer close(errCh)
 
 	byteCh := newChannel()
 
