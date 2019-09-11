@@ -82,9 +82,18 @@ func (pkg *MsgPackage) ReadFrom(ch *channel) {
 	pkg.MsgId, pkg.err = pkg.ch.Uint16()
 }
 
-// TODO
-func (pkg MsgPackage) Packets() chan Packet {
-	return nil
+func (pkg MsgPackage) WriteTo(ch *channel) error {
+	err := ch.WriteUint8(pkg.Length)
+	if err != nil {
+		return err
+	}
+
+	err = ch.WriteUint8(uint8(pkg.Status))
+	if err != nil {
+		return err
+	}
+
+	return ch.WriteUint16(pkg.MsgId)
 }
 
 func (pkg MsgPackage) String() string {
