@@ -88,6 +88,10 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 	}
 }
 
+type LastPkgAcceptor interface {
+	LastPkg(Package) error
+}
+
 func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byteCh *channel, packageCh chan Package) {
 	defer close(packageCh)
 
@@ -115,6 +119,14 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 		if err != nil {
 			errCh <- err
 			return
+		}
+
+		if acceptor, ok := pkg.(LastPkgAcceptor); ok {
+			err := acceptor.LastPkg(lastpkg)
+			if err != nil {
+				errCh <- fmt.Errorf("error reading information from last package: %w", err)
+				return
+			}
 		}
 
 		// Start goroutine reading from byte channel
