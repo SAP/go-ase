@@ -51,6 +51,15 @@ func (ch *channel) Read(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// Write satisfies the io.Writer interface
+func (ch *channel) Write(p []byte) (int, error) {
+	err := ch.WriteBytes(p)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
 // Read
 
 func (ch *channel) Bytes(n int) ([]byte, error) {
