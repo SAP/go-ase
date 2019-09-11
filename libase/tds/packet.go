@@ -31,31 +31,10 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 	totalBytes += n
 
-	// // Create byte slice large enough for the remaining data
-	// dataLen := int(packet.Header.Length) - MsgHeaderLength
-	// log.Printf("dataLen: %d", dataLen)
-	// if dataLen <= 0 {
-	// 	if packet.Header.MsgType == TDS_DONE {
-	// 		return totalBytes, io.EOF
-	// 	}
-	// 	return totalBytes, nil
-	// }
-
-	// Length in headers sent by the server isn't filled in, hence
-	// MsgBodyLength is used
-	packet.Data = make([]byte, packet.Header.Length)
+	packet.Data = make([]byte, packet.Header.Length-MsgHeaderLength)
 
 	m, err := reader.Read(packet.Data)
 	totalBytes += int64(m)
-
-	// // TODO remove
-	// err = ioutil.WriteFile(
-	// 	fmt.Sprintf("/tmp/packet-%s.pack", time.Now().Format(time.RFC3339)),
-	// 	packet.Data, 0755,
-	// )
-	// if err != nil {
-	// 	return totalBytes, fmt.Errorf("failed to write packet data to file: %v", err)
-	// }
 
 	if err != nil {
 		if err == io.EOF {
@@ -64,18 +43,7 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 			}
 			return totalBytes, nil
 		}
-
-		if err != nil {
-			return totalBytes, fmt.Errorf("error reading body: %v", err)
-		}
-
-		// TODO remove, though a check would be nice - see MsgBodyLength
-		// above
-		// if m != MsgBodyLength {
-		// 	return totalBytes, fmt.Errorf("not enough bytes read, expected %d, read %d",
-		// 		len(packet.Data), m)
-		// }
-
+		return totalBytes, fmt.Errorf("error reading body: %v", err)
 	}
 
 	return totalBytes, nil
