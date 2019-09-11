@@ -45,8 +45,9 @@ type fieldDataBase struct {
 	// definition of usertypes
 	userType uint32
 
-	maxLength int
-	length    int
+	lengthBytes int
+	maxLength   int
+	length      int
 
 	status DataFieldStatus
 	data   []byte
@@ -76,11 +77,21 @@ func (field fieldDataBase) MaxLength() int {
 }
 
 func (field *fieldDataBase) readFormatLength(ch *channel) error {
-	maxLength, err := ch.Uint8()
+	var err error
+	switch field.lengthBytes {
+	case 4:
+		var tmp uint32
+		tmp, err = ch.Uint32()
+		field.maxLength = int(tmp)
+	default:
+		var tmp uint8
+		tmp, err = ch.Uint8()
+		field.maxLength = int(tmp)
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to read format length: %w", err)
 	}
-	field.maxLength = int(maxLength)
 	return nil
 }
 
@@ -89,11 +100,25 @@ func (field fieldDataBase) Length() int {
 }
 
 func (field *fieldDataBase) readDataLength(ch *channel) error {
-	length, err := ch.Uint8()
+	var err error
+	switch field.lengthBytes {
+	case 4:
+		var tmp uint32
+		tmp, err = ch.Uint32()
+		field.length = int(tmp)
+	default:
+		var tmp uint8
+		tmp, err = ch.Uint8()
+		field.length = int(tmp)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to read data length: %w", err)
 	}
-	field.length = int(length)
+
+	if field.length > field.maxLength {
+		return fmt.Errorf("read field length %d is greater than max length %d",
+			field.length, field.maxLength)
+	}
 	return nil
 }
 
@@ -736,6 +761,7 @@ func LookupFieldData(dataType DataType) (FieldData, error) {
 	case TDS_LONGBINARY:
 		v := &LongBinaryField{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_LONGCHAR:
 		v := &LongCharField{}
