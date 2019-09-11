@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	ErrChannelClosed    = errors.New("channel is closed")
 	ErrChannelExhausted = errors.New("channel is exhausted")
 )
 
@@ -75,8 +74,9 @@ func (ch *channel) Bytes(n int) ([]byte, error) {
 			bs[n], ok = <-ch.ch
 			if !ok {
 				if ch.closed {
-					return bs, ErrChannelClosed
+					return bs, io.EOF
 				}
+				return bs, ErrChannelExhausted
 			} else {
 				break
 			}
