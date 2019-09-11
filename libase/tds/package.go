@@ -19,8 +19,10 @@ type Package interface {
 	// // TODO Remove
 	// ReadFrom(packetsReader) (int64, error)
 
-	// generate packets to send to server
-	Packets() chan Packet
+	// WriteTo writes bytes to the passed channel until either the
+	// channel is closed or the package has written all required
+	// information.
+	WriteTo(*channel) error
 
 	fmt.Stringer
 }
