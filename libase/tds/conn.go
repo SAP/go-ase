@@ -1,6 +1,7 @@
 package tds
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -17,6 +18,22 @@ func Dial(network, address string) (*TDSConn, error) {
 	return &TDSConn{conn: c}, nil
 }
 
-func (tdsconn *TDSConn) Close() error {
-	return tdsconn.conn.Close()
+func (tds *TDSConn) Close() error {
+	return tds.conn.Close()
+}
+
+func (tds *TDSConn) Receive() (*Message, error) {
+	msg := &Message{}
+
+	err := msg.ReadFrom(tds.conn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read message: %v", err)
+	}
+
+	return msg, nil
+}
+
+// Send transmits a messages payload to the server.
+func (tds *TDSConn) Send(msg Message) error {
+	return msg.WriteTo(tds.conn)
 }
