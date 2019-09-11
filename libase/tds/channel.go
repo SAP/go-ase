@@ -138,40 +138,57 @@ func (ch *channel) String(size int) (string, error) {
 
 // Write
 
-func (ch *channel) WriteBytes(bs []byte) {
+func (ch *channel) WriteBytes(bs []byte) error {
+	if ch.closed {
+		return io.EOF
+	}
 	for _, b := range bs {
 		ch.ch <- b
 	}
+	return nil
 }
 
-func (ch *channel) WriteByte(b byte) {
+func (ch *channel) WriteByte(b byte) error {
+	if ch.closed {
+		return io.EOF
+	}
 	ch.ch <- b
+	return nil
 }
 
-func (ch *channel) WriteUint8(i uint8) {
-	ch.ch <- byte(i)
+func (ch *channel) WriteUint8(i uint8) error {
+	return ch.WriteByte(byte(i))
 }
 
-func (ch *channel) WriteUint16(i uint16) {
+func (ch *channel) WriteUint16(i uint16) error {
+	if ch.closed {
+		return io.EOF
+	}
 	bs := make([]byte, 2)
 	endian.PutUint16(bs, i)
 	ch.WriteBytes(bs)
+	return nil
 }
 
-func (ch *channel) WriteUint32(i uint32) {
+func (ch *channel) WriteUint32(i uint32) error {
 	bs := make([]byte, 4)
 	endian.PutUint32(bs, i)
 	ch.WriteBytes(bs)
+	return nil
 }
 
-func (ch *channel) WriteUint64(i uint64) {
+func (ch *channel) WriteUint64(i uint64) error {
 	bs := make([]byte, 8)
 	endian.PutUint64(bs, i)
-	ch.WriteBytes(bs)
+	return ch.WriteBytes(bs)
 }
 
-func (ch *channel) WriteString(s string) {
+func (ch *channel) WriteString(s string) error {
+	if ch.closed {
+		return io.EOF
+	}
 	for _, r := range s {
 		ch.ch <- byte(r)
 	}
+	return nil
 }
