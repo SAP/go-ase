@@ -29,14 +29,14 @@ func newChannel() *channel {
 	}
 }
 
-func (cr *channel) Close() {
-	cr.closed = true
-	close(cr.ch)
+func (ch *channel) Close() {
+	ch.closed = true
+	close(ch.ch)
 }
 
 // Read satisfies the io.Reader interface
-func (cr *channel) Read(p []byte) (int, error) {
-	bs, err := cr.Bytes(len(p))
+func (ch *channel) Read(p []byte) (int, error) {
+	bs, err := ch.Bytes(len(p))
 
 	for n, b := range bs {
 		p[n] = b
@@ -47,7 +47,7 @@ func (cr *channel) Read(p []byte) (int, error) {
 
 // Read
 
-func (cr *channel) Bytes(n int) ([]byte, error) {
+func (ch *channel) Bytes(n int) ([]byte, error) {
 	if n == 0 {
 		return []byte{}, nil
 	}
@@ -57,9 +57,9 @@ func (cr *channel) Bytes(n int) ([]byte, error) {
 		// Keep reading until the channel is closed
 		ok := true
 		for ok {
-			bs[n], ok = <-cr.ch
+			bs[n], ok = <-ch.ch
 			if !ok {
-				if cr.closed {
+				if ch.closed {
 					return bs, ErrChannelClosed
 				}
 			} else {
@@ -71,92 +71,92 @@ func (cr *channel) Bytes(n int) ([]byte, error) {
 	return bs, nil
 }
 
-func (cr *channel) Byte() (byte, error) {
-	bs, err := cr.Bytes(1)
+func (ch *channel) Byte() (byte, error) {
+	bs, err := ch.Bytes(1)
 	return bs[0], err
 }
 
-func (cr *channel) Uint8() (uint8, error) {
-	b, err := cr.Byte()
+func (ch *channel) Uint8() (uint8, error) {
+	b, err := ch.Byte()
 	return uint8(b), err
 }
 
-func (cr *channel) Int8() (int8, error) {
-	b, err := cr.Byte()
+func (ch *channel) Int8() (int8, error) {
+	b, err := ch.Byte()
 	return int8(b), err
 }
 
-func (cr *channel) Uint16() (uint16, error) {
-	bs, err := cr.Bytes(2)
+func (ch *channel) Uint16() (uint16, error) {
+	bs, err := ch.Bytes(2)
 	return endian.Uint16(bs), err
 }
 
-func (cr *channel) Int16() (int16, error) {
-	i, err := cr.Uint16()
+func (ch *channel) Int16() (int16, error) {
+	i, err := ch.Uint16()
 	return int16(i), err
 }
 
-func (cr *channel) Uint32() (uint32, error) {
-	bs, err := cr.Bytes(4)
+func (ch *channel) Uint32() (uint32, error) {
+	bs, err := ch.Bytes(4)
 	return endian.Uint32(bs), err
 }
 
-func (cr *channel) Int32() (int32, error) {
-	i, err := cr.Uint32()
+func (ch *channel) Int32() (int32, error) {
+	i, err := ch.Uint32()
 	return int32(i), err
 }
 
-func (cr *channel) Uint64() (uint64, error) {
-	bs, err := cr.Bytes(8)
+func (ch *channel) Uint64() (uint64, error) {
+	bs, err := ch.Bytes(8)
 	return endian.Uint64(bs), err
 }
 
-func (cr *channel) Int64() (int64, error) {
-	i, err := cr.Uint64()
+func (ch *channel) Int64() (int64, error) {
+	i, err := ch.Uint64()
 	return int64(i), err
 }
 
-func (cr *channel) String(size int) (string, error) {
-	bs, err := cr.Bytes(size)
+func (ch *channel) String(size int) (string, error) {
+	bs, err := ch.Bytes(size)
 	return string(bs), err
 }
 
 // Write
 
-func (cr *channel) WriteBytes(bs []byte) {
+func (ch *channel) WriteBytes(bs []byte) {
 	for _, b := range bs {
-		cr.ch <- b
+		ch.ch <- b
 	}
 }
 
-func (cr *channel) WriteByte(b byte) {
-	cr.ch <- b
+func (ch *channel) WriteByte(b byte) {
+	ch.ch <- b
 }
 
-func (cr *channel) WriteUint8(i uint8) {
-	cr.ch <- byte(i)
+func (ch *channel) WriteUint8(i uint8) {
+	ch.ch <- byte(i)
 }
 
-func (cr *channel) WriteUint16(i uint16) {
+func (ch *channel) WriteUint16(i uint16) {
 	bs := make([]byte, 2)
 	endian.PutUint16(bs, i)
-	cr.WriteBytes(bs)
+	ch.WriteBytes(bs)
 }
 
-func (cr *channel) WriteUint32(i uint32) {
+func (ch *channel) WriteUint32(i uint32) {
 	bs := make([]byte, 4)
 	endian.PutUint32(bs, i)
-	cr.WriteBytes(bs)
+	ch.WriteBytes(bs)
 }
 
-func (cr *channel) WriteUint64(i uint64) {
+func (ch *channel) WriteUint64(i uint64) {
 	bs := make([]byte, 8)
 	endian.PutUint64(bs, i)
-	cr.WriteBytes(bs)
+	ch.WriteBytes(bs)
 }
 
-func (cr *channel) WriteString(s string) {
+func (ch *channel) WriteString(s string) {
 	for _, r := range s {
-		cr.ch <- byte(r)
+		ch.ch <- byte(r)
 	}
 }
