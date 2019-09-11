@@ -7,7 +7,8 @@ import (
 )
 
 type Message struct {
-	packages []Package
+	headerType MessageHeaderType
+	packages   []Package
 }
 
 func NewMessage() *Message {
@@ -139,5 +140,75 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		packageCh <- pkg
 		lastpkg = pkg
+	}
+}
+
+func (msg Message) WriteTo(writer io.Writer) error {
+	errCh := make(chan error, 1)
+	defer close(errCh)
+
+	byteCh := newChannel()
+
+	go msg.writeToPackage(errCh, byteCh)
+
+	packetCh := make(chan Packet, 1)
+	go msg.writeToPackets(errCh, byteCh, packetCh)
+
+	for {
+		select {
+		case err := <-errCh:
+			return err
+		case packet, ok := <-packetCh:
+			if !ok {
+				return nil
+			}
+
+			packet.Header.MsgType = msg.headerType
+
+			_, err := packet.WriteTo(writer)
+			if err != nil {
+				return fmt.Errorf("error occurred while writing packet to writer: %w", err)
+			}
+		}
+	}
+}
+
+func (msg Message) writeToPackage(errCh chan error, byteCh *channel) {
+	defer byteCh.Close()
+	for _, pack := range msg.Packages() {
+		err := pack.WriteTo(byteCh)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to write package data to channel: %w", err)
+			return
+		}
+	}
+}
+
+func (msg Message) writeToPackets(errCh chan error, byteCh *channel, packetCh chan Packet) {
+	defer close(packetCh)
+
+	for {
+		packet := Packet{}
+		packet.Header = MessageHeader{}
+		data := make([]byte, MsgBodyLength)
+
+		n, err := byteCh.Read(data)
+		if err != nil && err != io.EOF {
+			errCh <- fmt.Errorf("error occurred reading data into packet: %w", err)
+			return
+		}
+
+		packet.Header.Length = uint16(n)
+		packet.Data = data[:n]
+
+		if err == io.EOF {
+			packet.Header.Status |= TDS_BUFSTAT_EOM
+		}
+
+		packetCh <- packet
+
+		if err == io.EOF {
+			return
+		}
 	}
 }
