@@ -49,6 +49,10 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 	return totalBytes, nil
 }
 
+func (packet Packet) WriteTo(writer io.Writer) (int, error) {
+	return writer.Write(packet.Bytes())
+}
+
 func (packet Packet) String() string {
 	return fmt.Sprintf(
 		"Type: %d, Status: %d, Length: %d, Channel: %d, PacketNr: %d, Window: %d, DataLen: %d",
