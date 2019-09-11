@@ -109,8 +109,7 @@ func (pkg *EEDPackage) ReadFrom(ch *channel) {
 	pkg.LineNr, pkg.err = ch.Uint16()
 }
 
-// TODO
-func (pkg EEDPackage) Packets() chan Packet {
+func (pkg EEDPackage) WriteTo(ch *channel) error {
 	return nil
 }
 

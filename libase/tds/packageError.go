@@ -65,8 +65,7 @@ func (pkg *ErrorPackage) ReadFrom(ch *channel) {
 	pkg.LineNr, pkg.err = ch.Uint16()
 }
 
-// TODO
-func (pkg ErrorPackage) Packets() chan Packet {
+func (pkg ErrorPackage) WriteTo(ch *channel) error {
 	return nil
 }
 

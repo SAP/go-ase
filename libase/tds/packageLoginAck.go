@@ -65,8 +65,7 @@ func (pkg *LoginAckPackage) ReadFrom(ch *channel) {
 	pkg.ProgramVersion, pkg.err = NewTDSVersion(vers)
 }
 
-// TODO
-func (pkg LoginAckPackage) Packets() chan Packet {
+func (pkg LoginAckPackage) WriteTo(ch *channel) error {
 	return nil
 }
 

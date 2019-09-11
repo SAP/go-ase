@@ -56,7 +56,7 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) {
 }
 
 // TODO
-func (pkg ParamFmtPackage) Packets() chan Packet {
+func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 	return nil
 }
 

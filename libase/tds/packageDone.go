@@ -63,8 +63,21 @@ func (pkg *DonePackage) ReadFrom(ch *channel) {
 	}
 }
 
-// TODO
-func (pkg DonePackage) Packets() chan Packet {
+func (pkg DonePackage) WriteTo(ch *channel) error {
+	err := ch.WriteUint16(uint16(pkg.status))
+	if err != nil {
+		return err
+	}
+
+	err = ch.WriteUint16(uint16(pkg.tranState))
+	if err != nil {
+		return err
+	}
+
+	if pkg.status|TDS_DONE_COUNT == TDS_DONE_COUNT {
+		return ch.WriteInt32(pkg.count)
+	}
+
 	return nil
 }
 
