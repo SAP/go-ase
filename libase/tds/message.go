@@ -1,6 +1,7 @@
 package tds
 
 import (
+	"context"
 	"fmt"
 	"io"
 )
@@ -24,6 +25,8 @@ func (msg *Message) AddPackage(pack Package) {
 func (msg *Message) ReadFrom(reader io.Reader) error {
 	// TODO canceling during processing w/ TDS_BUFSTAT_ATTN
 	// goroutines with sync?
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// errCh will receive errors from the goroutines and exit
 	errCh := make(chan error, 1)
@@ -33,10 +36,10 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 
 	// Split input into packets and write the bodies into the byte
 	// channel
-	go msg.readFromPackets(errCh, reader, byteCh)
+	go msg.readFromPackets(ctx, errCh, reader, byteCh)
 
 	packageCh := make(chan Package, 1)
-	go msg.readFromPackages(errCh, byteCh, packageCh)
+	go msg.readFromPackages(ctx, errCh, byteCh, packageCh)
 
 	for {
 		select {
@@ -60,10 +63,16 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 	return nil
 }
 
-func (msg *Message) readFromPackets(errCh chan error, reader io.Reader, byteCh *channel) {
+func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reader io.Reader, byteCh *channel) {
 	defer byteCh.Close()
 
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		packet := &Packet{}
 		_, err := packet.ReadFrom(reader)
 		if err != nil {
@@ -79,11 +88,17 @@ func (msg *Message) readFromPackets(errCh chan error, reader io.Reader, byteCh *
 	}
 }
 
-func (msg *Message) readFromPackages(errCh chan error, byteCh *channel, packageCh chan Package) {
+func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byteCh *channel, packageCh chan Package) {
 	defer close(packageCh)
 
 	var lastpkg Package
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		tokenByte, err := byteCh.Byte()
 		if err != nil {
 			if err == ErrChannelExhausted {
