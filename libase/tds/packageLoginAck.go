@@ -18,55 +18,54 @@ type LoginAckPackage struct {
 	NameLength     uint8
 	ProgramName    string
 	ProgramVersion *TDSVersion
-
-	channelWrapper
 }
 
-func (pkg *LoginAckPackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
+func (pkg *LoginAckPackage) ReadFrom(ch *channel) error {
+	var err error
 
-	pkg.Length, pkg.err = pkg.ch.Uint16()
-	if pkg.err != nil {
-		return
+	pkg.Length, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
 	var status uint8
-	status, pkg.err = pkg.ch.Uint8()
-	if pkg.err != nil {
-		return
+	status, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 	pkg.Status = (LoginAckStatus)(status)
 
 	var vers []byte
-	vers, pkg.err = pkg.ch.Bytes(4)
-	if pkg.err != nil {
-		return
+	vers, err = ch.Bytes(4)
+	if err != nil {
+		return err
 	}
-	pkg.TDSVersion, pkg.err = NewTDSVersion(vers)
-	if pkg.err != nil {
-		return
-	}
-
-	pkg.NameLength, pkg.err = pkg.ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.TDSVersion, err = NewTDSVersion(vers)
+	if err != nil {
+		return err
 	}
 
-	pkg.ProgramName, pkg.err = pkg.ch.String(int(pkg.NameLength))
-	if pkg.err != nil {
-		return
+	pkg.NameLength, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	vers, pkg.err = pkg.ch.Bytes(4)
-	if pkg.err != nil {
-		return
+	pkg.ProgramName, err = ch.String(int(pkg.NameLength))
+	if err != nil {
+		return err
 	}
-	pkg.ProgramVersion, pkg.err = NewTDSVersion(vers)
+
+	vers, err = ch.Bytes(4)
+	if err != nil {
+		return err
+	}
+	pkg.ProgramVersion, err = NewTDSVersion(vers)
+
+	return err
 }
 
 func (pkg LoginAckPackage) WriteTo(ch *channel) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (pkg LoginAckPackage) String() string {

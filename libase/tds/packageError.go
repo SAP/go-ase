@@ -14,55 +14,52 @@ type ErrorPackage struct {
 	ProcLength   uint8
 	ProcName     string
 	LineNr       uint16
-
-	channelWrapper
 }
 
-func (pkg *ErrorPackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
-
-	pkg.Length, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
+func (pkg *ErrorPackage) ReadFrom(ch *channel) error {
+	var err error
+	pkg.Length, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
-	pkg.ErrorNumber, pkg.err = ch.Int32()
-	if pkg.err != nil {
-		return
+	pkg.ErrorNumber, err = ch.Int32()
+	if err != nil {
+		return err
 	}
 
-	pkg.MsgLength, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
+	pkg.MsgLength, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
-	pkg.ErrorMsg, pkg.err = ch.String(int(pkg.MsgLength))
-	if pkg.err != nil {
-		return
+	pkg.ErrorMsg, err = ch.String(int(pkg.MsgLength))
+	if err != nil {
+		return err
 	}
 
-	pkg.ServerLength, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.ServerLength, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.ServerName, pkg.err = ch.String(int(pkg.ServerLength))
-	if pkg.err != nil {
-		return
+	pkg.ServerName, err = ch.String(int(pkg.ServerLength))
+	if err != nil {
+		return err
 	}
 
-	pkg.ProcLength, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.ProcLength, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.ProcName, pkg.err = ch.String(int(pkg.ProcLength))
-	if pkg.err != nil {
-		return
+	pkg.ProcName, err = ch.String(int(pkg.ProcLength))
+	if err != nil {
+		return err
 	}
 
-	pkg.LineNr, pkg.err = ch.Uint16()
+	pkg.LineNr, err = ch.Uint16()
+	return err
 }
 
 func (pkg ErrorPackage) WriteTo(ch *channel) error {

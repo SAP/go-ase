@@ -130,10 +130,7 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 			}
 		}
 
-		// Start goroutine reading from byte channel
-		pkg.ReadFrom(byteCh)
-
-		if err := pkg.Error(); err != nil {
+		if err := pkg.ReadFrom(byteCh); err != nil {
 			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)
 			return
 		}

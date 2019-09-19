@@ -22,95 +22,92 @@ type EEDPackage struct {
 	ServerName string
 	ProcName   string
 	LineNr     uint16
-
-	channelWrapper
 }
 
-func (pkg *EEDPackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
-
-	pkg.Length, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
+func (pkg *EEDPackage) ReadFrom(ch *channel) error {
+	var err error
+	pkg.Length, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
-	pkg.MsgNumber, pkg.err = ch.Uint32()
-	if pkg.err != nil {
-		return
+	pkg.MsgNumber, err = ch.Uint32()
+	if err != nil {
+		return err
 	}
 
-	pkg.State, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.State, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.Class, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.Class, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
 	var sqlStateLen uint8
-	sqlStateLen, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	sqlStateLen, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.SQLState, pkg.err = ch.Bytes(int(sqlStateLen))
-	if pkg.err != nil {
-		return
+	pkg.SQLState, err = ch.Bytes(int(sqlStateLen))
+	if err != nil {
+		return err
 	}
 
 	var status uint8
-	status, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	status, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 	pkg.Status = EEDStatus(status)
 
-	pkg.TranState, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
+	pkg.TranState, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
 	var msgLength uint16
-	msgLength, pkg.err = ch.Uint16()
-	if pkg.err != nil {
-		return
+	msgLength, err = ch.Uint16()
+	if err != nil {
+		return err
 	}
 
-	pkg.Msg, pkg.err = ch.String(int(msgLength))
-	if pkg.err != nil {
-		return
+	pkg.Msg, err = ch.String(int(msgLength))
+	if err != nil {
+		return err
 	}
 
 	var serverLength uint8
-	serverLength, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	serverLength, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.ServerName, pkg.err = ch.String(int(serverLength))
-	if pkg.err != nil {
-		return
+	pkg.ServerName, err = ch.String(int(serverLength))
+	if err != nil {
+		return err
 	}
 
 	var procLength uint8
-	procLength, pkg.err = ch.Uint8()
-	if pkg.err != nil {
-		return
+	procLength, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
-	pkg.ProcName, pkg.err = ch.String(int(procLength))
-	if pkg.err != nil {
-		return
+	pkg.ProcName, err = ch.String(int(procLength))
+	if err != nil {
+		return err
 	}
 
-	pkg.LineNr, pkg.err = ch.Uint16()
+	pkg.LineNr, err = ch.Uint16()
+	return err
 }
 
 func (pkg EEDPackage) WriteTo(ch *channel) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (pkg EEDPackage) String() string {

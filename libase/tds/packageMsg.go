@@ -59,27 +59,25 @@ type MsgPackage struct {
 	Length uint8
 	Status TDSMsgStatus
 	MsgId  uint16
-
-	channelWrapper
 }
 
-func (pkg *MsgPackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
+func (pkg *MsgPackage) ReadFrom(ch *channel) error {
+	var err error
 
-	pkg.Length, pkg.err = pkg.ch.Uint8()
-	if pkg.err != nil {
-		return
+	pkg.Length, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 
 	var status uint8
-	status, pkg.err = pkg.ch.Uint8()
-	if pkg.err != nil {
-		return
+	status, err = ch.Uint8()
+	if err != nil {
+		return err
 	}
 	pkg.Status = (TDSMsgStatus)(status)
 
-	pkg.MsgId, pkg.err = pkg.ch.Uint16()
+	pkg.MsgId, err = ch.Uint16()
+	return err
 }
 
 func (pkg MsgPackage) WriteTo(ch *channel) error {

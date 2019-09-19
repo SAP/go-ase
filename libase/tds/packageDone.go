@@ -32,35 +32,29 @@ type DonePackage struct {
 	status    DoneState
 	tranState TransState
 	count     int32
-
-	channelWrapper
 }
 
-func (pkg *DonePackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
-
+func (pkg *DonePackage) ReadFrom(ch *channel) error {
 	status, err := ch.Uint16()
 	if err != nil {
-		pkg.err = fmt.Errorf("failed to read done status: %w", err)
-		return
+		return fmt.Errorf("failed to read done status: %w", err)
 	}
 	pkg.status = DoneState(status)
 
 	tranState, err := ch.Uint16()
 	if err != nil {
-		pkg.err = fmt.Errorf("failed to read done tran state: %w", err)
-		return
+		return fmt.Errorf("failed to read done tran state: %w", err)
 	}
 	pkg.tranState = TransState(tranState)
 
 	if pkg.status|TDS_DONE_COUNT == TDS_DONE_COUNT {
 		pkg.count, err = ch.Int32()
 		if err != nil {
-			pkg.err = fmt.Errorf("failed to read done count: %w", err)
-			return
+			return fmt.Errorf("failed to read done count: %w", err)
 		}
 	}
+
+	return nil
 }
 
 func (pkg DonePackage) WriteTo(ch *channel) error {

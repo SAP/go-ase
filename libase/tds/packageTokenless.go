@@ -6,22 +6,12 @@ import (
 )
 
 type TokenlessPackage struct {
-	Data     *bytes.Buffer
-	err      error
-	finished bool
+	Data *bytes.Buffer
 }
 
-func (pkg *TokenlessPackage) ReadFrom(ch *channel) {
-	_, pkg.err = pkg.Data.ReadFrom(ch)
-	pkg.finished = true
-}
-
-func (pkg TokenlessPackage) Error() error {
-	return pkg.err
-}
-
-func (pkg TokenlessPackage) Finished() bool {
-	return pkg.finished
+func (pkg *TokenlessPackage) ReadFrom(ch *channel) error {
+	_, err := pkg.Data.ReadFrom(ch)
+	return err
 }
 
 func (pkg TokenlessPackage) WriteTo(ch *channel) error {

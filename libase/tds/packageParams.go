@@ -5,8 +5,6 @@ import "fmt"
 type ParamsPackage struct {
 	paramFmt *ParamFmtPackage
 	Params   []FieldData
-
-	channelWrapper
 }
 
 func (pkg *ParamsPackage) LastPkg(other Package) error {
@@ -29,22 +27,21 @@ func (pkg *ParamsPackage) LastPkg(other Package) error {
 	return nil
 }
 
-func (pkg *ParamsPackage) ReadFrom(ch *channel) {
-	pkg.ch = ch
-	defer pkg.Finish()
+func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 
 	for i, param := range pkg.Params {
 		err := param.readData(pkg.ch)
 		if err != nil {
-			pkg.err = fmt.Errorf("error occured reading param field %d data: %w", i, err)
-			return
+			return fmt.Errorf("error occurred reading param field %d data: %w", i, err)
 		}
 	}
+
+	return nil
 }
 
 // TODO
 func (pkg ParamsPackage) WriteTo(ch *channel) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func (pkg ParamsPackage) String() string {
