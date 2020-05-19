@@ -74,7 +74,7 @@ shared objects required for the cgo driver.
 Compilation:
 
 ```sh
-CGO_LDFLAGS="-L/path/to/OCS/lib -lsybct_r64 -lsybcs_r64" go build -o cmd ./
+CGO_LDFLAGS="-L/path/to/OCS/lib" go build -o cmd ./
 ```
 
 Execution:
