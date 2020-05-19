@@ -2,7 +2,6 @@ package tds
 
 import (
 	"bytes"
-	"io"
 )
 
 type TokenlessPackage struct {
@@ -15,8 +14,7 @@ func (pkg *TokenlessPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg TokenlessPackage) WriteTo(ch *channel) error {
-	_, err := io.Copy(ch, pkg.Data)
-	return err
+	return ch.WriteBytes(pkg.Data.Bytes())
 }
 
 // TODO

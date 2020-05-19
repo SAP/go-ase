@@ -56,15 +56,21 @@ const (
 )
 
 type MsgPackage struct {
-	Length uint8
 	Status TDSMsgStatus
 	MsgId  uint16
+}
+
+func NewMsgPackage(status TDSMsgStatus, msgId uint16) *MsgPackage {
+	return &MsgPackage{
+		Status: status,
+		MsgId:  msgId,
+	}
 }
 
 func (pkg *MsgPackage) ReadFrom(ch *channel) error {
 	var err error
 
-	pkg.Length, err = ch.Uint8()
+	_, err = ch.Uint8()
 	if err != nil {
 		return err
 	}
@@ -81,7 +87,8 @@ func (pkg *MsgPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg MsgPackage) WriteTo(ch *channel) error {
-	err := ch.WriteUint8(pkg.Length)
+	// Length
+	err := ch.WriteUint8(3)
 	if err != nil {
 		return err
 	}

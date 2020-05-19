@@ -7,14 +7,14 @@ type DoneState uint16
 
 const (
 	TDS_DONE_FINAL      DoneState = 0x0
-	TDS_DONE_MORE                 = 0x1
-	TDS_DONE_ERRROR               = 0x2
-	TDS_DONE_INXACT               = 0x4
-	TDS_DONE_PROC                 = 0x8
-	TDS_DONE_COUNT                = 0x10
-	TDS_DONE_ATTN                 = 0x20
-	TDS_DONE_EVENT                = 0x40
-	TDS_DONE_CUMULATIVE           = 0x80
+	TDS_DONE_MORE       DoneState = 0x1
+	TDS_DONE_ERRROR     DoneState = 0x2
+	TDS_DONE_INXACT     DoneState = 0x4
+	TDS_DONE_PROC       DoneState = 0x8
+	TDS_DONE_COUNT      DoneState = 0x10
+	TDS_DONE_ATTN       DoneState = 0x20
+	TDS_DONE_EVENT      DoneState = 0x40
+	TDS_DONE_CUMULATIVE DoneState = 0x80
 )
 
 //go:generate stringer -type=TransState

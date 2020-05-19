@@ -13,7 +13,7 @@ const (
 )
 
 type TDSVersion struct {
-	major, minor, revision, patch uint8
+	major, minor, sp, patch uint8
 }
 
 func NewTDSVersion(bs []byte) (*TDSVersion, error) {
@@ -24,7 +24,7 @@ func NewTDSVersion(bs []byte) (*TDSVersion, error) {
 	v := &TDSVersion{}
 	v.major = uint8(bs[0])
 	v.minor = uint8(bs[1])
-	v.revision = uint8(bs[2])
+	v.sp = uint8(bs[2])
 	v.patch = uint8(bs[3])
 
 	return v, nil
@@ -58,15 +58,15 @@ func NewTDSVersionString(s string) (*TDSVersion, error) {
 	}
 	v.minor = uint8(minor)
 
-	revision, err := strconv.Atoi(split[2])
+	sp, err := strconv.Atoi(split[2])
 	if err != nil {
 		return nil, fmt.Errorf("error converting revision to integer: %w", err)
 	}
-	if revision > math.MaxUint8 {
+	if sp > math.MaxUint8 {
 		return nil, fmt.Errorf("revision %d is too large for uint8 (max %d)",
-			revision, math.MaxUint8)
+			sp, math.MaxUint8)
 	}
-	v.revision = uint8(revision)
+	v.sp = uint8(sp)
 
 	patch, err := strconv.Atoi(split[3])
 	if err != nil {
@@ -82,9 +82,9 @@ func NewTDSVersionString(s string) (*TDSVersion, error) {
 }
 
 func (tdsv TDSVersion) String() string {
-	return fmt.Sprintf("%d.%d.%d.%d", tdsv.major, tdsv.minor, tdsv.revision, tdsv.patch)
+	return fmt.Sprintf("%d.%d.%d.%d", tdsv.major, tdsv.minor, tdsv.sp, tdsv.patch)
 }
 
 func (tdsv TDSVersion) Bytes() []byte {
-	return []byte{byte(tdsv.major), byte(tdsv.minor), byte(tdsv.revision), byte(tdsv.patch)}
+	return []byte{byte(tdsv.major), byte(tdsv.minor), byte(tdsv.sp), byte(tdsv.patch)}
 }

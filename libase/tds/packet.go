@@ -55,7 +55,7 @@ func (packet Packet) WriteTo(writer io.Writer) (int, error) {
 
 func (packet Packet) String() string {
 	return fmt.Sprintf(
-		"Type: %d, Status: %d, Length: %d, Channel: %d, PacketNr: %d, Window: %d, DataLen: %d",
+		"Type: %d, Status: %d, Length: %d, Channel: %d, PacketNr: %d, Window: %d, DataLen: %d, Data: %#v",
 		packet.Header.MsgType,
 		packet.Header.Status,
 		packet.Header.Length,
@@ -63,5 +63,6 @@ func (packet Packet) String() string {
 		packet.Header.PacketNr,
 		packet.Header.Window,
 		len(packet.Data),
+		packet.Data,
 	)
 }

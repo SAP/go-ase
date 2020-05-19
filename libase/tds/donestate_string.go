@@ -9,15 +9,47 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[TDS_DONE_FINAL-0]
+	_ = x[TDS_DONE_MORE-1]
+	_ = x[TDS_DONE_ERRROR-2]
+	_ = x[TDS_DONE_INXACT-4]
+	_ = x[TDS_DONE_PROC-8]
+	_ = x[TDS_DONE_COUNT-16]
+	_ = x[TDS_DONE_ATTN-32]
+	_ = x[TDS_DONE_EVENT-64]
+	_ = x[TDS_DONE_CUMULATIVE-128]
 }
 
-const _DoneState_name = "TDS_DONE_FINAL"
+const (
+	_DoneState_name_0 = "TDS_DONE_FINALTDS_DONE_MORETDS_DONE_ERRROR"
+	_DoneState_name_1 = "TDS_DONE_INXACT"
+	_DoneState_name_2 = "TDS_DONE_PROC"
+	_DoneState_name_3 = "TDS_DONE_COUNT"
+	_DoneState_name_4 = "TDS_DONE_ATTN"
+	_DoneState_name_5 = "TDS_DONE_EVENT"
+	_DoneState_name_6 = "TDS_DONE_CUMULATIVE"
+)
 
-var _DoneState_index = [...]uint8{0, 14}
+var (
+	_DoneState_index_0 = [...]uint8{0, 14, 27, 42}
+)
 
 func (i DoneState) String() string {
-	if i >= DoneState(len(_DoneState_index)-1) {
+	switch {
+	case i <= 2:
+		return _DoneState_name_0[_DoneState_index_0[i]:_DoneState_index_0[i+1]]
+	case i == 4:
+		return _DoneState_name_1
+	case i == 8:
+		return _DoneState_name_2
+	case i == 16:
+		return _DoneState_name_3
+	case i == 32:
+		return _DoneState_name_4
+	case i == 64:
+		return _DoneState_name_5
+	case i == 128:
+		return _DoneState_name_6
+	default:
 		return "DoneState(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _DoneState_name[_DoneState_index[i]:_DoneState_index[i+1]]
 }

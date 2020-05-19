@@ -1,37 +1,41 @@
 package tds
 
-import "fmt"
-
-type DataFieldStatus uint8
-
-const (
-	noStatus               DataFieldStatus = 0
-	TDS_PARAM_RETURN                       = 1
-	TDS_PARAM_COLUMNSTATUS                 = 8
-	TDS_PARAM_NULLALLOWED                  = 20
+import (
+	"fmt"
 )
 
 // Interfaces
-
 type FieldData interface {
-	Copy() FieldData
-
+	// Base information from ParamFmt
 	Type() DataType
 
 	HasUserType() bool
+	SetUserType(uint32)
 	UserType() uint32
 
 	MaxLength() int
 	Length() int
 
 	HasStatus() bool
+	SetStatus(DataFieldStatus)
 	Status() DataFieldStatus
 
+	SetName(string)
+	Name() string
+
+	SetLocaleInfo(string)
+	LocaleInfo() string
+
+	// Information from ParamFmt and Params
 	// convenience from .Status()
 	IsNullable() bool
 
 	IsNull() bool
-	Data() []byte
+
+	// Data from Params - each top-level slice is one row containing the
+	// byte slice send by the TDS server
+	FieldStati() []DataFieldStatus
+	Data() [][]byte
 
 	readFormat(ch *channel) error
 	readData(ch *channel) error
@@ -49,15 +53,15 @@ type fieldDataBase struct {
 	maxLength   int
 	length      int
 
-	status DataFieldStatus
-	data   []byte
+	columnStatus DataFieldStatus
+	fieldStati   []DataFieldStatus
+	data         [][]byte
 }
 
-func (field fieldDataBase) copyData() fieldDataBase {
-	data := make([]byte, len(field.data))
-	copy(data, field.data)
-	field.data = data
-	return field
+func (field fieldDataBase) copyDataTo(other *fieldDataBase) error {
+	other.data = make([]byte, len(field.data))
+	copy(other.data, field.data)
+	return nil
 }
 
 func (field fieldDataBase) Type() DataType {
@@ -79,9 +83,16 @@ func (field fieldDataBase) MaxLength() int {
 func (field *fieldDataBase) readFormatLength(ch *channel) error {
 	var err error
 	switch field.lengthBytes {
+	case 0:
+		// if lengthBytes is zero the length is fixed and already set
+		return nil
 	case 4:
 		var tmp uint32
 		tmp, err = ch.Uint32()
+		field.maxLength = int(tmp)
+	case 2:
+		var tmp uint16
+		tmp, err = ch.Uint16()
 		field.maxLength = int(tmp)
 	default:
 		var tmp uint8
@@ -92,6 +103,7 @@ func (field *fieldDataBase) readFormatLength(ch *channel) error {
 	if err != nil {
 		return fmt.Errorf("failed to read format length: %w", err)
 	}
+
 	return nil
 }
 
@@ -102,9 +114,16 @@ func (field fieldDataBase) Length() int {
 func (field *fieldDataBase) readDataLength(ch *channel) error {
 	var err error
 	switch field.lengthBytes {
+	case 0:
+		// if lengthBytes is zero the length is fixed and already set
+		return nil
 	case 4:
 		var tmp uint32
 		tmp, err = ch.Uint32()
+		field.length = int(tmp)
+	case 2:
+		var tmp uint16
+		tmp, err = ch.Uint16()
 		field.length = int(tmp)
 	default:
 		var tmp uint8
@@ -123,14 +142,18 @@ func (field *fieldDataBase) readDataLength(ch *channel) error {
 }
 
 func (field fieldDataBase) HasStatus() bool {
-	return field.status == noStatus
+	return field.columnStatus == noStatus
 }
 
 func (field fieldDataBase) Status() DataFieldStatus {
-	return field.status
+	return field.columnStatus
 }
 
 func (field *fieldDataBase) readDataStatus(ch *channel) error {
+	if field.status&TDS_PARAM_COLUMNSTATUS != TDS_PARAM_COLUMNSTATUS {
+		return nil
+	}
+
 	status, err := ch.Uint8()
 	if err != nil {
 		return fmt.Errorf("failed to read status: %w", err)
@@ -212,10 +235,6 @@ type fieldDataStatusData struct {
 	fieldDataBase
 }
 
-func (field fieldDataStatusData) Copy() FieldData {
-	return &fieldDataStatusData{fieldDataBase: field.copyData()}
-}
-
 func (field *fieldDataStatusData) readFormat(ch *channel) error {
 	// Nothing to read
 	return nil
@@ -250,10 +269,6 @@ type TimeField struct{ fieldDataStatusData }
 
 type fieldDataLength struct {
 	fieldDataBase
-}
-
-func (field fieldDataLength) Copy() FieldData {
-	return &fieldDataLength{field.copyData()}
 }
 
 func (field *fieldDataLength) readFormat(ch *channel) error {
@@ -295,13 +310,6 @@ type fieldDataLengthScale struct {
 	fieldDataScale
 }
 
-func (field fieldDataLengthScale) Copy() FieldData {
-	return &fieldDataLengthScale{
-		fieldDataBase:  field.copyData(),
-		fieldDataScale: field.copyScale(),
-	}
-}
-
 func (field *fieldDataLengthScale) readFormat(ch *channel) error {
 	err := field.readFormatLength(ch)
 	if err != nil {
@@ -331,14 +339,6 @@ type fieldDataLengthPrecisionScale struct {
 	fieldDataBase
 	fieldDataPrecision
 	fieldDataScale
-}
-
-func (field fieldDataLengthPrecisionScale) Copy() FieldData {
-	return &fieldDataLengthPrecisionScale{
-		field.copyData(),
-		field.copyPrecision(),
-		field.copyScale(),
-	}
 }
 
 func (field *fieldDataLengthPrecisionScale) readFormat(ch *channel) error {
@@ -372,32 +372,6 @@ func (field *fieldDataLengthPrecisionScale) readData(ch *channel) error {
 type DecNField struct{ fieldDataLengthPrecisionScale }
 type NumNField struct{ fieldDataLengthPrecisionScale }
 
-//go:generate stringer -type=BlobType
-type BlobType uint8
-
-const (
-	TDS_BLOB_FULLCLASSNAME BlobType = 0x01
-	TDS_BLOB_DBID_CLASSDEF          = 0x02
-	TDS_BLOB_CHAR                   = 0x03
-	TDS_BLOB_BINARY                 = 0x04
-	TDS_BLOB_UNICHAR                = 0x05
-	TDS_LOBLOC_CHAR                 = 0x06
-	TDS_LOBLOC_BINARY               = 0x07
-	TDS_LOBLOC_UNICHAR              = 0x08
-)
-
-//go:generate stringer -type=BlobSerializationType
-type BlobSerializationType uint8
-
-const (
-	NativeJavaSerialization BlobSerializationType = iota
-	NativeCharacterFormat
-	BinaryData
-	UnicharUTF16
-	UnicharUTF8
-	UnicharSCSU
-)
-
 type fieldDataBlobType struct {
 	fieldDataBase
 	blobType          BlobType
@@ -408,18 +382,10 @@ type fieldDataBlobType struct {
 	date              []byte
 }
 
-func (field fieldDataBlobType) Copy() FieldData {
-	ret := &fieldDataBlobType{
-		fieldDataBase:     field.copyData(),
-		blobType:          field.blobType,
-		serializationType: field.serializationType,
-		classID:           field.classID,
-		subClassID:        field.subClassID,
-		locator:           field.locator,
-		date:              make([]byte, len(field.date)),
-	}
-	copy(ret.date, field.date)
-	return ret
+func (field fieldDataBlobType) copyDateTo(other *fieldDataBlobType) error {
+	other.date = make([]byte, len(field.date))
+	copy(other.date, field.date)
+	return nil
 }
 
 func (field *fieldDataBlobType) readFormat(ch *channel) error {
@@ -551,18 +517,6 @@ type fieldDataTxtPtr struct {
 	name      string
 	txtPtr    []byte
 	timeStamp []byte
-}
-
-func (field fieldDataTxtPtr) Copy() FieldData {
-	ret := &fieldDataTxtPtr{
-		fieldDataBase: field.copyData(),
-		name:          field.name,
-		txtPtr:        make([]byte, len(field.txtPtr)),
-		timeStamp:     make([]byte, len(field.timeStamp)),
-	}
-	copy(ret.txtPtr, field.txtPtr)
-	copy(ret.timeStamp, field.timeStamp)
-	return ret
 }
 
 func (field *fieldDataTxtPtr) readFormat(ch *channel) error {
@@ -820,4 +774,31 @@ func LookupFieldData(dataType DataType) (FieldData, error) {
 	}
 
 	return nil, nil
+}
+
+func CopyFieldData(fieldData FieldData) (FieldData, error) {
+	ret := *fieldData
+
+	if target, ok := ret.(fieldDataBase); ok {
+		src := fieldData.(fieldDataBase)
+		if err := src.copyDataTo(target); err != nil {
+			return fmt.Errorf("failed to copy data to target: %w", err)
+		}
+	}
+
+	if target, ok := ret.(fieldDataBlobType); ok {
+		src := fieldData.(fieldDataBlobType)
+		if err := src.copyDateTo(target); err != nil {
+			return fmt.Errorrf("failed to copy date to target: %w", err)
+		}
+	}
+
+	if target, ok := ret.(fieldDataTxtPtr); ok {
+		src := fieldData.(fieldDataTxtPtr)
+		if err != src.copyTxtPtrTo(target); err != nil {
+			return fmt.Errorf("failed to copy txt ptr to target: %w", err)
+		}
+	}
+
+	return ret, nil
 }
