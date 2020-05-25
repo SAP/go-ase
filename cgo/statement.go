@@ -302,7 +302,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
-		case types.CHAR:
+		case types.CHAR, types.LONGCHAR:
 			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
 			defer C.free(ptr)
 
