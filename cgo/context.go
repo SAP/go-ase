@@ -105,7 +105,7 @@ func (context *csContext) drop() error {
 
 	retval = C.cs_ctx_drop(context.ctx)
 	if retval != C.CS_SUCCEED {
-		return makeError(retval, "C.cs_ctx_drop frailed")
+		return makeError(retval, "C.cs_ctx_drop failed")
 	}
 
 	context.ctx = nil
