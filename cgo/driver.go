@@ -3,6 +3,7 @@ package cgo
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/includes
+#cgo LDFLAGS: -lsybct64 -lsybct_r64 -lsybcs_r64 -lsybtcl_r64 -lsybcomn_r64 -lsybintl_r64 -lsybunic64
 #cgo LDFLAGS: -Wl,-rpath,\$ORIGIN/../lib
 #include <stdlib.h>
 #include "ctlib.h"
