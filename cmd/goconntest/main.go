@@ -38,7 +38,7 @@ func main() {
 	log.Printf("Logging in")
 	err = c.Login(conf)
 	if err != nil {
-		log.Printf("Initializing login packet failed: %v", err)
+		log.Printf("Login failed: %v", err)
 		return
 	}
 
