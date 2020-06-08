@@ -35,6 +35,6 @@ func (rec *MessageRecorder) HandleMessage(msg Message) {
 }
 
 // Text returns the received messages.
-func (rec MessageRecorder) Text() []string {
+func (rec *MessageRecorder) Text() []string {
 	return rec.Messages
 }
