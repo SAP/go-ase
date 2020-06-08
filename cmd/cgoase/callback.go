@@ -11,5 +11,5 @@ func handleMessage(msg cgo.Message) {
 		return
 	}
 
-	log.Println(msg.Content)
+	log.Println(msg.Content())
 }
