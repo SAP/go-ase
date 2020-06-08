@@ -4,6 +4,9 @@ build: $(BINS)
 $(BINS):
 	go build -o $@ ./cmd/$@/
 
+generate:
+	go generate ./...
+
 test:
 	go test -vet all -cover ./cgo/... ./go/... ./cmd/... ./libase/...
 
