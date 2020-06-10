@@ -211,3 +211,17 @@ var samplesBit = []bool{true, false}
 //go:generate go run ./gen_type.go Image []byte -compare compareBinary
 // TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
 var samplesImage = [][]byte{[]byte("test"), []byte("a longer test")}
+
+// TODO: Separate null test, ctlib transforms empty value to null
+//go:generate go run ./gen_type.go UniChar string -columndef "unichar(30) null" -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesUniChar = []string{"", "not a unicode example"}
+
+// TODO: Separate null test, ctlib transforms empty value to null
+//go:generate go run ./gen_type.go Text string -columndef "text null" -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesText = []string{"", "a long text"}
+
+//go:generate go run ./gen_type.go UniText string -columndef unitext -compare compareChar
+// TODO: -null database/sql.NullString
+var samplesUniText = []string{"not a unicode example", "another not unicode example"}

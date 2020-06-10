@@ -24,12 +24,13 @@ func testTinyInt(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "tinyint", pass...)
+	rows, teardownFn, err := SetupTableInsert(db, tableName, "tinyint", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
 	}
 	defer rows.Close()
+	defer teardownFn()
 
 	i := 0
 	var recv uint8
