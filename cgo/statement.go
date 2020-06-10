@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
@@ -308,6 +309,13 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			datalen = len(arg.Value.(string))
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
+		case types.TEXT:
+			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
+			defer C.free(ptr)
+
+			datalen = len(arg.Value.(string))
+			datafmt.format = C.CS_FMT_NULLTERM
+			datafmt.maxlength = (C.CS_INT)(datalen)
 		case types.VARCHAR:
 			varchar := (*C.CS_VARCHAR)(C.calloc(1, C.sizeof_CS_VARCHAR))
 			defer C.free(unsafe.Pointer(varchar))
@@ -349,6 +357,24 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 			ptr = unsafe.Pointer(&b)
 			datalen = 1
+		case types.UNICHAR, types.UNITEXT:
+			// convert go string to utf16 code points
+			runes := []rune(arg.Value.(string))
+			utf16bytes := utf16.Encode(runes)
+
+			// convert utf16 code points to bytes
+			passBytes := make([]byte, len(utf16bytes)*2)
+			for i := 0; i < len(utf16bytes); i++ {
+				binary.LittleEndian.PutUint16(passBytes[i:], utf16bytes[i])
+			}
+
+			ptr = unsafe.Pointer(C.CBytes(passBytes))
+
+			defer C.free(ptr)
+
+			datalen = len(passBytes)
+			datafmt.format = C.CS_FMT_NULLTERM
+			datafmt.maxlength = (C.CS_INT)(datalen)
 		default:
 			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
