@@ -74,29 +74,34 @@ func TeardownDB(testDsn *libdsn.DsnInfo) error {
 
 // SetupTableInsert creates a table with the passed type and inserts all
 // passed samples as rows.
-func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, error) {
+func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, func() error, error) {
 	_, err := db.Exec("create table ? (a ?)", tableName, aseType)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create table: %v", err)
+		return nil, nil, fmt.Errorf("Failed to create table: %v", err)
 	}
 
 	stmt, err := db.Prepare(fmt.Sprintf("insert into %s values (?)", tableName))
 	if err != nil {
-		return nil, fmt.Errorf("Error preparing statement: %v", err)
+		return nil, nil, fmt.Errorf("Error preparing statement: %v", err)
 	}
 	defer stmt.Close()
 
 	for _, sample := range samples {
 		_, err := stmt.Exec(sample)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to execute prepared statement with %v: %v", sample, err)
+			return nil, nil, fmt.Errorf("Failed to execute prepared statement with %v: %v", sample, err)
 		}
 	}
 
 	rows, err := db.Query("select * from ?", tableName)
 	if err != nil {
-		return nil, fmt.Errorf("Error selecting from %s: %v", tableName, err)
+		return nil, nil, fmt.Errorf("Error selecting from %s: %v", tableName, err)
 	}
 
-	return rows, nil
+	teardownFn := func() error {
+		_, err := db.Exec("drop table ?", tableName)
+		return err
+	}
+
+	return rows, teardownFn, nil
 }

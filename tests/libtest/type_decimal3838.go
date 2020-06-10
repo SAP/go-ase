@@ -31,12 +31,13 @@ func testDecimal3838(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "decimal(38,38)", pass...)
+	rows, teardownFn, err := SetupTableInsert(db, tableName, "decimal(38,38)", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
 	}
 	defer rows.Close()
+	defer teardownFn()
 
 	i := 0
 	var recv *types.Decimal

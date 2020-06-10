@@ -26,12 +26,13 @@ func testTime(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "time", pass...)
+	rows, teardownFn, err := SetupTableInsert(db, tableName, "time", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
 	}
 	defer rows.Close()
+	defer teardownFn()
 
 	i := 0
 	var recv time.Time

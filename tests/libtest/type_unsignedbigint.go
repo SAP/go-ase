@@ -24,12 +24,13 @@ func testUnsignedBigInt(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "unsigned bigint", pass...)
+	rows, teardownFn, err := SetupTableInsert(db, tableName, "unsigned bigint", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
 	}
 	defer rows.Close()
+	defer teardownFn()
 
 	i := 0
 	var recv uint64

@@ -31,12 +31,13 @@ func testDecimal10(t *testing.T, db *sql.DB, tableName string) {
 		mySamples[i] = mySample
 	}
 
-	rows, err := SetupTableInsert(db, tableName, "decimal(1,0)", pass...)
+	rows, teardownFn, err := SetupTableInsert(db, tableName, "decimal(1,0)", pass...)
 	if err != nil {
 		t.Errorf("Error preparing table: %v", err)
 		return
 	}
 	defer rows.Close()
+	defer teardownFn()
 
 	i := 0
 	var recv *types.Decimal
