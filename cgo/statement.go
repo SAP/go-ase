@@ -302,14 +302,14 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
-		case types.CHAR, types.LONGCHAR:
+		case types.CHAR:
 			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
 			defer C.free(ptr)
 
 			datalen = len(arg.Value.(string))
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
-		case types.TEXT:
+		case types.TEXT, types.LONGCHAR:
 			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
 			defer C.free(ptr)
 
