@@ -47,3 +47,12 @@ func IsError(pkg Package) bool {
 
 	return false
 }
+
+func IsDone(pkg Package) bool {
+	switch pkg.(type) {
+	case *DonePackage:
+		return true
+	}
+
+	return false
+}
