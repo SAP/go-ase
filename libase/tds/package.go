@@ -38,3 +38,12 @@ func LookupPackage(token TDSToken) (Package, error) {
 
 	return nil, fmt.Errorf("no package type found for token '%s'", token)
 }
+
+func IsError(pkg Package) bool {
+	switch pkg.(type) {
+	case *EEDPackage, *ErrorPackage:
+		return true
+	}
+
+	return false
+}
