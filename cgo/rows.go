@@ -282,7 +282,7 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			t = t.Add(time.Duration(dur) * time.Microsecond)
 
 			dest[i] = t
-		case types.CHAR, types.VARCHAR, types.TEXT:
+		case types.CHAR, types.VARCHAR, types.TEXT, types.LONGCHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		case types.BINARY, types.IMAGE:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
