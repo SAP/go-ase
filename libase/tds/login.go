@@ -28,12 +28,12 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		tdsconn.conn = conn.conn
 	}
 
-	var withPasswords bool
+	var withoutEncryption bool
 	switch config.Encrypt {
 	case TDS_SEC_LOG_ENCRYPT, TDS_SEC_LOG_ENCRYPT2, TDS_SEC_LOG_ENCRYPT3:
-		withPasswords = false
+		withoutEncryption = false
 	default:
-		withPasswords = true
+		withoutEncryption = true
 	}
 
 	// Add servername/password combination to remote servers
@@ -79,7 +79,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("expected LoginAck as first response, received: %v", msg.packages[0])
 	}
 
-	if withPasswords {
+	if withoutEncryption {
 		// no encryption requested, check loginack for validity and
 		// return
 		if loginack.Status != TDS_LOG_SUCCEED {
