@@ -88,6 +88,9 @@ func TestVarChar(t *testing.T)  { libtest.DoTestVarChar(t) }
 func TestChar(t *testing.T)     { libtest.DoTestChar(t) }
 func TestNChar(t *testing.T)    { libtest.DoTestNChar(t) }
 func TestNVarChar(t *testing.T) { libtest.DoTestNVarChar(t) }
+func TestText(t *testing.T)     { libtest.DoTestText(t) }
+func TestUniChar(t *testing.T)  { libtest.DoTestUniChar(t) }
+func TestUniText(t *testing.T)  { libtest.DoTestUniText(t) }
 
 // Binary
 func TestBinary(t *testing.T)    { libtest.DoTestBinary(t) }
