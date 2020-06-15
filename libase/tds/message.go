@@ -149,6 +149,10 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		packageCh <- pkg
 		lastpkg = pkg
+
+		if IsDone(lastpkg) {
+			return
+		}
 	}
 }
 
