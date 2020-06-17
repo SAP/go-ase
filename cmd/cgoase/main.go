@@ -66,7 +66,7 @@ func openDB() (*cgo.Connection, error) {
 
 	conn, err := cgo.NewConnection(nil, *dsn)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open connection: %v", err)
+		return nil, fmt.Errorf("Failed to open connection: %w", err)
 	}
 
 	return conn, nil
@@ -81,6 +81,14 @@ func serverMessagePrint(msg cgo.Message) {
 }
 
 func main() {
+	err := doMain()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+}
+
+func doMain() error {
 	flag.Var(fOpts, "o", "Connection properties")
 	flag.Parse()
 
@@ -89,8 +97,7 @@ func main() {
 
 	conn, err := openDB()
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		return
+		return fmt.Errorf("Failed to connect to database: %w", err)
 	}
 	defer conn.Close()
 
@@ -103,8 +110,5 @@ func main() {
 		err = repl(conn)
 	}
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	return err
 }
