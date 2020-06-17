@@ -15,7 +15,7 @@ import (
 func process(conn *cgo.Connection, query string) error {
 	cmd, err := conn.GenericExec(context.Background(), query)
 	if err != nil {
-		return fmt.Errorf("Query failed: %v", err)
+		return fmt.Errorf("Query failed: %w", err)
 	}
 	defer cmd.Drop()
 
@@ -26,7 +26,7 @@ func process(conn *cgo.Connection, query string) error {
 				return nil
 			}
 			cmd.Cancel()
-			return fmt.Errorf("Reading response failed: %v", err)
+			return fmt.Errorf("Reading response failed: %w", err)
 		}
 
 		if rows != nil {
@@ -69,7 +69,7 @@ func processRows(rows *cgo.Rows) error {
 				break
 			}
 
-			return fmt.Errorf("Scanning cells failed: %v", err)
+			return fmt.Errorf("Scanning cells failed: %w", err)
 		}
 
 		for i, cell := range cells {
@@ -90,7 +90,7 @@ func processRows(rows *cgo.Rows) error {
 func processResult(result *cgo.Result) error {
 	affectedRows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("Retrieving the affected rows failed: %v", err)
+		return fmt.Errorf("Retrieving the affected rows failed: %w", err)
 	}
 
 	if affectedRows >= 0 {

@@ -66,7 +66,7 @@ func openDB() (*cgo.Connection, error) {
 
 	conn, err := cgo.NewConnection(nil, *dsn)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open connection: %v", err)
+		return nil, fmt.Errorf("Failed to open connection: %w", err)
 	}
 
 	return conn, nil
@@ -97,7 +97,7 @@ func doMain() error {
 
 	conn, err := openDB()
 	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %v", err)
+		return fmt.Errorf("Failed to connect to database: %w", err)
 	}
 	defer conn.Close()
 

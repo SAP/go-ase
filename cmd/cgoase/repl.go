@@ -16,7 +16,7 @@ func repl(conn *cgo.Connection) error {
 	var err error
 	rl, err = readline.New("> ")
 	if err != nil {
-		return fmt.Errorf("Failed to initialize readline: %v", err)
+		return fmt.Errorf("Failed to initialize readline: %w", err)
 	}
 	defer rl.Close()
 
@@ -27,7 +27,7 @@ func repl(conn *cgo.Connection) error {
 			if err == io.EOF {
 				return nil
 			}
-			return fmt.Errorf("Received error from readline: %v", err)
+			return fmt.Errorf("Received error from readline: %w", err)
 		}
 
 		line = strings.TrimSpace(line)
@@ -74,7 +74,7 @@ func parseAndExecQueries(conn *cgo.Connection, line string) error {
 			} else {
 				err := process(conn, builder.String())
 				if err != nil {
-					return fmt.Errorf("Failed to process query: %v", err)
+					return fmt.Errorf("Failed to process query: %w", err)
 				}
 				builder.Reset()
 			}
