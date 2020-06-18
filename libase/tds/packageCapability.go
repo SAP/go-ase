@@ -244,7 +244,33 @@ func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilitySecurit
 }
 
 func (pkg *CapabilityPackage) ReadFrom(ch *channel) error {
-	return fmt.Errorf("not implemented")
+	_, err := ch.Uint16()
+	if err != nil {
+		return fmt.Errorf("failed to read length: %w", err)
+	}
+
+	// Read out each capability and its value mask
+	for {
+		b, err := ch.Uint8()
+		if err != nil {
+			return fmt.Errorf("failed to read capability type byte: %w", err)
+		}
+		capType := CapabilityType(b)
+
+		capLength, err := ch.Uint8()
+		if err != nil {
+			return fmt.Errorf("failed to read capability length: %w", err)
+		}
+
+		bs, err := ch.Bytes(int(capLength))
+		if err != nil {
+			return fmt.Errorf("failed to read capabilities: %w", err)
+		}
+
+		pkg.Capabilities[capType] = parseValueMask(bs)
+	}
+
+	return nil
 }
 
 func (pkg CapabilityPackage) WriteTo(ch *channel) error {
