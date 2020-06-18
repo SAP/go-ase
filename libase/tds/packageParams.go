@@ -3,7 +3,6 @@ package tds
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 )
 
 type ParamsPackage struct {
@@ -44,9 +43,7 @@ func (pkg *ParamsPackage) LastPkg(other Package) error {
 func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 
 	for i, param := range pkg.Params {
-		log.Printf("reading field %#v", param)
 		err := param.ReadFrom(ch)
-		log.Printf("read field %#v", param)
 		if err != nil {
 			return fmt.Errorf("error occurred reading param field %d data: %w", i, err)
 		}
