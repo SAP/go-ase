@@ -34,9 +34,9 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &ParamFmtPackage{}, nil
 	case TDS_PARAMS:
 		return &ParamsPackage{}, nil
+	default:
+		return NewTokenlessPackage(), nil
 	}
-
-	return nil, fmt.Errorf("no package type found for token '%s'", token)
 }
 
 func IsError(pkg Package) bool {
