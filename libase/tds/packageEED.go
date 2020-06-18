@@ -107,7 +107,62 @@ func (pkg *EEDPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg EEDPackage) WriteTo(ch *channel) error {
-	return fmt.Errorf("not implemented")
+	err := ch.WriteUint16(pkg.Length)
+	if err != nil {
+		return fmt.Errorf("failed to write length: %w", err)
+	}
+
+	err = ch.WriteUint32(pkg.MsgNumber)
+	if err != nil {
+		return fmt.Errorf("failed to write message number: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.State)
+	if err != nil {
+		return fmt.Errorf("failed to write state: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.Class)
+	if err != nil {
+		return fmt.Errorf("failed to write class: %w", err)
+	}
+
+	err = ch.WriteBytes(pkg.SQLState)
+	if err != nil {
+		return fmt.Errorf("failed to write SQL state: %w", err)
+	}
+
+	err = ch.WriteByte(byte(pkg.Status))
+	if err != nil {
+		return fmt.Errorf("failed to write status: %w", err)
+	}
+
+	err = ch.WriteUint16(pkg.TranState)
+	if err != nil {
+		return fmt.Errorf("failed to write tran state: %w", err)
+	}
+
+	err = ch.WriteString(pkg.Msg)
+	if err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	err = ch.WriteString(pkg.ServerName)
+	if err != nil {
+		return fmt.Errorf("failed to write server name: %w", err)
+	}
+
+	err = ch.WriteString(pkg.ProcName)
+	if err != nil {
+		return fmt.Errorf("failed to write proc name: %w", err)
+	}
+
+	err = ch.WriteUint16(pkg.LineNr)
+	if err != nil {
+		return fmt.Errorf("failed to write line nr: %w", err)
+	}
+
+	return nil
 }
 
 func (pkg EEDPackage) String() string {
