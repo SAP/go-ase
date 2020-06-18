@@ -67,6 +67,61 @@ func (pkg *ErrorPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg ErrorPackage) WriteTo(ch *channel) error {
+	err := ch.WriteUint16(pkg.Length)
+	if err != nil {
+		return fmt.Errorf("failed to write length: %w", err)
+	}
+
+	err = ch.WriteInt32(pkg.ErrorNumber)
+	if err != nil {
+		return fmt.Errorf("failed to write error number: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.State)
+	if err != nil {
+		return fmt.Errorf("failed to write state: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.Class)
+	if err != nil {
+		return fmt.Errorf("failed to write class: %w", err)
+	}
+
+	err = ch.WriteUint16(pkg.MsgLength)
+	if err != nil {
+		return fmt.Errorf("failed to write error message length: %w", err)
+	}
+
+	err = ch.WriteString(pkg.ErrorMsg)
+	if err != nil {
+		return fmt.Errorf("failed to write error message: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.ServerLength)
+	if err != nil {
+		return fmt.Errorf("failed to write servername length: %w", err)
+	}
+
+	err = ch.WriteString(pkg.ServerName)
+	if err != nil {
+		return fmt.Errorf("failed to write servername: %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.ProcLength)
+	if err != nil {
+		return fmt.Errorf("failed to write procname length: %w", err)
+	}
+
+	err = ch.WriteString(pkg.ProcName)
+	if err != nil {
+		return fmt.Errorf("failed to write procname: %w", err)
+	}
+
+	err = ch.WriteUint16(pkg.LineNr)
+	if err != nil {
+		return fmt.Errorf("failed to write linenr: %w", err)
+	}
+
 	return nil
 }
 
