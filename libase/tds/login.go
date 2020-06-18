@@ -302,7 +302,7 @@ const (
 func (config *LoginConfig) pack() (Package, error) {
 	buf := &bytes.Buffer{}
 
-	// No error checking requires since bytes.Buffer.Write* methods
+	// No error checking required since bytes.Buffer.Write* methods
 	// always return a nil error.
 
 	// lhostname, lhostlen
