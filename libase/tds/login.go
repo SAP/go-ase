@@ -154,7 +154,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		response := NewMessage()
 
 		// encrypted login password
-		response.AddPackage(NewMsgPackage(TDS_MSG_SEC_LOGPWD3, 0))
+		response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
 
 		pwdLongBinaryFmt, err := LookupFieldFmt(TDS_LONGBINARY)
 		if err != nil {
@@ -172,7 +172,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 
 		// encrypted remote password
 		if len(config.RemoteServers) > 0 {
-			response.AddPackage(NewMsgPackage(TDS_MSG_SEC_REMPWD3, 0))
+			response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
 
 			paramFmts := make([]FieldFmt, len(config.RemoteServers)*2)
 			params := make([]FieldData, len(config.RemoteServers)*2)
