@@ -130,6 +130,12 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 			}
 		}
 
+		// Write tokenByte into the tokenless package data since the
+		// received package isn't token-based
+		if tokenless, ok := pkg.(*TokenlessPackage); ok {
+			tokenless.Data.WriteByte(tokenByte)
+		}
+
 		// Start goroutine reading from byte channel
 		if err := pkg.ReadFrom(byteCh); err != nil {
 			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)

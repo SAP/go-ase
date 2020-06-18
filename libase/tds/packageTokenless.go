@@ -8,6 +8,12 @@ type TokenlessPackage struct {
 	Data *bytes.Buffer
 }
 
+func NewTokenlessPackage() *TokenlessPackage {
+	return &TokenlessPackage{
+		Data: &bytes.Buffer{},
+	}
+}
+
 func (pkg *TokenlessPackage) ReadFrom(ch *channel) error {
 	_, err := pkg.Data.ReadFrom(ch)
 	return err
