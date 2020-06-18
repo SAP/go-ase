@@ -2,6 +2,7 @@ package tds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -77,8 +78,12 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 		packet := &Packet{}
 		_, err := packet.ReadFrom(reader)
 		if err != nil {
-			errCh <- fmt.Errorf("error reading packet: %v", err)
-			return
+			if errors.Is(err, io.EOF) {
+				return
+			} else {
+				errCh <- fmt.Errorf("error reading packet: %v", err)
+				return
+			}
 		}
 
 		byteCh.WriteBytes(packet.Data)
@@ -106,10 +111,10 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		tokenByte, err := byteCh.Byte()
 		if err != nil {
-			if err == ErrChannelExhausted {
+			if errors.Is(err, ErrChannelExhausted) {
 				continue
 			}
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return
 			}
 			errCh <- fmt.Errorf("error reading token byte from channel: %w", err)
@@ -138,7 +143,10 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		// Start goroutine reading from byte channel
 		if err := pkg.ReadFrom(byteCh); err != nil {
-			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %w", err)
 			return
 		}
 
@@ -201,7 +209,7 @@ func (msg Message) writeToPackets(errCh chan error, byteCh *channel, packetCh ch
 		data := make([]byte, MsgBodyLength)
 
 		n, err := byteCh.Read(data)
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			errCh <- fmt.Errorf("error occurred reading data into packet: %w", err)
 			return
 		}
@@ -209,13 +217,13 @@ func (msg Message) writeToPackets(errCh chan error, byteCh *channel, packetCh ch
 		packet.Header.Length = uint16(n + MsgHeaderLength)
 		packet.Data = data[:n]
 
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			packet.Header.Status |= TDS_BUFSTAT_EOM
 		}
 
 		packetCh <- packet
 
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return
 		}
 	}
