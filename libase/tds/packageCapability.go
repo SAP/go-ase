@@ -207,6 +207,8 @@ const (
 // go:generate stringer -type=CapabilitySecurityValue
 type CapabilitySecurityValue int
 
+// CapabilityPackage is the package transmitted to or received from an
+// Open Server application.
 type CapabilityPackage struct {
 	Capabilities map[CapabilityType]*valueMask
 }
@@ -218,6 +220,7 @@ func NewCapabilityPackage() *CapabilityPackage {
 }
 
 func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityRequestValue, enable bool) error {
+	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityRequest] == nil {
 		pkg.Capabilities[CapabilityRequest] = newValueMask(int(TDS_REQ_COMMAND_ENCRYPTION))
 	}
@@ -225,6 +228,7 @@ func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityRequestV
 }
 
 func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityResponseValue, enable bool) error {
+	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityResponse] == nil {
 		pkg.Capabilities[CapabilityResponse] = newValueMask(int(TDS_RES_DR_NOKILL))
 	}
@@ -232,6 +236,7 @@ func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityRespons
 }
 
 func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilitySecurityValue, enable bool) error {
+	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilitySecurity] == nil {
 		pkg.Capabilities[CapabilitySecurity] = newValueMask(0)
 	}
@@ -251,10 +256,13 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 	// write length
 	length := 0
 	for _, vm := range pkg.Capabilities {
+		// If no capabilities are set the capabilitiy type will be
+		// skipped
 		if len(vm.capabilities) == 0 {
 			continue
 		}
 
+		// Capability type byte and the type's value mask
 		length += 2 + len(vm.capabilities)
 	}
 
@@ -295,6 +303,7 @@ func (pkg CapabilityPackage) String() string {
 // ValueMask
 
 var (
+	// Used to parse out value masks sent by Open Server applications
 	valueMaskBitMasks = []byte{
 		0b00000001,
 		0b00000010,
@@ -307,6 +316,9 @@ var (
 	}
 )
 
+// valueMasks are ASE versions of bitmasks and are used to communicate
+// capabilities.
+// A valueMask may extend over multiple bytes.
 type valueMask struct {
 	// map capabilities to their state
 	capabilities []bool
