@@ -115,7 +115,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		if !ok {
 			return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.Params[0])
 		}
-		cipherSuite := binary.BigEndian.Uint32(paramCipherSuite.Data())
+		cipherSuite := binary.BigEndian.Uint16(paramCipherSuite.Data()[2:])
 
 		// get public key
 		paramPubKey, ok := params.Params[1].(*LongBinaryFieldData)

@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-
-	"github.com/SAP/go-ase/libase"
 )
 
 // TDSConn handles a TDS-based connection.
@@ -21,13 +19,7 @@ func Dial(network, address string) (*TDSConn, error) {
 		return nil, fmt.Errorf("error opening connection: %w", err)
 	}
 
-	// TODO: Remove, only for testing
-	cc, err := libase.CaptureConn(c, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create capture reader writer: %w", err)
-	}
-
-	return &TDSConn{conn: cc}, nil
+	return &TDSConn{conn: c}, nil
 }
 
 func (tds *TDSConn) Close() error {
