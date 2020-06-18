@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 )
 
 type Message struct {
@@ -54,7 +52,6 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 				continue
 			}
 
-			log.Printf("package: %#v", pkg)
 			msg.AddPackage(pkg)
 		default:
 		}
@@ -69,8 +66,6 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 
 func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reader io.Reader, byteCh *channel) {
 	defer byteCh.Close()
-
-	n := 0
 
 	for {
 		select {
@@ -87,11 +82,6 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 		}
 
 		byteCh.WriteBytes(packet.Data)
-		err = ioutil.WriteFile(fmt.Sprintf("/sybase/TST/packet-%d.bin", n), packet.Data, 0660)
-		n++
-		if err != nil {
-			log.Printf("err writing file: %v", err)
-		}
 
 		if packet.Header.Status == TDS_BUFSTAT_EOM {
 			return
@@ -142,7 +132,6 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		// Start goroutine reading from byte channel
 		if err := pkg.ReadFrom(byteCh); err != nil {
-			log.Printf(">>> Error from pkg.ReadFrom: %v", err)
 			errCh <- fmt.Errorf("error ocurred while parsing packet into package: %v", err)
 			return
 		}
@@ -190,7 +179,6 @@ func (msg Message) writeToPackage(errCh chan error, byteCh *channel) {
 	defer byteCh.Close()
 	for _, pack := range msg.Packages() {
 		err := pack.WriteTo(byteCh)
-		log.Printf("package: %#v", pack)
 		if err != nil {
 			errCh <- fmt.Errorf("failed to write package data to channel: %w", err)
 			return
