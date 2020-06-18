@@ -114,7 +114,7 @@ func (header *MessageHeader) ReadFrom(r io.Reader) (int64, error) {
 	bs := make([]byte, MsgHeaderLength)
 	n, err := r.Read(bs)
 	if err != nil || n != MsgHeaderLength {
-		return int64(n), fmt.Errorf("failed to read %d bytes from reader: %v", MsgHeaderLength, err)
+		return int64(n), fmt.Errorf("read %d of %d expected bytes from reader: %w", n, MsgHeaderLength, err)
 	}
 
 	m, err := header.Write(bs)
