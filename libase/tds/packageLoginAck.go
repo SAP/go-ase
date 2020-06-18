@@ -65,7 +65,37 @@ func (pkg *LoginAckPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg LoginAckPackage) WriteTo(ch *channel) error {
-	return fmt.Errorf("not implemented")
+	err := ch.WriteUint16(pkg.Length)
+	if err != nil {
+		return fmt.Errorf("failed to write length: %w", err)
+	}
+
+	err = ch.WriteUint8(uint8(pkg.Status))
+	if err != nil {
+		return fmt.Errorf("failed to write : %w", err)
+	}
+
+	err = ch.WriteBytes(pkg.TDSVersion.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to write : %w", err)
+	}
+
+	err = ch.WriteUint8(pkg.NameLength)
+	if err != nil {
+		return fmt.Errorf("failed to write : %w", err)
+	}
+
+	err = ch.WriteString(pkg.ProgramName)
+	if err != nil {
+		return fmt.Errorf("failed to write : %w", err)
+	}
+
+	err = ch.WriteBytes(pkg.ProgramVersion.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to write : %w", err)
+	}
+
+	return nil
 }
 
 func (pkg LoginAckPackage) String() string {
