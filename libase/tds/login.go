@@ -102,6 +102,14 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("expected loginack with negotation, received: %s", loginack)
 	}
 
+	negotiationMsg, ok := msg.packages[1].(*MsgPackage)
+	if !ok {
+		return fmt.Errorf("expected msg package as second response, received: %s", msg.packages[1])
+	}
+
+	if negotiationMsg.MsgId != TDS_MSG_SEC_ENCRYPT3 {
+		return fmt.Errorf("expected TDS_MSG_SEC_ENCRYPT3, received: %s", negotiationMsg.MsgId)
+	}
 	params, ok := msg.packages[3].(*ParamsPackage)
 	if !ok {
 		return fmt.Errorf("expected params package as fourth response, received: %s", msg.packages[3])
