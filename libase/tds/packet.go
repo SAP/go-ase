@@ -24,9 +24,7 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 	packet.Header = MessageHeader{}
 	n, err := packet.Header.ReadFrom(reader)
 	if err != nil {
-		// No check for io.EOF here - if there aren't enough bytes for
-		// a header the parsing went wrong
-		return n, fmt.Errorf("failed to read header: %v", err)
+		return n, fmt.Errorf("failed to read header: %w", err)
 	}
 
 	totalBytes += n
