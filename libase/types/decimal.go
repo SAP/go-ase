@@ -213,7 +213,7 @@ func (dec *Decimal) SetBytes(b []byte) {
 }
 
 func (dec *Decimal) String() string {
-	s := fmt.Sprintf("%0"+strconv.Itoa(dec.precision)+"s", dec.Int().Abs(dec.i))
+	s := fmt.Sprintf("%0"+strconv.Itoa(dec.precision)+"s", big.NewInt(0).Abs(dec.i))
 
 	neg := ""
 	if dec.IsNegative() {
