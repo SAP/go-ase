@@ -227,8 +227,7 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			if err != nil {
 				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
 			}
-
-			dec.SetInt64(int64(binary.LittleEndian.Uint32(bs)))
+			dec.SetInt64(int64(int32(binary.LittleEndian.Uint32(bs))))
 
 			dest[i] = dec
 		case types.DATE:
