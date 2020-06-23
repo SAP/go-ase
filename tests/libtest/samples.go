@@ -65,10 +65,7 @@ var samplesDecimal = []string{
 }
 
 func compareDecimal(recv, expect *types.Decimal) bool {
-	if recv.String() != expect.String() {
-		return true
-	}
-	return false
+	return !expect.Cmp(*recv)
 }
 
 //go:generate go run ./gen_type.go Float float64
