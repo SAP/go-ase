@@ -85,44 +85,15 @@ func NewDecimal(precision, scale int) (*Decimal, error) {
 // NewDecimalString creates a new decimal based on the passed string.
 // If the string contains an invalid precision/scale combination an
 // error is returned.
-func NewDecimalString(s string) (*Decimal, error) {
-	s = strings.TrimSpace(s)
-
-	scale := ASEDecimalDefaultScale
-	if strings.Contains(s, ".") {
-		split := strings.SplitN(s, ".", 2)
-		scale = len(split[1])
-	}
-
-	neg := false
-	if s[0] == '-' {
-		neg = true
-	}
-
-	s = strings.TrimLeft(s, "+-")
-
-	split := strings.Split(s, ".")
-	prec := len(split[0]) + scale
-
-	dec, err := NewDecimal(prec, scale)
+func NewDecimalString(precision, scale int, s string) (*Decimal, error) {
+	dec, err := NewDecimal(precision, scale)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating decimal: %w", err)
 	}
 
-	s = split[0]
-	if len(split) == 2 && len(split[1]) > 0 {
-		s += split[1]
-	}
-
-	i := &big.Int{}
-	_, ok := i.SetString(s, 10)
-	if !ok {
-		return nil, fmt.Errorf("Not a valid integer: %s", s)
-	}
-
-	dec.i = i
-	if neg {
-		dec.Negate()
+	err = dec.SetString(s)
+	if err != nil {
+		return nil, fmt.Errorf("error setting string: %w", err)
 	}
 
 	return dec, nil
