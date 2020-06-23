@@ -85,44 +85,15 @@ func NewDecimal(precision, scale int) (*Decimal, error) {
 // NewDecimalString creates a new decimal based on the passed string.
 // If the string contains an invalid precision/scale combination an
 // error is returned.
-func NewDecimalString(s string) (*Decimal, error) {
-	s = strings.TrimSpace(s)
-
-	scale := ASEDecimalDefaultScale
-	if strings.Contains(s, ".") {
-		split := strings.SplitN(s, ".", 2)
-		scale = len(split[1])
-	}
-
-	neg := false
-	if s[0] == '-' {
-		neg = true
-	}
-
-	s = strings.TrimLeft(s, "+-")
-
-	split := strings.Split(s, ".")
-	prec := len(split[0]) + scale
-
-	dec, err := NewDecimal(prec, scale)
+func NewDecimalString(precision, scale int, s string) (*Decimal, error) {
+	dec, err := NewDecimal(precision, scale)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating decimal: %w", err)
 	}
 
-	s = split[0]
-	if len(split) == 2 && len(split[1]) > 0 {
-		s += split[1]
-	}
-
-	i := &big.Int{}
-	_, ok := i.SetString(s, 10)
-	if !ok {
-		return nil, fmt.Errorf("Not a valid integer: %s", s)
-	}
-
-	dec.i = i
-	if neg {
-		dec.Negate()
+	err = dec.SetString(s)
+	if err != nil {
+		return nil, fmt.Errorf("error setting string: %w", err)
 	}
 
 	return dec, nil
@@ -194,17 +165,12 @@ func (dec *Decimal) SetInt64(i int64) {
 
 // Int returns a copy of the underlying big.Int.
 func (dec Decimal) Int() *big.Int {
-	return dec.i
+	i := &big.Int{}
+	i.Add(i, dec.i)
+	return i
 }
 
 func (dec *Decimal) SetBytes(b []byte) {
-	if len(b) == 0 {
-		if dec.i != nil {
-			dec.i.SetInt64(0)
-		}
-		return
-	}
-
 	if dec.i == nil {
 		dec.i = &big.Int{}
 	}
@@ -233,4 +199,36 @@ func (dec *Decimal) String() string {
 	ret := fmt.Sprintf("%s%s.%s", neg, left, right)
 
 	return ret
+}
+
+// Set decimal to the passed string value.
+// Precision and scale are untouched.
+//
+// If an error is returned dec is untouched.
+func (dec *Decimal) SetString(s string) error {
+	// Trim spaces to avoid errors with "+0.0 " etc.pp.
+	s = strings.TrimSpace(s)
+
+	split := strings.Split(s, ".")
+	left := split[0]
+	right := ""
+	if len(split) > 1 {
+		right = split[1]
+	}
+
+	// Set underlying big.Int structure to the whole number
+	i := &big.Int{}
+	if _, ok := i.SetString(left+right, 10); !ok {
+		return fmt.Errorf("failed to parse number %s%s", left, right)
+	}
+
+	// Multiply underlying big.Int to fit to the scale of the decimal
+	if dec.scale-len(right) > 0 {
+		mul := big.NewInt(10)
+		mul.Exp(mul, big.NewInt(int64(dec.scale-len(right))), nil)
+		i.Mul(i, mul)
+	}
+
+	dec.i = i
+	return nil
 }

@@ -21,7 +21,7 @@ func testDecimal380(t *testing.T, db *sql.DB, tableName string) {
 	for i, sample := range samplesDecimal380 {
 
 		// Convert sample with passed function before proceeding
-		mySample, err := types.NewDecimalString(sample)
+		mySample, err := convertDecimal380(sample)
 		if err != nil {
 			t.Errorf("Failed to convert sample %v: %v", sample, err)
 			return
