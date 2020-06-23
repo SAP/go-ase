@@ -171,13 +171,6 @@ func (dec Decimal) Int() *big.Int {
 }
 
 func (dec *Decimal) SetBytes(b []byte) {
-	if len(b) == 0 {
-		if dec.i != nil {
-			dec.i.SetInt64(0)
-		}
-		return
-	}
-
 	if dec.i == nil {
 		dec.i = &big.Int{}
 	}
