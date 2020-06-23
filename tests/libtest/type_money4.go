@@ -21,7 +21,7 @@ func testMoney4(t *testing.T, db *sql.DB, tableName string) {
 	for i, sample := range samplesMoney4 {
 
 		// Convert sample with passed function before proceeding
-		mySample, err := types.NewDecimalString(sample)
+		mySample, err := convertSmallMoney(sample)
 		if err != nil {
 			t.Errorf("Failed to convert sample %v: %v", sample, err)
 			return

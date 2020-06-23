@@ -37,16 +37,32 @@ var samplesUnsignedInt = []uint32{0, 1000, 5000, 150000, 123456789, math.MaxUint
 //go:generate go run ./gen_type.go UnsignedSmallInt uint16 -columndef "unsigned smallint"
 var samplesUnsignedSmallInt = []uint16{0, 65535}
 
-//go:generate go run ./gen_type.go Decimal10 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(1,0) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertDecimal10(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(1, 0, sample)
+}
+
+//go:generate go run ./gen_type.go Decimal10 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(1,0) -convert convertDecimal10 -compare compareDecimal
 var samplesDecimal10 = []string{"0", "1", "9"}
 
-//go:generate go run ./gen_type.go Decimal380 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,0) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertDecimal380(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(38, 0, sample)
+}
+
+//go:generate go run ./gen_type.go Decimal380 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,0) -convert convertDecimal380 -compare compareDecimal
 var samplesDecimal380 = []string{"99999999999999999999999999999999999999"}
 
-//go:generate go run ./gen_type.go Decimal3838 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,38) -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertDecimal3838(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(38, 38, sample)
+}
+
+//go:generate go run ./gen_type.go Decimal3838 github.com/SAP/go-ase/libase/*types.Decimal -columndef decimal(38,38) -convert convertDecimal3838 -compare compareDecimal
 var samplesDecimal3838 = []string{".99999999999999999999999999999999999999"}
 
-//go:generate go run ./gen_type.go Decimal github.com/SAP/go-ase/libase/*types.Decimal -columndef "decimal(38,19)" -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertDecimal3819(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(38, 19, sample)
+}
+
+//go:generate go run ./gen_type.go Decimal github.com/SAP/go-ase/libase/*types.Decimal -columndef "decimal(38,19)" -convert convertDecimal3819 -compare compareDecimal
 var samplesDecimal = []string{
 	// ASE max
 	"1234567890123456789",
@@ -79,7 +95,11 @@ var samplesReal = []float64{
 	math.MaxFloat32,
 }
 
-//go:generate go run ./gen_type.go Money github.com/SAP/go-ase/libase/*types.Decimal -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertMoney(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(types.ASEMoneyPrecision, types.ASEMoneyScale, sample)
+}
+
+//go:generate go run ./gen_type.go Money github.com/SAP/go-ase/libase/*types.Decimal -convert convertMoney -compare compareDecimal
 var samplesMoney = []string{
 	// ASE min
 	"-922337203685477.5807",
@@ -91,7 +111,11 @@ var samplesMoney = []string{
 	"1234.5678",
 }
 
-//go:generate go run ./gen_type.go Money4 github.com/SAP/go-ase/libase/*types.Decimal -columndef smallmoney -convert github.com/SAP/go-ase/libase/types.NewDecimalString -compare compareDecimal
+func convertSmallMoney(sample string) (*types.Decimal, error) {
+	return types.NewDecimalString(types.ASESmallMoneyPrecision, types.ASESmallMoneyScale, sample)
+}
+
+//go:generate go run ./gen_type.go Money4 github.com/SAP/go-ase/libase/*types.Decimal -columndef smallmoney -convert convertSmallMoney -compare compareDecimal
 var samplesMoney4 = []string{
 	// ASE min
 	"-214748.3648",
