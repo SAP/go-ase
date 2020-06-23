@@ -107,7 +107,12 @@ func (pkg *EEDPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg EEDPackage) WriteTo(ch *channel) error {
-	err := ch.WriteUint16(pkg.Length)
+	err := ch.WriteByte(byte(TDS_EED))
+	if err != nil {
+		return fmt.Errorf("failed to write TDS Token %s: %w", TDS_EED, err)
+	}
+
+	err = ch.WriteUint16(pkg.Length)
 	if err != nil {
 		return fmt.Errorf("failed to write length: %w", err)
 	}

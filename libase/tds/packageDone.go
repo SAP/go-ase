@@ -58,7 +58,12 @@ func (pkg *DonePackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg DonePackage) WriteTo(ch *channel) error {
-	err := ch.WriteUint16(uint16(pkg.status))
+	err := ch.WriteByte(byte(TDS_DONE))
+	if err != nil {
+		return err
+	}
+
+	err = ch.WriteUint16(uint16(pkg.status))
 	if err != nil {
 		return err
 	}

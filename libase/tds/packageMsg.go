@@ -94,8 +94,13 @@ func (pkg *MsgPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg MsgPackage) WriteTo(ch *channel) error {
+	err := ch.WriteByte(byte(TDS_MSG))
+	if err != nil {
+		return err
+	}
+
 	// Length
-	err := ch.WriteUint8(3)
+	err = ch.WriteUint8(3)
 	if err != nil {
 		return err
 	}

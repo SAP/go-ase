@@ -99,6 +99,11 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
+	err := ch.WriteByte(byte(TDS_PARAMFMT))
+	if err != nil {
+		return fmt.Errorf("error occurred writing TDS Token %s: %w", TDS_PARAMFMT, err)
+	}
+
 	// 2 bytes length, 2 bytes params count, x bytes for params
 	length := 2 + 2
 	for _, param := range pkg.Params {

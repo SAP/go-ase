@@ -53,6 +53,11 @@ func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg ParamsPackage) WriteTo(ch *channel) error {
+	err := ch.WriteByte(byte(TDS_PARAMS))
+	if err != nil {
+		return fmt.Errorf("error ocurred writing TDS token %s: %w", TDS_PARAMS, err)
+	}
+
 	for i, param := range pkg.Params {
 		if err := param.WriteTo(ch); err != nil {
 			return fmt.Errorf("error occurred writing param field %d data: %w", i, err)
