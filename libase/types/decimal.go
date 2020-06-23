@@ -234,3 +234,35 @@ func (dec *Decimal) String() string {
 
 	return ret
 }
+
+// Set decimal to the passed string value.
+// Precision and scale are untouched.
+//
+// If an error is returned dec is untouched.
+func (dec *Decimal) SetString(s string) error {
+	// Trim spaces to avoid errors with "+0.0 " etc.pp.
+	s = strings.TrimSpace(s)
+
+	split := strings.Split(s, ".")
+	left := split[0]
+	right := ""
+	if len(split) > 1 {
+		right = split[1]
+	}
+
+	// Set underlying big.Int structure to the whole number
+	i := &big.Int{}
+	if _, ok := i.SetString(left+right, 10); !ok {
+		return fmt.Errorf("failed to parse number %s%s", left, right)
+	}
+
+	// Multiply underlying big.Int to fit to the scale of the decimal
+	if dec.scale-len(right) > 0 {
+		mul := big.NewInt(10)
+		mul.Exp(mul, big.NewInt(int64(dec.scale-len(right))), nil)
+		i.Mul(i, mul)
+	}
+
+	dec.i = i
+	return nil
+}
