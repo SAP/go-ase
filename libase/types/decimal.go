@@ -165,7 +165,9 @@ func (dec *Decimal) SetInt64(i int64) {
 
 // Int returns a copy of the underlying big.Int.
 func (dec Decimal) Int() *big.Int {
-	return dec.i
+	i := &big.Int{}
+	i.Add(i, dec.i)
+	return i
 }
 
 func (dec *Decimal) SetBytes(b []byte) {
