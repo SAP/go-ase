@@ -67,25 +67,20 @@ func (pkg ParamsPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg ParamsPackage) String() string {
-	s := fmt.Sprintf("PARAMS(%d): |", len(pkg.Params))
-	for _, param := range pkg.Params {
-		s += fmt.Sprintf(" %s |", param.Data())
-	}
-	return s
+	return fmt.Sprintf("PARAMS(%d): ", len(pkg.Params))
 }
 
 func (pkg ParamsPackage) MultiString() []string {
-	ret := make([]string, 1+(len(pkg.Params)*2))
-	ret[0] = pkg.String()
-	n := 1
+	ret := make([]string, (len(pkg.Params) * 2))
+	n := 0
 	for _, param := range pkg.Params {
-		ret[n] = fmt.Sprintf("  %#v", param)
+		ret[n] = fmt.Sprintf("%#v", param)
 
 		stdoutCh := newChannel()
 		param.WriteTo(stdoutCh)
 		stdoutCh.Close()
 		bs, _ := ioutil.ReadAll(stdoutCh)
-		ret[n+1] = fmt.Sprintf("    Bytes(%d): %#v", len(bs), bs)
+		ret[n+1] = fmt.Sprintf("  Bytes(%d): %#v", len(bs), bs)
 
 		n += 2
 	}

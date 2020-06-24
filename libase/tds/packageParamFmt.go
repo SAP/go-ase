@@ -2,7 +2,6 @@ package tds
 
 import (
 	"fmt"
-	"io/ioutil"
 )
 
 var _ Package = (*ParamFmtPackage)(nil)
@@ -215,7 +214,11 @@ func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 
 // TODO reconsider returning all params
 func (pkg ParamFmtPackage) String() string {
-	s := fmt.Sprintf("PARAMFMT(%d): |", len(pkg.Params))
+	name := "PARAMFMT"
+	if pkg.wide {
+		name = "PARAMFMT2"
+	}
+	s := fmt.Sprintf("%s(%d): |", name, len(pkg.Params))
 	for _, param := range pkg.Params {
 		s += fmt.Sprintf(" %s |", param.DataType())
 	}
@@ -223,19 +226,9 @@ func (pkg ParamFmtPackage) String() string {
 }
 
 func (pkg ParamFmtPackage) MultiString() []string {
-	ret := make([]string, 1+(len(pkg.Params)*2))
-	ret[0] = pkg.String()
-	n := 1
-	for _, param := range pkg.Params {
-		ret[n] = fmt.Sprintf("  %#v", param)
-
-		stdoutCh := newChannel()
-		param.WriteTo(stdoutCh)
-		stdoutCh.Close()
-		bs, _ := ioutil.ReadAll(stdoutCh)
-		ret[n+1] = fmt.Sprintf("    Bytes(%d): %#v", len(bs), bs)
-
-		n += 2
+	ret := make([]string, len(pkg.Params))
+	for i, param := range pkg.Params {
+		ret[i] = fmt.Sprintf("%#v", param)
 	}
 	return ret
 }
