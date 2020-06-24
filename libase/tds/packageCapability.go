@@ -14,11 +14,11 @@ const (
 	CapabilitySecurity
 )
 
-//go:generate stringer -type=CapabilityRequestValue
-type CapabilityRequestValue int
+//go:generate stringer -type=CapabilityValue
+type CapabilityValue int
 
 const (
-	TDS_REQ_LANG CapabilityRequestValue = iota + 1
+	TDS_REQ_LANG CapabilityValue = iota + 1
 	TDS_REQ_RPC
 	TDS_REQ_EVT
 	TDS_REQ_MSTMT
@@ -219,7 +219,7 @@ func NewCapabilityPackage() *CapabilityPackage {
 	}
 }
 
-func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityRequestValue, enable bool) error {
+func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityValue, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityRequest] == nil {
 		pkg.Capabilities[CapabilityRequest] = newValueMask(int(TDS_REQ_COMMAND_ENCRYPTION))
@@ -227,7 +227,7 @@ func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityRequestV
 	return pkg.Capabilities[CapabilityRequest].setCapability(int(capability), enable)
 }
 
-func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityResponseValue, enable bool) error {
+func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityValue, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityResponse] == nil {
 		pkg.Capabilities[CapabilityResponse] = newValueMask(int(TDS_RES_DR_NOKILL))
@@ -235,7 +235,7 @@ func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityRespons
 	return pkg.Capabilities[CapabilityResponse].setCapability(int(capability), enable)
 }
 
-func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilitySecurityValue, enable bool) error {
+func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilityValue, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilitySecurity] == nil {
 		pkg.Capabilities[CapabilitySecurity] = newValueMask(0)
