@@ -9,7 +9,7 @@ var _ Package = (*ParamFmtPackage)(nil)
 type ParamFmtPackage struct {
 	Params []FieldFmt
 	// Wide differentiates TDS_PARAMFMT from TDS_PARAMFMT2 and considers
-	// the length and status fields to be 4 bytes
+	// the length and status fields to be 4 bytes.
 	// Otherwise the layout is exactly the same.
 	wide bool
 }
@@ -126,13 +126,8 @@ func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 		return fmt.Errorf("error occurred writing TDS Token %s: %w", TDS_PARAMFMT, err)
 	}
 
-	// 2 bytes params count, 2 or 4 bytes length, x bytes for params
+	// 2 bytes params count, x bytes for params
 	length := 2
-	if pkg.wide {
-		length += 4
-	} else {
-		length += 2
-	}
 	for _, param := range pkg.Params {
 		// 1 byte name length
 		// x bytes name
