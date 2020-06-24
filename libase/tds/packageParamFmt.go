@@ -9,6 +9,10 @@ var _ Package = (*ParamFmtPackage)(nil)
 
 type ParamFmtPackage struct {
 	Params []FieldFmt
+	// Wide differentiates TDS_PARAMFMT from TDS_PARAMFMT2 and considers
+	// the length and status fields to be 4 bytes
+	// Otherwise the layout is exactly the same.
+	wide bool
 }
 
 func NewParamFmtPackage(params ...FieldFmt) *ParamFmtPackage {
@@ -18,10 +22,14 @@ func NewParamFmtPackage(params ...FieldFmt) *ParamFmtPackage {
 func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 	var err error
 
-	// Read length - TODO use for validation
-	_, err = ch.Uint16()
+	// Read length
+	if pkg.wide {
+		_, err = ch.Uint32()
+	} else {
+		_, err = ch.Uint16()
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to retrieve length: %w", err)
 	}
 
 	paramsCount, err := ch.Uint16()
@@ -45,9 +53,19 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 			}
 		}
 
-		status, err := ch.Uint8()
-		if err != nil {
-			return fmt.Errorf("failed to retrieve status for field %d: %w", i, err)
+		var status DataFieldStatus
+		if pkg.wide {
+			status32, err := ch.Uint32()
+			if err != nil {
+				return fmt.Errorf("failed to retrieve status for field %d: %w", i, err)
+			}
+			status = DataFieldStatus(status32)
+		} else {
+			status8, err := ch.Uint8()
+			if err != nil {
+				return fmt.Errorf("failed to retrieve status for field %d: %w", i, err)
+			}
+			status = DataFieldStatus(status8)
 		}
 
 		userType, err := ch.Int32()
@@ -71,7 +89,7 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 		if len(name) > 0 {
 			fieldFmt.SetName(name)
 		}
-		fieldFmt.SetStatus(DataFieldStatus(status))
+		fieldFmt.SetStatus(status)
 		fieldFmt.SetUserType(userType)
 
 		err = fieldFmt.ReadFrom(ch)
@@ -99,27 +117,49 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
-	err := ch.WriteByte(byte(TDS_PARAMFMT))
+	var err error
+	if pkg.wide {
+		err = ch.WriteByte(byte(TDS_PARAMFMT2))
+	} else {
+		err = ch.WriteByte(byte(TDS_PARAMFMT))
+	}
 	if err != nil {
 		return fmt.Errorf("error occurred writing TDS Token %s: %w", TDS_PARAMFMT, err)
 	}
 
-	// 2 bytes length, 2 bytes params count, x bytes for params
-	length := 2 + 2
+	// 2 bytes params count, 2 or 4 bytes length, x bytes for params
+	length := 2
+	if pkg.wide {
+		length += 4
+	} else {
+		length += 2
+	}
 	for _, param := range pkg.Params {
 		// 1 byte name length
 		// x bytes name
-		// 1 byte status
+		// 1 or 4 bytes status based on pkg.wide
 		// 4 bytes usertype
 		// 1 byte token
 		// x bytes paramfmt (param.FormatByteLength())
 		// 1 byte localeinfo length
 		// x bytes localeinfo
-		length += 8 + len(param.Name()) + param.FormatByteLength() + len(param.LocaleInfo())
+		length += 7 + len(param.Name()) + param.FormatByteLength() + len(param.LocaleInfo())
+		// status
+		if pkg.wide {
+			length += 4
+		} else {
+			length += 1
+		}
 	}
 
-	if err := ch.WriteUint16(uint16(length)); err != nil {
-		return fmt.Errorf("error occurred writing package length: %w", err)
+	if pkg.wide {
+		if err := ch.WriteUint32(uint32(length)); err != nil {
+			return fmt.Errorf("error occurred writing package length: %w", err)
+		}
+	} else {
+		if err := ch.WriteUint16(uint16(length)); err != nil {
+			return fmt.Errorf("error occurred writing package length: %w", err)
+		}
 	}
 
 	if err := ch.WriteUint16(uint16(len(pkg.Params))); err != nil {
@@ -137,8 +177,14 @@ func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 			}
 		}
 
-		if err := ch.WriteUint8(uint8(param.Status())); err != nil {
-			return fmt.Errorf("failed to write Status for field %d: %w", i, err)
+		if pkg.wide {
+			if err := ch.WriteUint32(uint32(param.Status())); err != nil {
+				return fmt.Errorf("failed to write Status for field %d: %w", i, err)
+			}
+		} else {
+			if err := ch.WriteUint8(uint8(param.Status())); err != nil {
+				return fmt.Errorf("failed to write Status for field %d: %w", i, err)
+			}
 		}
 
 		if err := ch.WriteInt32(param.UserType()); err != nil {

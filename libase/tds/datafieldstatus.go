@@ -1,6 +1,6 @@
 package tds
 
-type DataFieldStatus uint8
+type DataFieldStatus uint
 
 const (
 	noStatus               DataFieldStatus = 0
