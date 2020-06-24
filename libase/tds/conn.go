@@ -3,7 +3,6 @@ package tds
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 )
@@ -35,6 +34,7 @@ func (tds *TDSConn) Receive() (*Message, error) {
 
 	err := msg.ReadFrom(tds.conn)
 
+	// TODO remove
 	log.Printf("Received message: %d Packages", len(msg.packages))
 	for i, pack := range msg.packages {
 		if ms, ok := pack.(MultiStringer); ok {
@@ -58,21 +58,16 @@ func (tds *TDSConn) Receive() (*Message, error) {
 func (tds *TDSConn) Send(msg Message) error {
 	log.Printf("Sending message: %d Packages", len(msg.packages))
 
+	// TODO remove
 	for i, pack := range msg.packages {
+		log.Printf("  Package %d: %s", i, pack)
 		if ms, ok := pack.(MultiStringer); ok {
 			for _, s := range ms.MultiString() {
-				log.Printf("  %s", s)
+				log.Printf("    %s", s)
 			}
 		} else {
-			log.Printf("  Package %d: %s", i, pack)
 			log.Printf("    %#v", pack)
 		}
-
-		stdoutCh := newChannel()
-		pack.WriteTo(stdoutCh)
-		stdoutCh.Close()
-		bs, _ := ioutil.ReadAll(stdoutCh)
-		log.Printf("    Bytes(%d): %#v", len(bs), bs)
 	}
 
 	return msg.WriteTo(tds.conn)
