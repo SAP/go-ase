@@ -2,6 +2,7 @@ package tds
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type TokenlessPackage struct {
@@ -23,7 +24,6 @@ func (pkg TokenlessPackage) WriteTo(ch *channel) error {
 	return ch.WriteBytes(pkg.Data.Bytes())
 }
 
-// TODO
 func (pkg TokenlessPackage) String() string {
-	return ""
+	return fmt.Sprintf("Tokenless(possibleToken=%x) %#v", pkg.Data.Bytes()[0], pkg)
 }
