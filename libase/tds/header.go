@@ -88,7 +88,7 @@ func (header MessageHeader) WriteTo(w io.Writer) (int64, error) {
 	bs := make([]byte, MsgHeaderLength)
 	n, err := header.Read(bs)
 	if err != nil || n != MsgHeaderLength {
-		return n, fmt.Errorf("failed to write header information to byte slice: %v", err)
+		return n, fmt.Errorf("failed to write header information to byte slice: %w", err)
 	}
 
 	m, err := w.Write(bs)

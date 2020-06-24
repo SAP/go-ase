@@ -81,7 +81,7 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 			if errors.Is(err, io.EOF) {
 				return
 			} else {
-				errCh <- fmt.Errorf("error reading packet: %v", err)
+				errCh <- fmt.Errorf("error reading packet: %w", err)
 				return
 			}
 		}

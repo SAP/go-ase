@@ -48,7 +48,7 @@ func (tds *TDSConn) Receive() (*Message, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to read message: %v", err)
+		return nil, fmt.Errorf("failed to read message: %w", err)
 	}
 
 	return msg, nil

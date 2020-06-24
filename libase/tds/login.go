@@ -49,7 +49,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 
 	pack, err := config.pack()
 	if err != nil {
-		return fmt.Errorf("error building login payload: %v", err)
+		return fmt.Errorf("error building login payload: %w", err)
 	}
 	loginMsg.AddPackage(pack)
 
@@ -60,7 +60,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	log.Printf("Sending login payload")
 	err = tdsconn.Send(loginMsg)
 	if err != nil {
-		return fmt.Errorf("failed to sent login payload: %v", err)
+		return fmt.Errorf("failed to sent login payload: %w", err)
 	}
 
 	log.Printf("Reading response")
@@ -278,7 +278,7 @@ func NewLoginConfig(dsn *libdsn.DsnInfo) (*LoginConfig, error) {
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve hostname: %v", err)
+		return nil, fmt.Errorf("failed to retrieve hostname: %w", err)
 	}
 	conf.Hostname = hostname
 	conf.HostProc = strconv.Itoa(os.Getpid())
@@ -316,7 +316,7 @@ func (config *LoginConfig) pack() (Package, error) {
 	// lhostname, lhostlen
 	err := writeString(buf, config.Hostname, TDS_MAXNAME)
 	if err != nil {
-		return nil, fmt.Errorf("error writing hostname: %v", err)
+		return nil, fmt.Errorf("error writing hostname: %w", err)
 	}
 
 	// lusername, lusernlen

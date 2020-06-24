@@ -41,7 +41,7 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 			}
 			return totalBytes, nil
 		}
-		return totalBytes, fmt.Errorf("error reading body: %v", err)
+		return totalBytes, fmt.Errorf("error reading body: %w", err)
 	}
 
 	return totalBytes, nil
