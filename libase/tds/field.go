@@ -1,3 +1,14 @@
+// The types in this file are format fields for TDS_PARAMFMT,
+// TDS_PARAMFMT2 and data fields for TDS_PARAMS.
+//
+// To make handling and identification of the different data types
+// easier in Go each data type has their own field structure, created by
+// embedding abstract types.
+//
+// Note: The data types are embedded instead of aliased to provide the
+// methods of the embedded types - aliasing does not provide access to
+// the methods of the source type.
+
 package tds
 
 import "fmt"
@@ -6,7 +17,6 @@ import "fmt"
 
 type FieldFmt interface {
 	// Format information send by TDS server
-	// The setters are required to prevent type assertions
 	DataType() DataType
 	SetName(string)
 	Name() string
