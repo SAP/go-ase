@@ -167,7 +167,9 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 			return fmt.Errorf("could not lookup Fieldfmt for TDS_LONGBINARY: %w", err)
 		}
 		pwdLongBinaryFmt.SetLength(len(encryptedPass))
-		response.AddPackage(NewParamFmtPackage(pwdLongBinaryFmt))
+		response.AddPackage(NewParamFmtPackage(
+			tdsconn.caps.HasRequestCapability(TDS_WIDETABLES),
+			pwdLongBinaryFmt))
 
 		pwdLongBinaryData, err := LookupFieldData(pwdLongBinaryFmt)
 		if err != nil {
@@ -217,7 +219,9 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 				longBinaryData.SetData(encryptedServerPass)
 				params[i+1] = longBinaryData
 			}
-			response.AddPackage(NewParamFmtPackage(paramFmts...))
+			response.AddPackage(NewParamFmtPackage(
+				tdsconn.caps.HasRequestCapability(TDS_WIDETABLES),
+				paramFmts...))
 			response.AddPackage(NewParamsPackage(params...))
 		}
 

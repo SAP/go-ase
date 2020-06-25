@@ -41,9 +41,9 @@ func (tds *TDSConn) setCapabilities() error {
 	}
 
 	// Signal ability to handle TDS_PARAMFMT2
-	err = caps.SetResponseCapability(TDS_WIDETABLES, true)
+	err = caps.SetRequestCapability(TDS_WIDETABLES, true)
 	if err != nil {
-		return fmt.Errorf("failed to set response capability %s: %w", TDS_WIDETABLES, err)
+		return fmt.Errorf("failed to set request capability %s: %w", TDS_WIDETABLES, err)
 	}
 
 	tds.caps = caps

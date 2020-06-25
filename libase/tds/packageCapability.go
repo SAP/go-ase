@@ -14,11 +14,11 @@ const (
 	CapabilitySecurity
 )
 
-//go:generate stringer -type=CapabilityValue
-type CapabilityValue int
+//go:generate stringer -type=RequestCapability
+type RequestCapability int
 
 const (
-	TDS_REQ_LANG CapabilityValue = iota + 1
+	TDS_REQ_LANG RequestCapability = iota + 1
 	TDS_REQ_RPC
 	TDS_REQ_EVT
 	TDS_REQ_MSTMT
@@ -126,11 +126,11 @@ const (
 	TDS_REQ_COMMAND_ENCRYPTION
 )
 
-//go:generate stringer -type=CapabilityResponseValue
-type CapabilityResponseValue int
+//go:generate stringer -type=ResponseCapability
+type ResponseCapability int
 
 const (
-	TDS_RES_NOMSG CapabilityResponseValue = iota + 1
+	TDS_RES_NOMSG ResponseCapability = iota + 1
 	TDS_RES_NOEED
 	TDS_RES_NOPARAM
 	TDS_DATA_NOINT1
@@ -200,9 +200,12 @@ const (
 	TDS_RPCPARAM_NOLOB
 	TDS_DATA_NOLOBLOCATOR
 	TDS_RES_NOROWCOUNT_FOR_SELECT
+	TDS_RES_CUMULATIVE_DONE
 	TDS_RES_LIST_DR_MAP
 	TDS_RES_DR_NOKILL
 )
+
+type SecurityCapability int
 
 // go:generate stringer -type=CapabilitySecurityValue
 type CapabilitySecurityValue int
@@ -219,7 +222,7 @@ func NewCapabilityPackage() *CapabilityPackage {
 	}
 }
 
-func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityValue, enable bool) error {
+func (pkg *CapabilityPackage) SetRequestCapability(capability RequestCapability, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityRequest] == nil {
 		pkg.Capabilities[CapabilityRequest] = newValueMask(int(TDS_REQ_COMMAND_ENCRYPTION))
@@ -227,7 +230,7 @@ func (pkg *CapabilityPackage) SetRequestCapability(capability CapabilityValue, e
 	return pkg.Capabilities[CapabilityRequest].setCapability(int(capability), enable)
 }
 
-func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityValue, enable bool) error {
+func (pkg *CapabilityPackage) SetResponseCapability(capability ResponseCapability, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilityResponse] == nil {
 		pkg.Capabilities[CapabilityResponse] = newValueMask(int(TDS_RES_DR_NOKILL))
@@ -235,7 +238,7 @@ func (pkg *CapabilityPackage) SetResponseCapability(capability CapabilityValue, 
 	return pkg.Capabilities[CapabilityResponse].setCapability(int(capability), enable)
 }
 
-func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilityValue, enable bool) error {
+func (pkg *CapabilityPackage) SetSecurityCapability(capability SecurityCapability, enable bool) error {
 	// Create value mask if the capability type doesn't have one yet.
 	if pkg.Capabilities[CapabilitySecurity] == nil {
 		pkg.Capabilities[CapabilitySecurity] = newValueMask(0)
@@ -243,31 +246,64 @@ func (pkg *CapabilityPackage) SetSecurityCapability(capability CapabilityValue, 
 	return pkg.Capabilities[CapabilitySecurity].setCapability(int(capability), enable)
 }
 
+func (pkg *CapabilityPackage) HasCapability(capabilityType CapabilityType, capability int) bool {
+	if pkg.Capabilities == nil {
+		return false
+	}
+
+	vm := pkg.Capabilities[capabilityType]
+	if vm == nil {
+		return false
+	}
+
+	return vm.getCapability(int(capability))
+}
+
+func (pkg *CapabilityPackage) HasRequestCapability(capability RequestCapability) bool {
+	return pkg.HasCapability(CapabilityRequest, int(capability))
+}
+
+func (pkg *CapabilityPackage) HasResponseCapability(capability ResponseCapability) bool {
+	return pkg.HasCapability(CapabilityResponse, int(capability))
+}
+
+func (pkg *CapabilityPackage) HasSecurityCapability(capability SecurityCapability) bool {
+	return pkg.HasCapability(CapabilitySecurity, int(capability))
+}
+
 func (pkg *CapabilityPackage) ReadFrom(ch *channel) error {
-	_, err := ch.Uint16()
+	totalLength, err := ch.Uint16()
 	if err != nil {
 		return fmt.Errorf("failed to read length: %w", err)
 	}
 
 	// Read out each capability and its value mask
-	for {
+	length := 0
+	for length < int(uint(totalLength)) {
 		b, err := ch.Uint8()
 		if err != nil {
 			return fmt.Errorf("failed to read capability type byte: %w", err)
 		}
+		length++
 		capType := CapabilityType(b)
 
 		capLength, err := ch.Uint8()
 		if err != nil {
 			return fmt.Errorf("failed to read capability length: %w", err)
 		}
+		length++
 
 		bs, err := ch.Bytes(int(capLength))
 		if err != nil {
 			return fmt.Errorf("failed to read capabilities: %w", err)
 		}
+		length += int(capLength)
 
 		pkg.Capabilities[capType] = parseValueMask(bs)
+	}
+
+	if length > int(uint(totalLength)) {
+		return fmt.Errorf("read %d bytes instead of %d", length, totalLength)
 	}
 
 	return nil
@@ -284,12 +320,12 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 	for _, vm := range pkg.Capabilities {
 		// If no capabilities are set the capabilitiy type will be
 		// skipped
-		if len(vm.capabilities) == 0 {
+		if len(vm.Bytes()) == 0 {
 			continue
 		}
 
 		// Capability type byte and the type's value mask
-		length += 2 + len(vm.capabilities)
+		length += 2 + len(vm.Bytes())
 	}
 
 	err = ch.WriteUint16(uint16(length))
@@ -368,12 +404,20 @@ func (vm *valueMask) setCapability(capability int, state bool) error {
 	return nil
 }
 
+func (vm *valueMask) getCapability(capability int) bool {
+	if capability > len(vm.capabilities) {
+		return false
+	}
+
+	return vm.capabilities[capability]
+}
+
 func parseValueMask(bs []byte) *valueMask {
 	max := len(bs) * 8
 
 	vm := newValueMask(max)
 
-	cur := 1
+	cur := 0
 	// walk through bs from last to first byte
 	for i := len(bs) - 1; i >= 0; i-- {
 		// walk through a single byte (from least to most)
