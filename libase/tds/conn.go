@@ -5,12 +5,15 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 // TDSConn handles a TDS-based connection.
 type TDSConn struct {
-	conn io.ReadWriteCloser
-	caps *CapabilityPackage
+	conn               io.ReadWriteCloser
+	caps               *CapabilityPackage
+	envChangeHooks     []EnvChangeHook
+	envChangeHooksLock *sync.Mutex
 }
 
 func Dial(network, address string) (*TDSConn, error) {
@@ -20,6 +23,8 @@ func Dial(network, address string) (*TDSConn, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error setting capabilities on connection: %w", err)
 	}
+
+	tds.envChangeHooksLock = &sync.Mutex{}
 
 	c, err := net.Dial(network, address)
 	if err != nil {
@@ -48,6 +53,29 @@ func (tds *TDSConn) setCapabilities() error {
 
 	tds.caps = caps
 	return nil
+}
+
+// RegisterEnvChangeHook register functions of the type EnvChangeHook.
+//
+// The registered functions are called with the EnvChangeType of the
+// update, the old value and the new value.
+func (tds *TDSConn) RegisterEnvChangeHook(fn EnvChangeHook) {
+	tds.envChangeHooksLock.Lock()
+	defer tds.envChangeHooksLock.Unlock()
+
+	tds.envChangeHooks = append(tds.envChangeHooks, fn)
+}
+
+// TODO when to call this?
+// possible would be as the data stream is parsed
+// also possible would be after an entire data stream has been processed
+func (tds *TDSConn) callEnvChangeHooks(typ EnvChangeType, oldValue, newValue string) {
+	tds.envChangeHooksLock.Lock()
+	defer tds.envChangeHooksLock.Unlock()
+
+	for _, fn := range tds.envChangeHooks {
+		fn(typ, oldValue, newValue)
+	}
 }
 
 func (tds *TDSConn) Close() error {

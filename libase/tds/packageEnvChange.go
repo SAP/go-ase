@@ -12,6 +12,10 @@ const (
 	TDS_ENV_PACKSIZE EnvChangeType = 0x4
 )
 
+// EnvChangeHook defines the signature of functions called by a TDSConn
+// when the server sends a TDS_ENV_CHANGE package.
+type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
+
 type EnvChangePackage struct {
 	members []EnvChangePackageField
 }
