@@ -36,6 +36,10 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &ParamFmtPackage{wide: true}, nil
 	case TDS_PARAMS:
 		return &ParamsPackage{}, nil
+	case TDS_CAPABILITY:
+		return NewCapabilityPackage(), nil
+	case TDS_ENVCHANGE:
+		return &EnvChangePackage{}, nil
 	case TDS_LANGUAGE:
 		return &LanguagePackage{}, nil
 	default:
