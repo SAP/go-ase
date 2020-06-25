@@ -14,8 +14,8 @@ type ParamFmtPackage struct {
 	wide bool
 }
 
-func NewParamFmtPackage(params ...FieldFmt) *ParamFmtPackage {
-	return &ParamFmtPackage{Params: params}
+func NewParamFmtPackage(wide bool, params ...FieldFmt) *ParamFmtPackage {
+	return &ParamFmtPackage{wide: wide, Params: params}
 }
 
 func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
