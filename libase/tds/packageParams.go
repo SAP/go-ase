@@ -2,7 +2,6 @@ package tds
 
 import (
 	"fmt"
-	"io/ioutil"
 )
 
 type ParamsPackage struct {
@@ -75,13 +74,7 @@ func (pkg ParamsPackage) MultiString() []string {
 	n := 0
 	for _, param := range pkg.Params {
 		ret[n] = fmt.Sprintf("%#v", param)
-
-		stdoutCh := newChannel()
-		param.WriteTo(stdoutCh)
-		stdoutCh.Close()
-		bs, _ := ioutil.ReadAll(stdoutCh)
-		ret[n+1] = fmt.Sprintf("  Bytes(%d): %#v", len(bs), bs)
-
+		ret[n+1] = fmt.Sprintf("  String: %s", param)
 		n += 2
 	}
 	return ret
