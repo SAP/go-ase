@@ -10,15 +10,44 @@ import (
 // TDSConn handles a TDS-based connection.
 type TDSConn struct {
 	conn io.ReadWriteCloser
+	caps *CapabilityPackage
 }
 
 func Dial(network, address string) (*TDSConn, error) {
+	tds := &TDSConn{}
+
+	err := tds.setCapabilities()
+	if err != nil {
+		return nil, fmt.Errorf("error setting capabilities on connection: %w", err)
+	}
+
 	c, err := net.Dial(network, address)
 	if err != nil {
 		return nil, fmt.Errorf("error opening connection: %w", err)
 	}
 
-	return &TDSConn{conn: c}, nil
+	tds.conn = c
+	return tds, nil
+}
+
+func (tds *TDSConn) setCapabilities() error {
+	caps := NewCapabilityPackage()
+
+	// Request status byte in TDS_PARAMS responses
+	// Allows to handel nullbytes
+	err := caps.SetRequestCapability(TDS_DATA_COLUMNSTATUS, true)
+	if err != nil {
+		return fmt.Errorf("failed to set request capability %s: %w", TDS_DATA_COLUMNSTATUS, err)
+	}
+
+	// Signal ability to handle TDS_PARAMFMT2
+	err = caps.SetResponseCapability(TDS_WIDETABLES, true)
+	if err != nil {
+		return fmt.Errorf("failed to set response capability %s: %w", TDS_WIDETABLES, err)
+	}
+
+	tds.caps = caps
+	return nil
 }
 
 func (tds *TDSConn) Close() error {

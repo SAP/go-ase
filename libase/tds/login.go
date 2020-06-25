@@ -53,9 +53,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 	loginMsg.AddPackage(pack)
 
-	capPack := NewCapabilityPackage()
-	capPack.SetRequestCapability(TDS_DATA_COLUMNSTATUS, true)
-	loginMsg.AddPackage(capPack)
+	loginMsg.AddPackage(tdsconn.caps)
 
 	log.Printf("Sending login payload")
 	err = tdsconn.Send(loginMsg)
