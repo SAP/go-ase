@@ -1,5 +1,9 @@
 # go-ase
 
+
+[![API reference](https://img.shields.io/badge/godoc-reference-5272B4)](https://pkg.go.dev/github.com/SAP/go-ase)
+[![Go Report Card](https://goreportcard.com/badge/github.com/SAP/go-ase)](https://goreportcard.com/report/github.com/SAP/go-ase)
+
 ## Description
 
 `go-ase` is a driver for the [`databasq/sql`][pkg-database-sql] package
