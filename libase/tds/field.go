@@ -234,6 +234,8 @@ func (field *fieldDataBase) readFrom(ch *channel) error {
 		return nil
 	}
 
+	// Use length defined in the columns format unless the data type has
+	// its own length field.
 	length := field.fmt.Length()
 	if field.fmt.LengthBytes() > 0 {
 		var err error
