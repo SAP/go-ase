@@ -200,6 +200,10 @@ func (field fieldDataBase) Data() []byte {
 	return field.data
 }
 
+func (field fieldDataBase) String() string {
+	return string(field.data)
+}
+
 func (field *fieldDataBase) readFromStatus(ch *channel) error {
 	if field.fmt.Status()&TDS_PARAM_COLUMNSTATUS != TDS_PARAM_COLUMNSTATUS {
 		return nil
