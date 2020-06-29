@@ -337,7 +337,7 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 		// Write type
 		err = ch.WriteByte(byte(typ))
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing capability type %s: %w", typ, err)
 		}
 
 		bs := vm.Bytes()
@@ -345,13 +345,13 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 		// Write length
 		err = ch.WriteUint8(uint8(len(bs)))
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing value mask length: %w", err)
 		}
 
 		// Write value mask
 		err = ch.WriteBytes(bs)
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing value mask: %w", err)
 		}
 	}
 
