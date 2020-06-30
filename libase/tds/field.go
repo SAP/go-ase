@@ -58,8 +58,10 @@ type fieldFmtBase struct {
 	userType   int32
 	localeInfo string
 
+	// lengthBytes defines the byte size of the length field
 	lengthBytes int
-	length      int
+	// length is the actual length
+	length int
 }
 
 func (field fieldFmtBase) DataType() DataType {
