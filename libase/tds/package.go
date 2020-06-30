@@ -37,7 +37,7 @@ func LookupPackage(token TDSToken) (Package, error) {
 	case TDS_PARAMS:
 		return &ParamsPackage{}, nil
 	case TDS_CAPABILITY:
-		return NewCapabilityPackage(), nil
+		return NewCapabilityPackage(nil, nil, nil)
 	case TDS_ENVCHANGE:
 		return &EnvChangePackage{}, nil
 	case TDS_LANGUAGE:

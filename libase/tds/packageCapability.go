@@ -210,16 +210,35 @@ type SecurityCapability int
 // go:generate stringer -type=CapabilitySecurityValue
 type CapabilitySecurityValue int
 
-// CapabilityPackage is the package transmitted to or received from an
-// Open Server application.
 type CapabilityPackage struct {
 	Capabilities map[CapabilityType]*valueMask
 }
 
-func NewCapabilityPackage() *CapabilityPackage {
-	return &CapabilityPackage{
+func NewCapabilityPackage(request []RequestCapability, response []ResponseCapability,
+	security []SecurityCapability) (*CapabilityPackage, error) {
+	pkg := &CapabilityPackage{
 		Capabilities: make(map[CapabilityType]*valueMask, 3),
 	}
+
+	for _, capa := range request {
+		if err := pkg.SetRequestCapability(capa, true); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, capa := range response {
+		if err := pkg.SetResponseCapability(capa, true); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, capa := range security {
+		if err := pkg.SetSecurityCapability(capa, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return pkg, nil
 }
 
 func (pkg *CapabilityPackage) SetRequestCapability(capability RequestCapability, enable bool) error {
@@ -444,7 +463,7 @@ func (vm valueMask) Bytes() []byte {
 		if !isSet {
 			continue
 		}
-		bs[len(bs)-int(math.Ceil(float64(capability)/8))] |= valueMaskBitMasks[(capability-1)%8]
+		bs[len(bs)-int(math.Ceil(float64(capability)/8))] |= valueMaskBitMasks[(capability)%8]
 	}
 
 	return bs
