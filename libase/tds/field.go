@@ -263,15 +263,16 @@ func (field fieldDataBase) writeTo(ch *channel) error {
 		return err
 	}
 
-	if field.fmt.Length() == 0 {
-		return nil
-	}
-
 	if field.fmt.LengthBytes() > 0 {
 		err := writeLengthBytes(ch, field.fmt.LengthBytes(), len(field.data))
 		if err != nil {
 			return err
 		}
+	}
+
+	// Skip writing if field.data is empty
+	if len(field.data) == 0 {
+		return nil
 	}
 
 	err := ch.WriteBytes(field.data)
