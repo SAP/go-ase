@@ -289,10 +289,7 @@ type fieldFmtLength struct {
 }
 
 func (field fieldFmtLength) FormatByteLength() int {
-	if field.lengthBytes > 0 {
-		return field.lengthBytes
-	}
-	return 0
+	return field.lengthBytes
 }
 
 func (field *fieldFmtLength) ReadFrom(ch *channel) error {
@@ -343,10 +340,9 @@ type fieldFmtLengthScale struct {
 }
 
 func (field fieldFmtLengthScale) FormatByteLength() int {
-	if field.lengthBytes > 0 {
-		return 1 + field.lengthBytes
-	}
-	return 1
+	// 1 byte scale
+	// 1 to 4 bytes length
+	return 1 + field.lengthBytes
 }
 
 func (field *fieldFmtLengthScale) ReadFrom(ch *channel) error {
@@ -373,10 +369,7 @@ type fieldFmtLengthPrecisionScale struct {
 }
 
 func (field fieldFmtLengthPrecisionScale) FormatByteLength() int {
-	if field.lengthBytes > 0 {
-		return 2 + field.lengthBytes
-	}
-	return 2
+	return 2 + field.lengthBytes
 }
 
 func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch *channel) error {
@@ -435,11 +428,7 @@ type fieldFmtBlob struct {
 }
 
 func (field fieldFmtBlob) FormatByteLength() int {
-	base := 1 + 1 + len(field.classID)
-	if field.lengthBytes > 0 {
-		return base + field.lengthBytes
-	}
-	return base
+	return 1 + 1 + len(field.classID) + field.lengthBytes
 }
 
 func (field *fieldFmtBlob) ReadFrom(ch *channel) error {
@@ -727,11 +716,7 @@ type fieldFmtTxtPtr struct {
 }
 
 func (field fieldFmtTxtPtr) FormatByteLength() int {
-	base := 1 + len(field.tableName)
-	if field.lengthBytes > 0 {
-		return base + field.lengthBytes
-	}
-	return base
+	return 1 + len(field.tableName) + field.lengthBytes
 }
 
 func (field *fieldFmtTxtPtr) ReadFrom(ch *channel) error {
