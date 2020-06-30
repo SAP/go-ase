@@ -883,10 +883,12 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_BIGDATETIMEN:
 		v := &BigDateTimeNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_BIGTIMEN:
 		v := &BigTimeNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_BIT:
 		v := &BitFieldFmt{}
@@ -981,34 +983,42 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_BINARY:
 		v := &BinaryFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_BOUNDARY:
 		v := &BoundaryFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_CHAR:
 		v := &CharFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_DATEN:
 		v := &DateNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_DATETIMEN:
 		v := &DateTimeNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_FLTN:
 		v := &FltNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_INTN:
 		v := &IntNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_UINTN:
 		v := &UintNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_LONGBINARY:
 		v := &LongBinaryFieldFmt{}
@@ -1018,22 +1028,27 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_LONGCHAR:
 		v := &LongCharFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_MONEYN:
 		v := &MoneyNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_SENSITIVITY:
 		v := &SensitivityFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_TIMEN:
 		v := &TimeNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_VARBINARY:
 		v := &VarBinaryFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_VARCHAR:
 		v := &VarCharFieldFmt{}
@@ -1043,10 +1058,12 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_DECN:
 		v := &DecNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_NUMN:
 		v := &NumNFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_BLOB:
 		v := &BlobFieldFmt{}
@@ -1055,18 +1072,22 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_IMAGE:
 		v := &ImageFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_TEXT:
 		v := &TextFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_UNITEXT:
 		v := &UniTextFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_XML:
 		v := &XMLFieldFmt{}
 		v.dataType = dataType
+		v.lengthBytes = 4
 		return v, nil
 	default:
 		return nil, fmt.Errorf("unhandled datatype '%s'", dataType)
