@@ -179,7 +179,13 @@ func (msg Message) WriteTo(writer io.Writer) error {
 				return nil
 			}
 
-			packet.Header.MsgType = msg.headerType
+			// Assume TDS_BUF_NORMAL for message type unless it was
+			// explicitly set.
+			if msg.headerType == 0x0 {
+				packet.Header.MsgType = TDS_BUF_NORMAL
+			} else {
+				packet.Header.MsgType = msg.headerType
+			}
 
 			_, err := packet.WriteTo(writer)
 			if err != nil {
