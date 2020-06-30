@@ -1,10 +1,11 @@
 package tds
 
-import "bytes"
+import "io"
 
-func writeString(buf *bytes.Buffer, s string, padTo int) error {
-	buf.WriteString(s)
-	buf.WriteString(string(make([]rune, padTo-len(s))))
-	buf.WriteByte(byte(len(s)))
+// writeString writes s padded to padTo and its length to buf.
+func writeString(stream io.Writer, s string, padTo int) error {
+	stream.Write([]byte(s))
+	stream.Write(make([]byte, padTo-len(s)))
+	stream.Write([]byte{byte(len(s))})
 	return nil
 }
