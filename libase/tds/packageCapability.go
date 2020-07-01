@@ -219,6 +219,9 @@ func NewCapabilityPackage(request []RequestCapability, response []ResponseCapabi
 	pkg := &CapabilityPackage{
 		Capabilities: make(map[CapabilityType]*valueMask, 3),
 	}
+	pkg.Capabilities[CapabilityRequest] = newValueMask(int(TDS_REQ_COMMAND_ENCRYPTION))
+	pkg.Capabilities[CapabilityResponse] = newValueMask(int(TDS_RES_DR_NOKILL))
+	pkg.Capabilities[CapabilitySecurity] = newValueMask(0)
 
 	for _, capa := range request {
 		if err := pkg.SetRequestCapability(capa, true); err != nil {
@@ -242,40 +245,19 @@ func NewCapabilityPackage(request []RequestCapability, response []ResponseCapabi
 }
 
 func (pkg *CapabilityPackage) SetRequestCapability(capability RequestCapability, enable bool) error {
-	// Create value mask if the capability type doesn't have one yet.
-	if pkg.Capabilities[CapabilityRequest] == nil {
-		pkg.Capabilities[CapabilityRequest] = newValueMask(int(TDS_REQ_COMMAND_ENCRYPTION))
-	}
 	return pkg.Capabilities[CapabilityRequest].setCapability(int(capability), enable)
 }
 
 func (pkg *CapabilityPackage) SetResponseCapability(capability ResponseCapability, enable bool) error {
-	// Create value mask if the capability type doesn't have one yet.
-	if pkg.Capabilities[CapabilityResponse] == nil {
-		pkg.Capabilities[CapabilityResponse] = newValueMask(int(TDS_RES_DR_NOKILL))
-	}
 	return pkg.Capabilities[CapabilityResponse].setCapability(int(capability), enable)
 }
 
 func (pkg *CapabilityPackage) SetSecurityCapability(capability SecurityCapability, enable bool) error {
-	// Create value mask if the capability type doesn't have one yet.
-	if pkg.Capabilities[CapabilitySecurity] == nil {
-		pkg.Capabilities[CapabilitySecurity] = newValueMask(0)
-	}
 	return pkg.Capabilities[CapabilitySecurity].setCapability(int(capability), enable)
 }
 
 func (pkg *CapabilityPackage) HasCapability(capabilityType CapabilityType, capability int) bool {
-	if pkg.Capabilities == nil {
-		return false
-	}
-
-	vm := pkg.Capabilities[capabilityType]
-	if vm == nil {
-		return false
-	}
-
-	return vm.getCapability(int(capability))
+	return pkg.Capabilities[capabilityType].getCapability(int(capability))
 }
 
 func (pkg *CapabilityPackage) HasRequestCapability(capability RequestCapability) bool {
