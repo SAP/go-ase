@@ -408,7 +408,13 @@ type valueMask struct {
 func newValueMask(max int) *valueMask {
 	vm := &valueMask{}
 
-	vm.capabilities = make([]bool, max)
+	// The max passed into newValueMask is not the capacity of the
+	// valueMask but the maximum value of the capability type.  Since
+	// ASE expects the index of a capability to be their numeric value
+	// a capability with the value 12 will also be placed at the index
+	// 12 - which would cause issues if the capacity  would be 12 as
+	// well.
+	vm.capabilities = make([]bool, max+1)
 
 	return vm
 }
@@ -424,7 +430,7 @@ func (vm *valueMask) setCapability(capability int, state bool) error {
 }
 
 func (vm *valueMask) getCapability(capability int) bool {
-	if capability > len(vm.capabilities) {
+	if capability >= len(vm.capabilities) {
 		return false
 	}
 
@@ -456,14 +462,23 @@ func parseValueMask(bs []byte) *valueMask {
 }
 
 func (vm valueMask) Bytes() []byte {
+	// Calculate how many bytes the value mask requires
 	max := int(math.Ceil(float64(len(vm.capabilities)) / 8))
 	bs := make([]byte, max)
 
-	for capability, isSet := range vm.capabilities {
-		if !isSet {
-			continue
+	cur := -1
+outer:
+	for i := max - 1; i >= 0; i-- {
+		for j := 0; j < 8; j++ {
+			cur++
+			if cur >= len(vm.capabilities) {
+				break outer
+			}
+			if !vm.capabilities[cur] {
+				continue
+			}
+			bs[i] |= valueMaskBitMasks[j]
 		}
-		bs[len(bs)-int(math.Ceil(float64(capability)/8))] |= valueMaskBitMasks[(capability)%8]
 	}
 
 	return bs
