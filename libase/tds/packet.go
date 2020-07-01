@@ -36,7 +36,7 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 	if err != nil {
 		if err == io.EOF {
-			if packet.Header.MsgType == TDS_DONE {
+			if packet.Header.MsgType == TDS_BUF_CLOSE {
 				return totalBytes, io.EOF
 			}
 			return totalBytes, nil
