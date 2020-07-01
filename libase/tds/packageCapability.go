@@ -319,9 +319,9 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 	// write length
 	length := 0
 	for _, vm := range pkg.Capabilities {
-		// If no capabilities are set the capabilitiy type will be
+		// If no capabilities are set the capability type will be
 		// skipped
-		if len(vm.Bytes()) == 0 {
+		if vm.isEmpty() {
 			continue
 		}
 
@@ -335,6 +335,10 @@ func (pkg CapabilityPackage) WriteTo(ch *channel) error {
 	}
 
 	for typ, vm := range pkg.Capabilities {
+		if vm.isEmpty() {
+			continue
+		}
+
 		// Write type
 		err = ch.WriteByte(byte(typ))
 		if err != nil {
@@ -399,6 +403,20 @@ func newValueMask(max int) *valueMask {
 	vm.capabilities = make([]bool, max+1)
 
 	return vm
+}
+
+func (vm *valueMask) isEmpty() bool {
+	if len(vm.capabilities) == 1 {
+		return true
+	}
+
+	for _, capa := range vm.capabilities {
+		if capa {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (vm *valueMask) setCapability(capability int, state bool) error {
