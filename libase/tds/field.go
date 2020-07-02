@@ -878,6 +878,8 @@ func writeLengthBytes(ch *channel, byteCount int, n int) error {
 	return nil
 }
 
+// LookupFieldFmt returns the FieldFmt for a given data type and sets
+// required values in it.
 func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	switch dataType {
 	case TDS_BIGDATETIMEN:
@@ -1095,6 +1097,7 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	return nil, fmt.Errorf("unhandled datatype '%s'", dataType)
 }
 
+/// LookupFieldData returns the FieldData for a given field format.
 func LookupFieldData(fieldFmt FieldFmt) (FieldData, error) {
 	switch fieldFmt.DataType() {
 	case TDS_BIGDATETIMEN:
@@ -1268,4 +1271,20 @@ func LookupFieldData(fieldFmt FieldFmt) (FieldData, error) {
 	default:
 	}
 	return nil, fmt.Errorf("unhandled datatype: '%s'", fieldFmt.DataType())
+}
+
+// LookupFieldFmtData returns both Fieldfmt and FieldData for a given
+// data type.
+func LookupFieldFmtData(dataType DataType) (FieldFmt, FieldData, error) {
+	fieldFmt, err := LookupFieldFmt(dataType)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find field format: %w", err)
+	}
+
+	data, err := LookupFieldData(fieldFmt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find field data: %w", err)
+	}
+
+	return fieldFmt, data, nil
 }
