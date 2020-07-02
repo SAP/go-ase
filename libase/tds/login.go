@@ -1,18 +1,8 @@
 package tds
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/binary"
-	"encoding/pem"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
-
-	"github.com/SAP/go-ase/libase/libdsn"
 )
 
 func (tdsconn *TDSConn) Login(config *LoginConfig) error {
@@ -105,134 +95,130 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("expected msg package as second response, received: %s", msg.packages[1])
 	}
 
-	if negotiationMsg.MsgId != TDS_MSG_SEC_ENCRYPT3 {
-		return fmt.Errorf("expected TDS_MSG_SEC_ENCRYPT3, received: %s", negotiationMsg.MsgId)
+	if negotiationMsg.MsgId != TDS_MSG_SEC_ENCRYPT4 {
+		return fmt.Errorf("expected TDS_MSG_SEC_ENCRYPT4, received: %s", negotiationMsg.MsgId)
 	}
+
 	params, ok := msg.packages[3].(*ParamsPackage)
 	if !ok {
 		return fmt.Errorf("expected params package as fourth response, received: %s", msg.packages[3])
 	}
 
-	// Handle the different encryption types
-	switch config.Encrypt {
-	case TDS_SEC_LOG_ENCRYPT3:
-		// get cipher suite
-		paramCipherSuite, ok := params.Params[0].(*Int4FieldData)
-		if !ok {
-			return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.Params[0])
-		}
-		cipherSuite := binary.BigEndian.Uint16(paramCipherSuite.Data()[2:])
-
-		// get public key
-		paramPubKey, ok := params.Params[1].(*LongBinaryFieldData)
-		if !ok {
-			return fmt.Errorf("expected public key as second parameter, got: %#v", params.Params[1])
-		}
-
-		block, rest := pem.Decode(paramPubKey.Data())
-		if len(rest) > 0 {
-			return fmt.Errorf("trailing bytes in public key: %#v", rest)
-		}
-
-		publicKey, err := x509.ParsePKCS1PublicKey(block.Bytes)
-		if err != nil {
-			return fmt.Errorf("error parsing PKCS1 public key: %w", err)
-		}
-
-		// get nonce
-		paramNonce, ok := params.Params[2].(*LongBinaryFieldData)
-		if !ok {
-			return fmt.Errorf("expected nonce as third parameter, got: %v", params.Params[2])
-		}
-		nonce := paramNonce.Data()
-
-		fmt.Printf("cipher suite: %v\n", cipherSuite)
-		fmt.Printf("pubkey: %v\n", publicKey)
-		fmt.Printf("nonce: %v\n", nonce)
-
-		encryptedPass, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, append(nonce, []byte(config.DSN.Password)...))
-		if err != nil {
-			return fmt.Errorf("error encrypting password: %w", err)
-		}
-		fmt.Printf("encryptedPass: %v\n", encryptedPass)
-
-		// Prepare response
-		response := NewMessage()
-
-		// encrypted login password
-		response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
-
-		pwdLongBinaryFmt, err := LookupFieldFmt(TDS_LONGBINARY)
-		if err != nil {
-			return fmt.Errorf("could not lookup Fieldfmt for TDS_LONGBINARY: %w", err)
-		}
-		pwdLongBinaryFmt.SetLength(len(encryptedPass))
-		response.AddPackage(NewParamFmtPackage(
-			tdsconn.caps.HasRequestCapability(TDS_WIDETABLES),
-			pwdLongBinaryFmt))
-
-		pwdLongBinaryData, err := LookupFieldData(pwdLongBinaryFmt)
-		if err != nil {
-			return fmt.Errorf("could not lookup FieldData for TDS_LONGBINARY: %w", err)
-		}
-		pwdLongBinaryData.SetData(encryptedPass)
-		response.AddPackage(NewParamsPackage(pwdLongBinaryData))
-
-		// encrypted remote password
-		if len(config.RemoteServers) > 0 {
-			response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
-
-			paramFmts := make([]FieldFmt, len(config.RemoteServers)*2)
-			params := make([]FieldData, len(config.RemoteServers)*2)
-			for i, remoteServer := range config.RemoteServers {
-				varCharFmt, err := LookupFieldFmt(TDS_VARCHAR)
-				if err != nil {
-					return err
-				}
-				varCharFmt.SetLength(len(remoteServer.Name))
-				paramFmts[i] = varCharFmt
-
-				varCharData, err := LookupFieldData(varCharFmt)
-				if err != nil {
-					return err
-				}
-				varCharData.SetData([]byte(remoteServer.Name))
-				params[i] = varCharData
-
-				encryptedServerPass, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey,
-					append(nonce, []byte(remoteServer.Password)...))
-				if err != nil {
-					return err
-				}
-
-				longBinaryFmt, err := LookupFieldFmt(TDS_LONGBINARY)
-				if err != nil {
-					return err
-				}
-				longBinaryFmt.SetLength(len(encryptedServerPass))
-				paramFmts[i+1] = longBinaryFmt
-
-				longBinaryData, err := LookupFieldData(longBinaryFmt)
-				if err != nil {
-					return err
-				}
-				longBinaryData.SetData(encryptedServerPass)
-				params[i+1] = longBinaryData
-			}
-			response.AddPackage(NewParamFmtPackage(
-				tdsconn.caps.HasRequestCapability(TDS_WIDETABLES),
-				paramFmts...))
-			response.AddPackage(NewParamsPackage(params...))
-		}
-
-		log.Printf("sending response with encrypted passwords")
-		err = tdsconn.Send(*response)
-		if err != nil {
-			return fmt.Errorf("error sending response with encrypted passwords: %w", err)
-		}
-	default:
-		return fmt.Errorf("unhandled: %v", config.Encrypt)
+	// get asymmetric encryption type
+	paramAsymmetricType, ok := params.Params[0].(*Int4FieldData)
+	if !ok {
+		return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.Params[0])
 	}
+	asymmetricType := uint16(endian.Uint32(paramAsymmetricType.Data()))
+
+	if asymmetricType != 0x0001 {
+		return fmt.Errorf("unhandled asymmetric encryption: %b", asymmetricType)
+	}
+
+	// get public key
+	paramPubKey, ok := params.Params[1].(*LongBinaryFieldData)
+	if !ok {
+		return fmt.Errorf("expected public key as second parameter, got: %#v", params.Params[1])
+	}
+
+	// get nonce
+	paramNonce, ok := params.Params[2].(*LongBinaryFieldData)
+	if !ok {
+		return fmt.Errorf("expected nonce as third parameter, got: %v", params.Params[2])
+	}
+
+	// encrypt password
+	encryptedPass, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(), []byte(config.DSN.Password))
+	if err != nil {
+		return fmt.Errorf("error encrypting password: %w", err)
+	}
+
+	// Prepare response
+	response := NewMessage()
+
+	response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
+
+	passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
+	if err != nil {
+		return fmt.Errorf("failed to look up fields for TDS_LONGBINARY: %w", err)
+	}
+	// TDS does not support TDS_WIDETABLES in login negotiation
+	response.AddPackage(NewParamFmtPackage(false, passFmt))
+	passData.SetData(encryptedPass)
+	response.AddPackage(NewParamsPackage(passData))
+
+	if len(config.RemoteServers) > 0 {
+		// encrypted remote password
+		response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
+
+		paramFmts := make([]FieldFmt, len(config.RemoteServers)*2)
+		params := make([]FieldData, len(config.RemoteServers)*2)
+		for i := 0; i < len(paramFmts); i += 2 {
+			remoteServer := config.RemoteServers[i/2]
+
+			remnameFmt, remnameData, err := LookupFieldFmtData(TDS_VARCHAR)
+			if err != nil {
+				return fmt.Errorf("failed to look up fields for TDS_VARCHAR: %w", err)
+			}
+
+			paramFmts[i] = remnameFmt
+			remnameData.SetData([]byte(remoteServer.Name))
+			params[i] = remnameData
+
+			encryptedServerPass, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(),
+				[]byte(remoteServer.Password))
+			if err != nil {
+				return fmt.Errorf("error encryption remote server password: %w", err)
+			}
+
+			passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
+			if err != nil {
+				return fmt.Errorf("failed to look up fields for TDS_LONGBINARY")
+			}
+
+			paramFmts[i+1] = passFmt
+			passData.SetData(encryptedServerPass)
+			params[i+1] = passData
+		}
+		response.AddPackage(NewParamFmtPackage(false, paramFmts...))
+		response.AddPackage(NewParamsPackage(params...))
+	}
+
+	// TODO verify response
+
+	symmetricKey, err := generateSymmetricKey(aes_256_cbc)
+	if err != nil {
+		return fmt.Errorf("error generating session key: %w", err)
+	}
+
+	encryptedSymKey, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(),
+		symmetricKey)
+	if err != nil {
+		return fmt.Errorf("error encrypting session key: %w", err)
+	}
+
+	msg = &Message{}
+
+	msg.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
+
+	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
+	if err != nil {
+		return fmt.Errorf("failed to look up fields for TDS_LONGBINARY: %w", err)
+	}
+	symkeyData.SetData(encryptedSymKey)
+
+	msg.AddPackage(NewParamFmtPackage(false, symkeyFmt))
+	msg.AddPackage(NewParamsPackage(symkeyData))
+
+	log.Printf("sending response with encrypted passwords")
+	err = tdsconn.Send(*msg)
+	if err != nil {
+		return fmt.Errorf("error sending message with symmetric key: %w", err)
+	}
+
+	// TODO handle response
+
+	// TODO generate cipher
 
 	return nil
 }
