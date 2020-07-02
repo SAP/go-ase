@@ -34,7 +34,6 @@ func main() {
 		return
 	}
 	conf.AppName = "goconntest"
-	conf.Encrypt = tds.TDS_SEC_LOG_ENCRYPT3
 
 	log.Printf("Logging in")
 	err = c.Login(conf)
