@@ -21,11 +21,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	if tdsconn.conn == nil {
-		conn, err := Dial("tcp", fmt.Sprintf("%s:%s", config.DSN.Host, config.DSN.Port))
-		if err != nil {
-			return err
-		}
-		tdsconn.conn = conn.conn
+		return fmt.Errorf("connection has not been dialed")
 	}
 
 	var withoutEncryption bool
