@@ -26,7 +26,9 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 
 	var withoutEncryption bool
 	switch config.Encrypt {
-	case TDS_SEC_LOG_ENCRYPT, TDS_SEC_LOG_ENCRYPT2, TDS_SEC_LOG_ENCRYPT3:
+	case TDS_MSG_SEC_ENCRYPT, TDS_MSG_SEC_ENCRYPT2, TDS_MSG_SEC_ENCRYPT3:
+		return fmt.Errorf("encryption methods below TDS_MSG_SEC_ENCRYPT3 are not supported by go-ase")
+	case TDS_MSG_SEC_ENCRYPT4:
 		withoutEncryption = false
 	default:
 		withoutEncryption = true
