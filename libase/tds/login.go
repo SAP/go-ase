@@ -35,7 +35,9 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	// Add servername/password combination to remote servers
-	firstRemoteServer := LoginConfigRemoteServer{Name: config.DSN.Host, Password: config.DSN.Password}
+	// The first 'remote' server is the current server with an empty
+	// server name.
+	firstRemoteServer := LoginConfigRemoteServer{Name: "", Password: config.DSN.Password}
 	if len(config.RemoteServers) == 0 {
 		config.RemoteServers = []LoginConfigRemoteServer{firstRemoteServer}
 	} else {
