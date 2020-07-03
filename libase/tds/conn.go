@@ -182,6 +182,15 @@ func (tds *TDSConn) Receive() (*Message, error) {
 
 	err := msg.ReadFrom(tds.conn)
 
+	// Handle special packages
+	for _, pack := range msg.Packages() {
+		if envChange, ok := pack.(*EnvChangePackage); ok {
+			for _, member := range envChange.members {
+				go tds.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
+			}
+		}
+	}
+
 	// TODO remove
 	log.Printf("Received message: %d Packages", len(msg.packages))
 	for i, pack := range msg.packages {
