@@ -21,11 +21,11 @@ const (
 type TransState uint16
 
 const (
-	TDS_TRAN_UNDEFINED   TransState = 0x0
-	TDS_TRAN_IN_PROGRESS            = 0x1
-	TDS_TRAN_COMPLETED              = 0x2
-	TDS_TRAN_FAIL                   = 0x3
-	TDS_TRAN_STMT_FAIL              = 0x4
+	TDS_NOT_IN_TRAN      TransState = 0x0
+	TDS_TRAN_IN_PROGRESS TransState = 0x1
+	TDS_TRAN_COMPLETED   TransState = 0x2
+	TDS_TRAN_FAIL        TransState = 0x3
+	TDS_TRAN_STMT_FAIL   TransState = 0x4
 )
 
 type DonePackage struct {
