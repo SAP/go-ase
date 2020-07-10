@@ -42,6 +42,10 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &EnvChangePackage{}, nil
 	case TDS_LANGUAGE:
 		return &LanguagePackage{}, nil
+	case TDS_ORDERBY:
+		return &OrderByPackage{}, nil
+	case TDS_ORDERBY2:
+		return &OrderBy2Package{}, nil
 	default:
 		return NewTokenlessPackage(), nil
 	}
