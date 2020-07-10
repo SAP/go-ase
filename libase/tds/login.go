@@ -17,7 +17,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	var withoutEncryption bool
 	switch config.Encrypt {
 	case TDS_MSG_SEC_ENCRYPT, TDS_MSG_SEC_ENCRYPT2, TDS_MSG_SEC_ENCRYPT3:
-		return fmt.Errorf("encryption methods below TDS_MSG_SEC_ENCRYPT3 are not supported by go-ase")
+		return fmt.Errorf("encryption methods below TDS_MSG_SEC_ENCRYPT4 are not supported by go-ase")
 	case TDS_MSG_SEC_ENCRYPT4:
 		withoutEncryption = false
 	default:
@@ -184,9 +184,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		response.AddPackage(NewParamsPackage(params...))
 	}
 
-	// TODO verify response
-
-	symmetricKey, err := generateSymmetricKey(aes_256_cbc)
+	symmetricKey, err := generateSymmetricKey(tdsconn.odce)
 	if err != nil {
 		return fmt.Errorf("error generating session key: %w", err)
 	}
@@ -197,9 +195,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("error encrypting session key: %w", err)
 	}
 
-	msg = &Message{}
-
-	msg.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
+	response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
 
 	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
 	if err != nil {
@@ -207,18 +203,62 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 	symkeyData.SetData(encryptedSymKey)
 
-	msg.AddPackage(NewParamFmtPackage(false, symkeyFmt))
-	msg.AddPackage(NewParamsPackage(symkeyData))
+	response.AddPackage(NewParamFmtPackage(false, symkeyFmt))
+	response.AddPackage(NewParamsPackage(symkeyData))
 
 	log.Printf("sending response with encrypted passwords")
-	err = tdsconn.Send(*msg)
+	tdsconn.Send(*response)
+	msg, err = tdsconn.Receive()
 	if err != nil {
-		return fmt.Errorf("error sending message with symmetric key: %w", err)
+		return fmt.Errorf("error receiving answer to negotiated login: %w", err)
 	}
 
-	// TODO handle response
+	// Filter received packages to single out the login-relevant ones.
+	relevantPackages := []Package{}
+	for _, pkg := range msg.Packages() {
+		switch pkg.(type) {
+		case *EnvChangePackage, *EEDPackage:
+			// these packages are handled in .Receive, ignore
+			continue
+		default:
+			relevantPackages = append(relevantPackages, pkg)
+		}
+	}
 
-	// TODO generate cipher
+	loginAck, ok := relevantPackages[0].(*LoginAckPackage)
+	if !ok {
+		return fmt.Errorf("expected login ack package, received %T instead: %v",
+			relevantPackages[0], relevantPackages[0])
+	}
+
+	if loginAck.Status != TDS_LOG_SUCCEED {
+		return fmt.Errorf("expected login ack with status TDS_LOG_SUCCEED, received %s",
+			loginAck.Status)
+	}
+
+	_, ok = relevantPackages[1].(*CapabilityPackage)
+	if !ok {
+		return fmt.Errorf("expected capability package, received %T instead: %v",
+			relevantPackages[1], relevantPackages[1])
+	}
+
+	// TODO handle caps response
+
+	done, ok := relevantPackages[2].(*DonePackage)
+	if !ok {
+		return fmt.Errorf("expected done package, received %T instead: %v",
+			relevantPackages[2], relevantPackages[2])
+	}
+
+	if done.status != TDS_DONE_FINAL {
+		return fmt.Errorf("expected done package with status TDS_DONE_FINAL, received %s",
+			done.status)
+	}
+
+	if done.tranState != TDS_TRAN_COMPLETED {
+		return fmt.Errorf("expected done package with transtate TDS_TRAN_COMPLETED, received %s",
+			done.tranState)
+	}
 
 	return nil
 }

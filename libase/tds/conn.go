@@ -14,6 +14,7 @@ type TDSConn struct {
 	caps               *CapabilityPackage
 	envChangeHooks     []EnvChangeHook
 	envChangeHooksLock *sync.Mutex
+	odce               odceCipher
 }
 
 func Dial(network, address string) (*TDSConn, error) {
@@ -25,6 +26,7 @@ func Dial(network, address string) (*TDSConn, error) {
 	}
 
 	tds.envChangeHooksLock = &sync.Mutex{}
+	tds.odce = aes_256_cbc
 
 	c, err := net.Dial(network, address)
 	if err != nil {
@@ -149,7 +151,7 @@ func (tds *TDSConn) setCapabilities() error {
 			TDS_REQ_RPC_BATCH,
 
 			// Support on demand encryption
-			//TODO: TDS_REQ_COMMAND_ENCRYPTION,
+			TDS_REQ_COMMAND_ENCRYPTION,
 
 			// Client will only perform readonly operations
 			//TODO: TDS_REQ_READONLY,
