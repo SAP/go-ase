@@ -105,9 +105,9 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	// get asymmetric encryption type
-	paramAsymmetricType, ok := params.Params[0].(*Int4FieldData)
+	paramAsymmetricType, ok := params.DataFields[0].(*Int4FieldData)
 	if !ok {
-		return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.Params[0])
+		return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.DataFields[0])
 	}
 	asymmetricType := uint16(endian.Uint32(paramAsymmetricType.Data()))
 
@@ -116,15 +116,15 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	// get public key
-	paramPubKey, ok := params.Params[1].(*LongBinaryFieldData)
+	paramPubKey, ok := params.DataFields[1].(*LongBinaryFieldData)
 	if !ok {
-		return fmt.Errorf("expected public key as second parameter, got: %#v", params.Params[1])
+		return fmt.Errorf("expected public key as second parameter, got: %#v", params.DataFields[1])
 	}
 
 	// get nonce
-	paramNonce, ok := params.Params[2].(*LongBinaryFieldData)
+	paramNonce, ok := params.DataFields[2].(*LongBinaryFieldData)
 	if !ok {
-		return fmt.Errorf("expected nonce as third parameter, got: %v", params.Params[2])
+		return fmt.Errorf("expected nonce as third parameter, got: %v", params.DataFields[2])
 	}
 
 	// encrypt password
