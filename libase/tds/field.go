@@ -1,5 +1,6 @@
 // The types in this file are format fields for TDS_PARAMFMT,
-// TDS_PARAMFMT2 and data fields for TDS_PARAMS.
+// TDS_PARAMFMT2, TDS_ROWFMT, TDS_ROWFMT2 and data fields for
+// TDS_PARAMS and TDS_ROW.
 //
 // To make handling and identification of the different data types
 // easier in Go each data type has their own field structure, created by
@@ -64,7 +65,7 @@ const (
 // Interfaces
 
 type FieldFmt interface {
-	// Format information send by TDS server
+	// Format information as sent to or received from TDS server
 	DataType() DataType
 	SetName(string)
 	Name() string
