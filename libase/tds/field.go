@@ -70,48 +70,83 @@ type FieldFmt interface {
 	SetName(string)
 	Name() string
 
+	// specific to TDS_ROWFMT2
+	SetColumnLabel(string)
+	ColumnLabel() string
+	SetCatalogue(string)
+	Catalogue() string
+	SetSchema(string)
+	Schema() string
+	SetTable(string)
+	Table() string
+
 	SetStatus(uint)
 	Status() uint
+
 	SetUserType(int32)
 	UserType() int32
 	SetLocaleInfo(string)
 	LocaleInfo() string
 
-	LengthBytes() int
-	SetLength(int)
-	Length() int
-
 	// Interface methods for go-ase
-	ReadFrom(*channel) error
-	WriteTo(*channel) error
+
+	// Returns true if the data type has a fixed length.
+	IsFixedLength() bool
+	// The return value of LengthBytes depends on IsFixedLength.
+	// If the data type has a fixed length LengthBytes returns the
+	// total number of bytes of the data portion (not the entire data
+	// field - only the actual data).
+	// If the data type has a variable length LengthBytes returns the
+	// number of bytes to be read from the data stream for the length in
+	// bytes of the data portion.
+	LengthBytes() int
+	// Length returns the maximum length of the column
+	// TODO: is this actually required when sending from client?
+	MaxLength() int
+
+	ReadFrom(*channel) (int, error)
+	WriteTo(*channel) (int, error)
 
 	FormatByteLength() int
 }
 
 type FieldData interface {
 	// Format information send by TDS server
-	Status() DataFieldStatus
+	Status() DataStatus
 
 	// Interface methods for go-ase
 	SetData([]byte)
 	Data() []byte
-	ReadFrom(*channel) error
-	WriteTo(*channel) error
+	ReadFrom(*channel) (int, error)
+	WriteTo(*channel) (int, error)
 }
 
 // Base structs
 
 type fieldFmtBase struct {
-	dataType   DataType
-	name       string
+	dataType DataType
+	name     string
+
+	// specific to TDS_ROWFMT2
+	// wide_row controls if the TDS_ROWFMT2 specific members are filled
+	// and written. It is set by TDS_ROWFMT2 when creating a field.
+	wide_row    bool
+	columnLabel string
+	catalogue   string
+	schema      string
+	table       string
+
 	status     fmtStatus
 	userType   int32
 	localeInfo string
 
+	// isFixedLength defines if the data field belonging to the fmt may
+	// have its own length.
+	isFixedLength bool
 	// lengthBytes defines the byte size of the length field
 	lengthBytes int
-	// length is the actual length
-	length int
+	// length is the maximum length of the data type
+	maxLength int
 }
 
 func (field fieldFmtBase) DataType() DataType {
@@ -126,12 +161,36 @@ func (field fieldFmtBase) Name() string {
 	return field.name
 }
 
-func (field *fieldFmtBase) SetStatus(status DataFieldStatus) {
-	field.status = status
+func (field *fieldFmtBase) SetColumnLabel(columnLabel string) {
+	field.columnLabel = columnLabel
 }
 
-func (field fieldFmtBase) Status() DataFieldStatus {
-	return field.status
+func (field fieldFmtBase) ColumnLabel() string {
+	return field.columnLabel
+}
+
+func (field *fieldFmtBase) SetCatalogue(catalogue string) {
+	field.catalogue = catalogue
+}
+
+func (field fieldFmtBase) Catalogue() string {
+	return field.catalogue
+}
+
+func (field *fieldFmtBase) SetSchema(schema string) {
+	field.schema = schema
+}
+
+func (field fieldFmtBase) Schema() string {
+	return field.schema
+}
+
+func (field *fieldFmtBase) SetTable(table string) {
+	field.table = table
+}
+
+func (field fieldFmtBase) Table() string {
+	return field.table
 }
 
 func (field *fieldFmtBase) SetStatus(status uint) {
@@ -158,38 +217,38 @@ func (field fieldFmtBase) LocaleInfo() string {
 	return field.localeInfo
 }
 
+func (field fieldFmtBase) IsFixedLength() bool {
+	return field.isFixedLength
+}
+
 func (field fieldFmtBase) LengthBytes() int {
 	return field.lengthBytes
 }
 
-func (field *fieldFmtBase) SetLength(length int) {
-	field.length = length
+func (field fieldFmtBase) MaxLength() int {
+	return field.maxLength
 }
 
-func (field fieldFmtBase) Length() int {
-	return field.length
-}
-
-func (field *fieldFmtBase) readFromBase(ch *channel) error {
-	if field.lengthBytes == 0 {
-		return nil
+func (field *fieldFmtBase) readFromBase(ch *channel) (int, error) {
+	if field.isFixedLength {
+		return 0, nil
 	}
 
 	length, err := readLengthBytes(ch, field.lengthBytes)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	field.length = length
+	field.maxLength = length
 
-	return nil
+	return field.lengthBytes, nil
 }
 
-func (field fieldFmtBase) writeToBase(ch *channel) error {
-	if field.lengthBytes == 0 {
-		return nil
+func (field fieldFmtBase) writeToBase(ch *channel) (int, error) {
+	if field.isFixedLength {
+		return 0, nil
 	}
 
-	return writeLengthBytes(ch, field.lengthBytes, field.length)
+	return field.lengthBytes, writeLengthBytes(ch, field.lengthBytes, field.maxLength)
 }
 
 type fieldFmtBasePrecision struct {
@@ -200,21 +259,21 @@ func (field fieldFmtBasePrecision) Precision() uint8 {
 	return field.precision
 }
 
-func (field *fieldFmtBasePrecision) readFromPrecision(ch *channel) error {
+func (field *fieldFmtBasePrecision) readFromPrecision(ch *channel) (int, error) {
 	var err error
 	field.precision, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read precision: %w", err)
+		return 0, fmt.Errorf("failed to read precision: %w", err)
 	}
-	return nil
+	return 1, nil
 }
 
-func (field fieldFmtBasePrecision) writeToPrecision(ch *channel) error {
+func (field fieldFmtBasePrecision) writeToPrecision(ch *channel) (int, error) {
 	err := ch.WriteUint8(field.precision)
 	if err != nil {
-		return fmt.Errorf("failed to write precision: %w", err)
+		return 0, fmt.Errorf("failed to write precision: %w", err)
 	}
-	return nil
+	return 1, nil
 }
 
 type fieldFmtBaseScale struct {
@@ -225,21 +284,21 @@ func (field fieldFmtBaseScale) Scale() uint8 {
 	return field.scale
 }
 
-func (field *fieldFmtBaseScale) readFromScale(ch *channel) error {
+func (field *fieldFmtBaseScale) readFromScale(ch *channel) (int, error) {
 	var err error
 	field.scale, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read scale: %w", err)
+		return 0, fmt.Errorf("failed to read scale: %w", err)
 	}
-	return nil
+	return 1, nil
 }
 
-func (field fieldFmtBaseScale) writeToScale(ch *channel) error {
+func (field fieldFmtBaseScale) writeToScale(ch *channel) (int, error) {
 	err := ch.WriteUint8(field.scale)
 	if err != nil {
-		return fmt.Errorf("failed to write scale: %w", err)
+		return 0, fmt.Errorf("failed to write scale: %w", err)
 	}
-	return nil
+	return 1, nil
 }
 
 type fieldDataBase struct {
@@ -264,80 +323,75 @@ func (field fieldDataBase) String() string {
 	return string(field.data)
 }
 
-func (field *fieldDataBase) readFromStatus(ch *channel) error {
+func (field *fieldDataBase) readFromStatus(ch *channel) (int, error) {
 	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
-		return nil
+		return 0, nil
 	}
 
 	status, err := ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read status: %w", err)
+		return 0, fmt.Errorf("failed to read status: %w", err)
 	}
 	field.status = DataStatus(status)
-	return nil
+	return 1, nil
 }
 
-func (field fieldDataBase) writeToStatus(ch *channel) error {
+func (field fieldDataBase) writeToStatus(ch *channel) (int, error) {
 	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
-		return nil
+		return 0, nil
 	}
 
+	// TODO depends on wide
 	err := ch.WriteUint8(uint8(field.status))
 	if err != nil {
-		return fmt.Errorf("failed to write status: %w", err)
+		return 0, fmt.Errorf("failed to write status: %w", err)
 	}
-	return nil
+	return 1, nil
 }
 
-func (field *fieldDataBase) readFrom(ch *channel) error {
-	if err := field.readFromStatus(ch); err != nil {
-		return err
+func (field *fieldDataBase) readFrom(ch *channel) (int, error) {
+	n, err := field.readFromStatus(ch)
+	if err != nil {
+		return n, err
 	}
 
-	if field.fmt.Length() == 0 {
-		return nil
-	}
-
-	// Use length defined in the columns format unless the data type has
-	// its own length field.
-	length := field.fmt.Length()
-	if field.fmt.LengthBytes() > 0 {
+	length := field.fmt.LengthBytes()
+	if !field.fmt.IsFixedLength() {
 		var err error
 		length, err = readLengthBytes(ch, field.fmt.LengthBytes())
 		if err != nil {
-			return err
+			return n, fmt.Errorf("failed to read %d bytes of length: %w", field.fmt.LengthBytes(), err)
 		}
+		n += field.fmt.LengthBytes()
 	}
 
-	var err error
 	if field.data, err = ch.Bytes(length); err != nil {
-		return fmt.Errorf("failed to read %d bytes of data: %w", length, err)
+		return n, fmt.Errorf("failed to read %d bytes of data: %w", length, err)
 	}
-	return nil
+	n += length
+
+	return n, nil
 }
 
-func (field fieldDataBase) writeTo(ch *channel) error {
-	if err := field.writeToStatus(ch); err != nil {
-		return err
-	}
-
-	if field.fmt.LengthBytes() > 0 {
-		err := writeLengthBytes(ch, field.fmt.LengthBytes(), len(field.data))
-		if err != nil {
-			return err
-		}
-	}
-
-	// Skip writing if field.data is empty
-	if len(field.data) == 0 {
-		return nil
-	}
-
-	err := ch.WriteBytes(field.data)
+func (field fieldDataBase) writeTo(ch *channel) (int, error) {
+	n, err := field.writeToStatus(ch)
 	if err != nil {
-		return fmt.Errorf("failed to write %d bytes of data: %w", len(field.data), err)
+		return n, err
 	}
-	return nil
+
+	if !field.fmt.IsFixedLength() {
+		if err := writeLengthBytes(ch, field.fmt.LengthBytes(), len(field.data)); err != nil {
+			return n, fmt.Errorf("failed to write data length: %w", err)
+		}
+		n += field.fmt.LengthBytes()
+	}
+
+	if err := ch.WriteBytes(field.data); err != nil {
+		return n, fmt.Errorf("failed to write %d bytes of data: %w", len(field.data), err)
+	}
+	n += len(field.data)
+
+	return n, nil
 }
 
 // Implementations
@@ -346,15 +400,16 @@ type fieldFmtLength struct {
 	fieldFmtBase
 }
 
+// TODO is this being used?
 func (field fieldFmtLength) FormatByteLength() int {
 	return field.lengthBytes
 }
 
-func (field *fieldFmtLength) ReadFrom(ch *channel) error {
+func (field *fieldFmtLength) ReadFrom(ch *channel) (int, error) {
 	return field.readFromBase(ch)
 }
 
-func (field fieldFmtLength) WriteTo(ch *channel) error {
+func (field fieldFmtLength) WriteTo(ch *channel) (int, error) {
 	return field.writeToBase(ch)
 }
 
@@ -403,18 +458,24 @@ func (field fieldFmtLengthScale) FormatByteLength() int {
 	return 1 + field.lengthBytes
 }
 
-func (field *fieldFmtLengthScale) ReadFrom(ch *channel) error {
-	if err := field.readFromBase(ch); err != nil {
-		return err
+func (field *fieldFmtLengthScale) ReadFrom(ch *channel) (int, error) {
+	n, err := field.readFromBase(ch)
+	if err != nil {
+		return n, err
 	}
-	return field.readFromScale(ch)
+
+	n2, err := field.readFromScale(ch)
+	return n + n2, err
 }
 
-func (field fieldFmtLengthScale) WriteTo(ch *channel) error {
-	if err := field.writeToBase(ch); err != nil {
-		return err
+func (field fieldFmtLengthScale) WriteTo(ch *channel) (int, error) {
+	n, err := field.writeToBase(ch)
+	if err != nil {
+		return n, err
 	}
-	return field.writeToScale(ch)
+
+	n2, err := field.writeToScale(ch)
+	return n + n2, err
 }
 
 type BigDateTimeNFieldFmt struct{ fieldFmtLengthScale }
@@ -430,24 +491,34 @@ func (field fieldFmtLengthPrecisionScale) FormatByteLength() int {
 	return 2 + field.lengthBytes
 }
 
-func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch *channel) error {
-	if err := field.readFromBase(ch); err != nil {
-		return err
+func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch *channel) (int, error) {
+	n, err := field.readFromBase(ch)
+	if err != nil {
+		return n, err
 	}
-	if err := field.readFromPrecision(ch); err != nil {
-		return err
+
+	n2, err := field.readFromPrecision(ch)
+	if err != nil {
+		return n + n2, err
 	}
-	return field.readFromScale(ch)
+
+	n3, err := field.readFromScale(ch)
+	return n + n2 + n3, err
 }
 
-func (field fieldFmtLengthPrecisionScale) WriteTo(ch *channel) error {
-	if err := field.writeToBase(ch); err != nil {
-		return err
+func (field fieldFmtLengthPrecisionScale) WriteTo(ch *channel) (int, error) {
+	n, err := field.writeToBase(ch)
+	if err != nil {
+		return n, err
 	}
-	if err := field.writeToPrecision(ch); err != nil {
-		return err
+
+	n2, err := field.writeToPrecision(ch)
+	if err != nil {
+		return n + n2, err
 	}
-	return field.writeToScale(ch)
+
+	n3, err := field.writeToScale(ch)
+	return n + n2 + n3, err
 }
 
 type DecNFieldFmt struct{ fieldFmtLengthPrecisionScale }
@@ -489,59 +560,73 @@ func (field fieldFmtBlob) FormatByteLength() int {
 	return 1 + 1 + len(field.classID) + field.lengthBytes
 }
 
-func (field *fieldFmtBlob) ReadFrom(ch *channel) error {
+func (field *fieldFmtBlob) ReadFrom(ch *channel) (int, error) {
+	n, err := field.readFromBase(ch)
+	if err != nil {
+		return n, err
+	}
+
 	blobType, err := ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read blobtype: %w", err)
+		return n, fmt.Errorf("failed to read blobtype: %w", err)
 	}
 	field.blobType = BlobType(blobType)
+	n++
 
 	if field.blobType == TDS_BLOB_FULLCLASSNAME || field.blobType == TDS_BLOB_DBID_CLASSDEF {
 		classIdLength, err := ch.Uint16()
 		if err != nil {
-			return fmt.Errorf("failed to read ClassID length: %w", err)
+			return n, fmt.Errorf("failed to read ClassID length: %w", err)
 		}
+		n += 2
 
-		if classIdLength > 0 {
-			field.classID, err = ch.String(int(classIdLength))
-			if err != nil {
-				return fmt.Errorf("failed to read ClassID: %w", err)
-			}
+		field.classID, err = ch.String(int(classIdLength))
+		if err != nil {
+			return n, fmt.Errorf("failed to read ClassID: %w", err)
 		}
+		n += int(classIdLength)
 	}
 
-	return nil
+	return n, nil
 }
 
-func (field fieldFmtBlob) WriteTo(ch *channel) error {
-	if err := ch.WriteUint8(uint8(field.blobType)); err != nil {
-		return fmt.Errorf("failed to write blobtype: %w", err)
+func (field fieldFmtBlob) WriteTo(ch *channel) (int, error) {
+	n, err := field.writeToBase(ch)
+	if err != nil {
+		return n, err
 	}
+
+	if err := ch.WriteUint8(uint8(field.blobType)); err != nil {
+		return n, fmt.Errorf("failed to write blobtype: %w", err)
+	}
+	n++
 
 	if field.blobType == TDS_BLOB_FULLCLASSNAME || field.blobType == TDS_BLOB_DBID_CLASSDEF {
 		if err := ch.WriteUint16(uint16(len(field.classID))); err != nil {
-			return fmt.Errorf("failed to write ClassID length: %w", err)
+			return n, fmt.Errorf("failed to write ClassID length: %w", err)
 		}
+		n += 2
 
 		if len(field.classID) > 0 {
 			if err := ch.WriteString(field.classID); err != nil {
-				return fmt.Errorf("failed to write ClassID: %w", err)
+				return n, fmt.Errorf("failed to write ClassID: %w", err)
 			}
+			n += len(field.classID)
 		}
 	}
 
-	return nil
+	return n, nil
 }
 
 type BlobFieldFmt struct{ fieldFmtBlob }
 
 type fieldData struct{ fieldDataBase }
 
-func (field *fieldData) ReadFrom(ch *channel) error {
+func (field *fieldData) ReadFrom(ch *channel) (int, error) {
 	return field.readFrom(ch)
 }
 
-func (field fieldData) WriteTo(ch *channel) error {
+func (field fieldData) WriteTo(ch *channel) (int, error) {
 	return field.writeTo(ch)
 }
 
@@ -592,17 +677,22 @@ type fieldDataBlob struct {
 
 const fieldDataBlobHighBit uint32 = 0x80000000
 
-func (field *fieldDataBlob) ReadFrom(ch *channel) error {
-	fieldFmt := field.fmt.(*BlobFieldFmt)
+func (field *fieldDataBlob) ReadFrom(ch *channel) (int, error) {
+	fieldFmt, ok := field.fmt.(*BlobFieldFmt)
+	if !ok {
+		return 0, fmt.Errorf("field.fmt is not of type BlobFieldfmt")
+	}
 
-	if err := field.readFromStatus(ch); err != nil {
-		return err
+	n, err := field.readFromStatus(ch)
+	if err != nil {
+		return n, err
 	}
 
 	serialization, err := ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read serialization type: %w", err)
+		return n, fmt.Errorf("failed to read serialization type: %w", err)
 	}
+	n++
 
 	switch serialization {
 	case 0:
@@ -618,51 +708,55 @@ func (field *fieldDataBlob) ReadFrom(ch *channel) error {
 		}
 	case 1:
 		if fieldFmt.blobType != TDS_BLOB_UNICHAR {
-			return fmt.Errorf("invalid blob (%s) and serialization (%d) type combination",
+			return n, fmt.Errorf("invalid blob (%s) and serialization (%d) type combination",
 				fieldFmt.blobType, serialization)
 		}
 		field.serializationType = UnicharUTF8
 	case 2:
 		if fieldFmt.blobType != TDS_BLOB_UNICHAR {
-			return fmt.Errorf("invalid blob (%s) and serialization (%d) type combination",
+			return n, fmt.Errorf("invalid blob (%s) and serialization (%d) type combination",
 				fieldFmt.blobType, serialization)
 		}
 		field.serializationType = UnicharSCSU
 	default:
-		return fmt.Errorf("unhandled serialization type %d", serialization)
+		return n, fmt.Errorf("unhandled serialization type %d", serialization)
 	}
 
 	switch fieldFmt.blobType {
 	case TDS_BLOB_FULLCLASSNAME, TDS_BLOB_DBID_CLASSDEF:
 		subClassIdLength, err := ch.Uint16()
 		if err != nil {
-			return fmt.Errorf("failed to read SubClassID length: %w", err)
+			return n, fmt.Errorf("failed to read SubClassID length: %w", err)
 		}
+		n += 2
 
 		if subClassIdLength > 0 {
 			field.subClassID, err = ch.String(int(subClassIdLength))
 			if err != nil {
-				return fmt.Errorf("failed to read SubClassID: %w", err)
+				return n, fmt.Errorf("failed to read SubClassID: %w", err)
 			}
+			n += int(subClassIdLength)
 		}
 	case TDS_LOBLOC_CHAR, TDS_LOBLOC_BINARY, TDS_LOBLOC_UNICHAR:
 		locatorLength, err := ch.Uint16()
 		if err != nil {
-			return fmt.Errorf("failed to read locator length: %w", err)
+			return n, fmt.Errorf("failed to read locator length: %w", err)
 		}
+		n += 2
 
 		field.locator, err = ch.String(int(locatorLength))
 		if err != nil {
-			return fmt.Errorf("failed to read locator: %w", err)
+			return n, fmt.Errorf("failed to read locator: %w", err)
 		}
-	default:
+		n += int(locatorLength)
 	}
 
 	for {
 		dataLen, err := ch.Uint32()
 		if err != nil {
-			return fmt.Errorf("failed to read data length: %w", err)
+			return n, fmt.Errorf("failed to read data length: %w", err)
 		}
+		n += 4
 
 		// extract high bit:
 		// 0 -> last data set
@@ -672,14 +766,19 @@ func (field *fieldDataBlob) ReadFrom(ch *channel) error {
 
 		// if high bit is set and dataLen is zero no data array follows,
 		// instead read the next data length immediately
-		if highBitSet && dataLen == 0 {
+		if highBitSet {
 			break
+		}
+
+		if dataLen == 0 {
+			continue
 		}
 
 		data, err := ch.Bytes(int(dataLen))
 		if err != nil {
-			return fmt.Errorf("failed to read data array: %w", err)
+			return n, fmt.Errorf("failed to read data array: %w", err)
 		}
+		n += int(dataLen)
 
 		// TODO this is inefficient for large datasets - must be
 		// replaced by a low-overhead extensible byte storage (so - not
@@ -687,14 +786,18 @@ func (field *fieldDataBlob) ReadFrom(ch *channel) error {
 		field.data = append(field.data, data...)
 	}
 
-	return nil
+	return n, nil
 }
 
-func (field fieldDataBlob) Writeto(ch *channel) error {
-	fieldFmt := field.fmt.(*BlobFieldFmt)
+func (field fieldDataBlob) Writeto(ch *channel) (int, error) {
+	fieldFmt, ok := field.fmt.(*BlobFieldFmt)
+	if !ok {
+		return 0, fmt.Errorf("field.fmt is not of type BlobFieldFmt")
+	}
 
-	if err := field.writeToStatus(ch); err != nil {
-		return err
+	n, err := field.writeToStatus(ch)
+	if err != nil {
+		return n, err
 	}
 
 	var serialization uint8
@@ -707,31 +810,31 @@ func (field fieldDataBlob) Writeto(ch *channel) error {
 		serialization = 2
 	}
 	if err := ch.WriteUint8(serialization); err != nil {
-		return fmt.Errorf("failed to write SerializationType: %w", err)
+		return n, fmt.Errorf("failed to write SerializationType: %w", err)
 	}
+	n++
 
 	switch fieldFmt.blobType {
 	case TDS_BLOB_FULLCLASSNAME, TDS_BLOB_DBID_CLASSDEF:
 		if err := ch.WriteUint16(uint16(len(field.subClassID))); err != nil {
-			return fmt.Errorf("failed to write SubClassID length: %w", err)
+			return n, fmt.Errorf("failed to write SubClassID length: %w", err)
 		}
+		n += 2
 
-		if len(field.subClassID) > 0 {
-			if err := ch.WriteString(field.subClassID); err != nil {
-				return fmt.Errorf("failed to write SubClassID: %w", err)
-			}
+		if err := ch.WriteString(field.subClassID); err != nil {
+			return n, fmt.Errorf("failed to write SubClassID: %w", err)
 		}
+		n += len(field.subClassID)
 	case TDS_LOBLOC_CHAR, TDS_LOBLOC_BINARY, TDS_LOBLOC_UNICHAR:
 		if err := ch.WriteUint16(uint16(len(field.locator))); err != nil {
-			return fmt.Errorf("failed to write Locator length: %w", err)
+			return n, fmt.Errorf("failed to write Locator length: %w", err)
 		}
+		n += 2
 
-		if len(field.locator) > 0 {
-			if err := ch.WriteString(field.locator); err != nil {
-				return fmt.Errorf("failed to write Locator: %w", err)
-			}
+		if err := ch.WriteString(field.locator); err != nil {
+			return n, fmt.Errorf("failed to write Locator: %w", err)
 		}
-	default:
+		n += len(field.locator)
 	}
 
 	dataLen := 1024
@@ -747,12 +850,14 @@ func (field fieldDataBlob) Writeto(ch *channel) error {
 		}
 
 		if err := ch.WriteUint32(uint32(passLen)); err != nil {
-			return fmt.Errorf("failed to write data chunk length: %w", err)
+			return n, fmt.Errorf("failed to write data chunk length: %w", err)
 		}
+		n += 4
 
 		if err := ch.WriteBytes(field.data[start:end]); err != nil {
-			return fmt.Errorf("failed to write %d bytes of data: %w", dataLen, err)
+			return n, fmt.Errorf("failed to write %d bytes of data: %w", dataLen, err)
 		}
+		n += end - start
 
 		if end == len(field.data) {
 			break
@@ -762,7 +867,7 @@ func (field fieldDataBlob) Writeto(ch *channel) error {
 		end += dataLen
 	}
 
-	return nil
+	return n, nil
 }
 
 type BlobFieldData struct{ fieldDataBlob }
@@ -777,40 +882,44 @@ func (field fieldFmtTxtPtr) FormatByteLength() int {
 	return 1 + len(field.tableName) + field.lengthBytes
 }
 
-func (field *fieldFmtTxtPtr) ReadFrom(ch *channel) error {
-	if err := field.readFromBase(ch); err != nil {
-		return err
+func (field *fieldFmtTxtPtr) ReadFrom(ch *channel) (int, error) {
+	n, err := field.readFromBase(ch)
+	if err != nil {
+		return n, err
 	}
 
 	nameLength, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read name length: %w", err)
+		return n, fmt.Errorf("failed to read name length: %w", err)
 	}
+	n += 2
 
 	field.name, err = ch.String(int(nameLength))
 	if err != nil {
-		return fmt.Errorf("failed to read name: %w", err)
+		return n, fmt.Errorf("failed to read name: %w", err)
 	}
+	n += int(nameLength)
 
-	return nil
+	return n, nil
 }
 
-func (field fieldFmtTxtPtr) WriteTo(ch *channel) error {
-	if err := field.writeToBase(ch); err != nil {
-		return err
+func (field fieldFmtTxtPtr) WriteTo(ch *channel) (int, error) {
+	n, err := field.writeToBase(ch)
+	if err != nil {
+		return n, err
 	}
 
 	if err := ch.WriteUint16(uint16(len(field.name))); err != nil {
-		return fmt.Errorf("failed to write Name length: %w", err)
+		return n, fmt.Errorf("failed to write Name length: %w", err)
 	}
+	n += 2
 
-	if len(field.name) > 0 {
-		if err := ch.WriteString(field.name); err != nil {
-			return fmt.Errorf("failed to write Name: %w", err)
-		}
+	if err := ch.WriteString(field.name); err != nil {
+		return n, fmt.Errorf("failed to write Name: %w", err)
 	}
+	n += len(field.name)
 
-	return nil
+	return n, nil
 }
 
 type ImageFieldFmt struct{ fieldFmtTxtPtr }
@@ -825,66 +934,77 @@ type fieldDataTxtPtr struct {
 	timeStamp []byte
 }
 
-func (field *fieldDataTxtPtr) ReadFrom(ch *channel) error {
-	err := field.readFromStatus(ch)
+func (field *fieldDataTxtPtr) ReadFrom(ch *channel) (int, error) {
+	n, err := field.readFromStatus(ch)
 	if err != nil {
-		return err
+		return n, err
 	}
 
 	txtPtrLen, err := ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read TxtPtrLen: %w", err)
+		return n, fmt.Errorf("failed to read TxtPtrLen: %w", err)
 	}
+	n++
 
 	field.txtPtr, err = ch.Bytes(int(txtPtrLen))
 	if err != nil {
-		return fmt.Errorf("failed to read TxtPtr: %w", err)
+		return n, fmt.Errorf("failed to read TxtPtr: %w", err)
 	}
+	n += int(txtPtrLen)
 
 	field.timeStamp, err = ch.Bytes(8)
 	if err != nil {
-		return fmt.Errorf("failed to read TimeStamp: %w", err)
+		return n, fmt.Errorf("failed to read TimeStamp: %w", err)
 	}
+	n += 8
 
 	dataLen, err := ch.Uint32()
 	if err != nil {
-		return fmt.Errorf("failed to read data length: %w", err)
+		return n, fmt.Errorf("failed to read data length: %w", err)
 	}
+	n += 4
 
 	field.data, err = ch.Bytes(int(dataLen))
 	if err != nil {
-		return fmt.Errorf("failed to read data: %w", err)
+		return n, fmt.Errorf("failed to read data: %w", err)
 	}
+	n += int(dataLen)
 
-	return nil
+	return n, nil
 }
 
-func (field fieldDataTxtPtr) WriteTo(ch *channel) error {
-	if err := field.writeToStatus(ch); err != nil {
-		return err
+func (field fieldDataTxtPtr) WriteTo(ch *channel) (int, error) {
+	n, err := field.writeToStatus(ch)
+	if err != nil {
+		return n, err
 	}
 
 	if err := ch.WriteUint8(uint8(len(field.txtPtr))); err != nil {
-		return fmt.Errorf("failed to write TxtPtr length: %w", err)
+		return n, fmt.Errorf("failed to write TxtPtr length: %w", err)
 	}
+	n++
 
 	if err := ch.WriteBytes(field.txtPtr); err != nil {
-		return fmt.Errorf("failed to write TxtPtr: %w", err)
+		return n, fmt.Errorf("failed to write TxtPtr: %w", err)
 	}
+	n += len(field.txtPtr)
 
 	if err := ch.WriteBytes(field.timeStamp); err != nil {
-		return fmt.Errorf("failed to write TimeStamp: %w", err)
+		return n, fmt.Errorf("failed to write TimeStamp: %w", err)
 	}
+	n += len(field.timeStamp)
 
 	if err := ch.WriteUint32(uint32(len(field.data))); err != nil {
-		return fmt.Errorf("failed to write Data length: %w", err)
+		return n, fmt.Errorf("failed to write Data length: %w", err)
 	}
+	n += 4
 
 	if err := ch.WriteBytes(field.data); err != nil {
-		return fmt.Errorf("failed to write Data: %w", err)
+		return n, fmt.Errorf("failed to write Data: %w", err)
 	}
+	n += len(field.data)
 
-	return nil
+	return n, nil
 }
 
 type ImageFieldData struct{ fieldDataTxtPtr }
@@ -953,92 +1073,110 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	case TDS_BIT:
 		v := &BitFieldFmt{}
 		v.dataType = dataType
-		v.length = 1
+		v.isFixedLength = true
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_DATETIME:
 		v := &DateTimeFieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_DATE:
 		v := &DateFieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_SHORTDATE:
 		v := &ShortDateFieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_FLT4:
 		v := &Flt4FieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_FLT8:
 		v := &Flt8FieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_INT1:
 		v := &Int1FieldFmt{}
 		v.dataType = dataType
-		v.length = 1
+		v.isFixedLength = true
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_INT2:
 		v := &Int2FieldFmt{}
 		v.dataType = dataType
-		v.length = 2
+		v.isFixedLength = true
+		v.lengthBytes = 2
 		return v, nil
 	case TDS_INT4:
 		v := &Int4FieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_INT8:
 		v := &Int8FieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_INTERVAL:
 		v := &IntervalFieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_SINT1:
 		v := &Sint1FieldFmt{}
 		v.dataType = dataType
-		v.length = 1
+		v.isFixedLength = true
+		v.lengthBytes = 1
 		return v, nil
 	case TDS_UINT2:
 		v := &Uint2FieldFmt{}
 		v.dataType = dataType
-		v.length = 2
+		v.isFixedLength = true
+		v.lengthBytes = 2
 		return v, nil
 	case TDS_UINT4:
 		v := &Uint4FieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_UINT8:
 		v := &Uint8FieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_MONEY:
 		v := &MoneyFieldFmt{}
 		v.dataType = dataType
-		v.length = 8
+		v.isFixedLength = true
+		v.lengthBytes = 8
 		return v, nil
 	case TDS_SHORTMONEY:
 		v := &ShortMoneyFieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_TIME:
 		v := &TimeFieldFmt{}
 		v.dataType = dataType
-		v.length = 4
+		v.isFixedLength = true
+		v.lengthBytes = 4
 		return v, nil
 	case TDS_BINARY:
 		v := &BinaryFieldFmt{}
@@ -1084,6 +1222,7 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 		v := &LongBinaryFieldFmt{}
 		v.dataType = dataType
 		v.lengthBytes = 4
+		v.maxLength = 2147483647
 		return v, nil
 	case TDS_LONGCHAR:
 		v := &LongCharFieldFmt{}
@@ -1114,6 +1253,7 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 		v := &VarCharFieldFmt{}
 		v.dataType = dataType
 		v.lengthBytes = 1
+		v.maxLength = 255
 		return v, nil
 	case TDS_DECN:
 		v := &DecNFieldFmt{}
@@ -1152,7 +1292,6 @@ func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
 	default:
 		return nil, fmt.Errorf("unhandled datatype '%s'", dataType)
 	}
-	return nil, fmt.Errorf("unhandled datatype '%s'", dataType)
 }
 
 /// LookupFieldData returns the FieldData for a given field format.
@@ -1327,8 +1466,8 @@ func LookupFieldData(fieldFmt FieldFmt) (FieldData, error) {
 		v.fmt = fieldFmt
 		return v, nil
 	default:
+		return nil, fmt.Errorf("unhandled datatype: '%s'", fieldFmt.DataType())
 	}
-	return nil, fmt.Errorf("unhandled datatype: '%s'", fieldFmt.DataType())
 }
 
 // LookupFieldFmtData returns both Fieldfmt and FieldData for a given
