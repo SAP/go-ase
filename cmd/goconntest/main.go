@@ -42,14 +42,22 @@ func main() {
 		return
 	}
 
-	log.Printf("Reading packet")
-	msg, err := c.Receive()
+	msg := tds.NewMessage()
+	langPkg := &tds.LanguagePackage{
+		Status: tds.TDS_LANGUAGE_NOARGS,
+		Cmd:    "sp_help",
+	}
+	msg.AddPackage(langPkg)
+
+	err = c.Send(*msg)
 	if err != nil {
-		log.Printf("Error reading packet: %v", err)
+		log.Printf("Sending language command failed: %v", err)
 		return
 	}
 
-	for i, pkg := range msg.Packages() {
-		fmt.Printf("%d: %s\n", i, pkg)
+	_, err = c.Receive()
+	if err != nil {
+		log.Printf("Receiving response to language command failed: %v", err)
+		return
 	}
 }
