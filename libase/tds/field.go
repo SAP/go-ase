@@ -13,6 +13,54 @@ package tds
 
 import "fmt"
 
+// Both Param- and RowFmtStatus are uints communicated using
+// TDS_PARAMFMT* and TDS_ROWFMT*. Depending on the token they have
+// slightly different meanings.
+//
+// fmtStatus is only used for legibility in the code when e.g. checking
+// for column status or if null types are allowed. The methods setting
+// and getting status convert it from and to fmtStatus.
+type fmtStatus uint
+
+const (
+	tdsFmtColumnStatus fmtStatus = 0x8
+	tdsFmtNullAllowed  fmtStatus = 0x20
+)
+
+//go:generate stringer -type=ParamFmtStatus
+type ParamFmtStatus uint
+
+const (
+	TDS_PARAM_NOSTATUS     ParamFmtStatus = 0x0
+	TDS_PARAM_RETURN       ParamFmtStatus = 0x1
+	TDS_PARAM_COLUMNSTATUS ParamFmtStatus = 0x8
+	TDS_PARAM_NULLALLOWED  ParamFmtStatus = 0x20
+)
+
+//go:generate stringer -type=RowFmtStatus
+type RowFmtStatus uint
+
+const (
+	TDS_ROW_NOSTATUS     RowFmtStatus = 0x0
+	TDS_ROW_HIDDEN       RowFmtStatus = 0x1
+	TDS_ROW_KEY          RowFmtStatus = 0x2
+	TDS_ROW_VERSION      RowFmtStatus = 0x4
+	TDS_ROW_COLUMNSTATUS RowFmtStatus = 0x8
+	TDS_ROW_UPDATEABLE   RowFmtStatus = 0x10
+	TDS_ROW_NULLALLOWED  RowFmtStatus = 0x20
+	TDS_ROW_IDENTITY     RowFmtStatus = 0x40
+	TDS_ROW_PADCHAR      RowFmtStatus = 0x80
+)
+
+type DataStatus uint
+
+const (
+	TDS_DATA_NONNULL           DataStatus = 0x0
+	TDS_DATA_NULL              DataStatus = 0x1
+	TDS_DATA_ZEROLENGTHNONNULL DataStatus = 0x2
+	TDS_DATA_RESERVED          DataStatus = 0xfc
+)
+
 // Interfaces
 
 type FieldFmt interface {
@@ -20,8 +68,9 @@ type FieldFmt interface {
 	DataType() DataType
 	SetName(string)
 	Name() string
-	SetStatus(DataFieldStatus)
-	Status() DataFieldStatus
+
+	SetStatus(uint)
+	Status() uint
 	SetUserType(int32)
 	UserType() int32
 	SetLocaleInfo(string)
@@ -54,7 +103,7 @@ type FieldData interface {
 type fieldFmtBase struct {
 	dataType   DataType
 	name       string
-	status     DataFieldStatus
+	status     fmtStatus
 	userType   int32
 	localeInfo string
 
@@ -82,6 +131,14 @@ func (field *fieldFmtBase) SetStatus(status DataFieldStatus) {
 
 func (field fieldFmtBase) Status() DataFieldStatus {
 	return field.status
+}
+
+func (field *fieldFmtBase) SetStatus(status uint) {
+	field.status = fmtStatus(status)
+}
+
+func (field fieldFmtBase) Status() uint {
+	return uint(field.status)
 }
 
 func (field *fieldFmtBase) SetUserType(userType int32) {
@@ -186,11 +243,11 @@ func (field fieldFmtBaseScale) writeToScale(ch *channel) error {
 
 type fieldDataBase struct {
 	fmt    FieldFmt
-	status DataFieldStatus
+	status DataStatus
 	data   []byte
 }
 
-func (field fieldDataBase) Status() DataFieldStatus {
+func (field fieldDataBase) Status() DataStatus {
 	return field.status
 }
 
@@ -207,7 +264,7 @@ func (field fieldDataBase) String() string {
 }
 
 func (field *fieldDataBase) readFromStatus(ch *channel) error {
-	if field.fmt.Status()&TDS_PARAM_COLUMNSTATUS != TDS_PARAM_COLUMNSTATUS {
+	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
 		return nil
 	}
 
@@ -215,12 +272,12 @@ func (field *fieldDataBase) readFromStatus(ch *channel) error {
 	if err != nil {
 		return fmt.Errorf("failed to read status: %w", err)
 	}
-	field.status = DataFieldStatus(status)
+	field.status = DataStatus(status)
 	return nil
 }
 
 func (field fieldDataBase) writeToStatus(ch *channel) error {
-	if field.fmt.Status()&TDS_PARAM_COLUMNSTATUS != TDS_PARAM_COLUMNSTATUS {
+	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
 		return nil
 	}
 
