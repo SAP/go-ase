@@ -81,5 +81,23 @@ func (pkg DonePackage) WriteTo(ch *channel) error {
 }
 
 func (pkg DonePackage) String() string {
-	return fmt.Sprintf("%s(%s)", pkg.status, pkg.tranState)
+	stati := deBitmask(int(pkg.status), int(TDS_DONE_CUMULATIVE))
+	strStati := ""
+	for i, status := range stati {
+		strStati += DoneState(status).String()
+		if i+1 != len(stati) {
+			strStati += "|"
+		}
+	}
+
+	transi := deBitmask(int(pkg.tranState), int(TDS_TRAN_STMT_FAIL))
+	strTransi := ""
+	for i, trans := range transi {
+		strTransi += TransState(trans).String()
+		if i+1 != len(transi) {
+			strTransi += "|"
+		}
+	}
+
+	return fmt.Sprintf("%T(%s, %s)", pkg, strStati, strTransi)
 }
