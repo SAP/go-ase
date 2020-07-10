@@ -38,6 +38,10 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &ParamFmtPackage{}, nil
 	case TDS_PARAMFMT2:
 		return &ParamFmtPackage{wide: true}, nil
+	case TDS_ROWFMT:
+		return &RowFmtPackage{}, nil
+	case TDS_ROWFMT2:
+		return &RowFmtPackage{wide: true}, nil
 	case TDS_PARAMS:
 		return &ParamsPackage{}, nil
 	case TDS_CAPABILITY:
