@@ -4,33 +4,64 @@ import (
 	"fmt"
 )
 
+var _ Package = (*ParamsPackage)(nil)
+var _ Package = (*RowPackage)(nil)
+
 type ParamsPackage struct {
-	paramFmt *ParamFmtPackage
-	Params   []FieldData
+	paramFmt   *ParamFmtPackage
+	rowFmt     *RowFmtPackage
+	DataFields []FieldData
 }
 
-func NewParamsPackage(params ...FieldData) *ParamsPackage {
+type RowPackage struct {
+	ParamsPackage
+}
+
+func NewParamsPackage(data ...FieldData) *ParamsPackage {
 	return &ParamsPackage{
-		Params: params,
+		DataFields: data,
 	}
 }
 
 func (pkg *ParamsPackage) LastPkg(other Package) error {
-	switch other.(type) {
+	switch otherPkg := other.(type) {
 	case *ParamFmtPackage:
-		pkg.paramFmt = other.(*ParamFmtPackage)
+		pkg.paramFmt = otherPkg
+	case *RowFmtPackage:
+		pkg.rowFmt = otherPkg
 	case *ParamsPackage:
-		pkg.paramFmt = other.(*ParamsPackage).paramFmt
+		pkg.paramFmt = otherPkg.paramFmt
+	case *RowPackage:
+		pkg.rowFmt = otherPkg.rowFmt
+	case *OrderByPackage:
+		pkg.rowFmt = otherPkg.rowFmt
+	case *OrderBy2Package:
+		pkg.rowFmt = otherPkg.rowFmt
 	default:
-		return fmt.Errorf("TDS_PARAMS received without preceeding TDS_PARAMFMT")
+		return fmt.Errorf("TDS_PARAMS or TDS_ROW received without preceding TDS_PARAMFMT/2 or TDS_ROWFMT")
 	}
 
-	pkg.Params = make([]FieldData, len(pkg.paramFmt.Params))
+	if pkg.DataFields != nil {
+		// pkg.Datafiels has already been filled - this package was
+		// created by the client and is being added to the message.
+		return nil
+	}
+
+	var fieldFmts []FieldFmt
+	if pkg.paramFmt != nil {
+		fieldFmts = pkg.paramFmt.Fmts
+	} else if pkg.rowFmt != nil {
+		fieldFmts = pkg.rowFmt.Fmts
+	} else {
+		return fmt.Errorf("both paramFmt and rowFmt are nil")
+	}
+
+	pkg.DataFields = make([]FieldData, len(fieldFmts))
 
 	// Make copies of the formats to store data in
 	var err error
-	for i, paramFmt := range pkg.paramFmt.Params {
-		pkg.Params[i], err = LookupFieldData(paramFmt)
+	for i, field := range fieldFmts {
+		pkg.DataFields[i], err = LookupFieldData(field)
 		if err != nil {
 			return fmt.Errorf("error copying field: %w", err)
 		}
@@ -41,8 +72,9 @@ func (pkg *ParamsPackage) LastPkg(other Package) error {
 
 func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 
-	for i, param := range pkg.Params {
-		err := param.ReadFrom(ch)
+	for i, field := range pkg.DataFields {
+		// TODO can the written byte count be validated?
+		_, err := field.ReadFrom(ch)
 		if err != nil {
 			return fmt.Errorf("error occurred reading param field %d data: %w", i, err)
 		}
@@ -52,13 +84,22 @@ func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg ParamsPackage) WriteTo(ch *channel) error {
-	err := ch.WriteByte(byte(TDS_PARAMS))
-	if err != nil {
-		return fmt.Errorf("error ocurred writing TDS token %s: %w", TDS_PARAMS, err)
+	var token TDSToken
+	if pkg.paramFmt != nil {
+		token = TDS_PARAMS
+	} else if pkg.rowFmt != nil {
+		token = TDS_ROW
+	} else {
+		return fmt.Errorf("both paramFmt and rowFmt are nil")
 	}
 
-	for i, param := range pkg.Params {
-		if err := param.WriteTo(ch); err != nil {
+	err := ch.WriteByte(byte(token))
+	if err != nil {
+		return fmt.Errorf("error ocurred writing TDS token %s: %w", token, err)
+	}
+
+	for i, field := range pkg.DataFields {
+		if _, err := field.WriteTo(ch); err != nil {
 			return fmt.Errorf("error occurred writing param field %d data: %w", i, err)
 		}
 	}
@@ -70,11 +111,11 @@ func (pkg ParamsPackage) String() string {
 }
 
 func (pkg ParamsPackage) MultiString() []string {
-	ret := make([]string, (len(pkg.Params) * 2))
+	ret := make([]string, (len(pkg.DataFields) * 2))
 	n := 0
-	for _, param := range pkg.Params {
-		ret[n] = fmt.Sprintf("%#v", param)
-		ret[n+1] = fmt.Sprintf("  String: %s", param)
+	for _, field := range pkg.DataFields {
+		ret[n] = fmt.Sprintf("%#v", field)
+		ret[n+1] = fmt.Sprintf("  String: %s", field)
 		n += 2
 	}
 	return ret

@@ -44,6 +44,8 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &RowFmtPackage{wide: true}, nil
 	case TDS_PARAMS:
 		return &ParamsPackage{}, nil
+	case TDS_ROW:
+		return &RowPackage{}, nil
 	case TDS_CAPABILITY:
 		return NewCapabilityPackage(nil, nil, nil)
 	case TDS_ENVCHANGE:
