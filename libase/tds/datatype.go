@@ -46,13 +46,14 @@ const (
 	TDS_BIGTIMEN     DataType = 0xBC
 	TDS_INT8         DataType = 0xBF
 	TDS_LONGBINARY   DataType = 0xE1
+
 	// Missing in tdspublic.h
 	TDS_INTERVAL  DataType = 0x2e
 	TDS_SINT1     DataType = 0xb0
 	TDS_DATETIMEN DataType = 0x6f
 
 	// TDS usertypes.
-	TDS_USER_TEXT    DataType = 19
-	TDS_USER_IMAGE   DataType = 20
-	TDS_USER_UNITEXT DataType = 36
+	TDS_USER_TEXT    DataType = 0x19
+	TDS_USER_IMAGE   DataType = 0x20
+	TDS_USER_UNITEXT DataType = 0x36
 )

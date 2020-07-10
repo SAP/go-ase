@@ -52,17 +52,17 @@ func _() {
 	_ = x[TDS_INTERVAL-46]
 	_ = x[TDS_SINT1-176]
 	_ = x[TDS_DATETIMEN-111]
-	_ = x[TDS_USER_TEXT-19]
-	_ = x[TDS_USER_IMAGE-20]
-	_ = x[TDS_USER_UNITEXT-36]
+	_ = x[TDS_USER_TEXT-25]
+	_ = x[TDS_USER_IMAGE-32]
+	_ = x[TDS_USER_UNITEXT-54]
 }
 
-const _DataType_name = "TDS_USER_TEXTTDS_USER_IMAGETDS_VOIDTDS_IMAGETDS_TEXTTDS_BLOBTDS_VARBINARYTDS_INTNTDS_VARCHARTDS_BINARYTDS_INTERVALTDS_CHARTDS_INT1TDS_DATETDS_BITTDS_TIMETDS_INT2TDS_INT4TDS_SHORTDATETDS_FLT4TDS_MONEYTDS_DATETIMETDS_FLT8TDS_UINT2TDS_UINT4TDS_UINT8TDS_UINTNTDS_SENSITIVITYTDS_BOUNDARYTDS_DECNTDS_NUMNTDS_FLTNTDS_MONEYNTDS_DATETIMNTDS_SHORTMONEYTDS_DATENTDS_TIMENTDS_XMLTDS_UNITEXTTDS_LONGCHARTDS_SINT1TDS_BIGDATETIMENTDS_BIGTIMENTDS_INT8TDS_LONGBINARY"
+const _DataType_name = "TDS_USER_TEXTTDS_VOIDTDS_USER_IMAGETDS_IMAGETDS_TEXTTDS_BLOBTDS_VARBINARYTDS_INTNTDS_VARCHARTDS_BINARYTDS_INTERVALTDS_CHARTDS_INT1TDS_DATETDS_BITTDS_TIMETDS_INT2TDS_USER_UNITEXTTDS_INT4TDS_SHORTDATETDS_FLT4TDS_MONEYTDS_DATETIMETDS_FLT8TDS_UINT2TDS_UINT4TDS_UINT8TDS_UINTNTDS_SENSITIVITYTDS_BOUNDARYTDS_DECNTDS_NUMNTDS_FLTNTDS_MONEYNTDS_DATETIMNTDS_SHORTMONEYTDS_DATENTDS_TIMENTDS_XMLTDS_UNITEXTTDS_LONGCHARTDS_SINT1TDS_BIGDATETIMENTDS_BIGTIMENTDS_INT8TDS_LONGBINARY"
 
 var _DataType_map = map[DataType]string{
-	19:  _DataType_name[0:13],
-	20:  _DataType_name[13:27],
-	31:  _DataType_name[27:35],
+	25:  _DataType_name[0:13],
+	31:  _DataType_name[13:21],
+	32:  _DataType_name[21:35],
 	34:  _DataType_name[35:44],
 	35:  _DataType_name[44:52],
 	36:  _DataType_name[52:60],
@@ -77,34 +77,35 @@ var _DataType_map = map[DataType]string{
 	50:  _DataType_name[138:145],
 	51:  _DataType_name[145:153],
 	52:  _DataType_name[153:161],
-	56:  _DataType_name[161:169],
-	58:  _DataType_name[169:182],
-	59:  _DataType_name[182:190],
-	60:  _DataType_name[190:199],
-	61:  _DataType_name[199:211],
-	62:  _DataType_name[211:219],
-	65:  _DataType_name[219:228],
-	66:  _DataType_name[228:237],
-	67:  _DataType_name[237:246],
-	68:  _DataType_name[246:255],
-	103: _DataType_name[255:270],
-	104: _DataType_name[270:282],
-	106: _DataType_name[282:290],
-	108: _DataType_name[290:298],
-	109: _DataType_name[298:306],
-	110: _DataType_name[306:316],
-	111: _DataType_name[316:328],
-	122: _DataType_name[328:342],
-	123: _DataType_name[342:351],
-	147: _DataType_name[351:360],
-	163: _DataType_name[360:367],
-	174: _DataType_name[367:378],
-	175: _DataType_name[378:390],
-	176: _DataType_name[390:399],
-	187: _DataType_name[399:415],
-	188: _DataType_name[415:427],
-	191: _DataType_name[427:435],
-	225: _DataType_name[435:449],
+	54:  _DataType_name[161:177],
+	56:  _DataType_name[177:185],
+	58:  _DataType_name[185:198],
+	59:  _DataType_name[198:206],
+	60:  _DataType_name[206:215],
+	61:  _DataType_name[215:227],
+	62:  _DataType_name[227:235],
+	65:  _DataType_name[235:244],
+	66:  _DataType_name[244:253],
+	67:  _DataType_name[253:262],
+	68:  _DataType_name[262:271],
+	103: _DataType_name[271:286],
+	104: _DataType_name[286:298],
+	106: _DataType_name[298:306],
+	108: _DataType_name[306:314],
+	109: _DataType_name[314:322],
+	110: _DataType_name[322:332],
+	111: _DataType_name[332:344],
+	122: _DataType_name[344:358],
+	123: _DataType_name[358:367],
+	147: _DataType_name[367:376],
+	163: _DataType_name[376:383],
+	174: _DataType_name[383:394],
+	175: _DataType_name[394:406],
+	176: _DataType_name[406:415],
+	187: _DataType_name[415:431],
+	188: _DataType_name[431:443],
+	191: _DataType_name[443:451],
+	225: _DataType_name[451:465],
 }
 
 func (i DataType) String() string {
