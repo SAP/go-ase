@@ -34,6 +34,9 @@ type DonePackage struct {
 	count     int32
 }
 
+type DoneProcPackage struct{ DonePackage }
+type DoneInProcPackage struct{ DonePackage }
+
 func (pkg *DonePackage) ReadFrom(ch *channel) error {
 	status, err := ch.Uint16()
 	if err != nil {

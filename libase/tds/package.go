@@ -28,6 +28,10 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &LoginAckPackage{}, nil
 	case TDS_DONE:
 		return &DonePackage{}, nil
+	case TDS_DONEPROC:
+		return &DoneProcPackage{}, nil
+	case TDS_DONEINPROC:
+		return &DoneInProcPackage{}, nil
 	case TDS_MSG:
 		return &MsgPackage{}, nil
 	case TDS_PARAMFMT:
