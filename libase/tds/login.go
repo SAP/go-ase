@@ -34,7 +34,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		config.RemoteServers = append([]LoginConfigRemoteServer{firstRemoteServer}, config.RemoteServers...)
 	}
 
-	loginMsg := Message{}
+	loginMsg := NewMessage()
 	loginMsg.headerType = TDS_BUF_LOGIN
 
 	pack, err := config.pack()
@@ -46,7 +46,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	loginMsg.AddPackage(tdsconn.caps)
 
 	log.Printf("Sending login payload")
-	err = tdsconn.Send(loginMsg)
+	err = tdsconn.Send(*loginMsg)
 	if err != nil {
 		return fmt.Errorf("failed to sent login payload: %w", err)
 	}
