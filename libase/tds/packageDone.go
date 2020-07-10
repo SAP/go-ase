@@ -47,11 +47,9 @@ func (pkg *DonePackage) ReadFrom(ch *channel) error {
 	}
 	pkg.tranState = TransState(tranState)
 
-	if pkg.status|TDS_DONE_COUNT == TDS_DONE_COUNT {
-		pkg.count, err = ch.Int32()
-		if err != nil {
-			return fmt.Errorf("failed to read done count: %w", err)
-		}
+	pkg.count, err = ch.Int32()
+	if err != nil {
+		return fmt.Errorf("failed to read done count: %w", err)
 	}
 
 	return nil
