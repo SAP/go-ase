@@ -180,7 +180,7 @@ type MultiStringer interface {
 }
 
 func (tds *TDSConn) Receive() (*Message, error) {
-	msg := &Message{}
+	msg := NewMessage()
 
 	err := msg.ReadFrom(tds.conn)
 
