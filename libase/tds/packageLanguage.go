@@ -37,8 +37,13 @@ func (pkg *LanguagePackage) ReadFrom(ch *channel) error {
 }
 
 func (pkg *LanguagePackage) WriteTo(ch *channel) error {
+	err := ch.WriteByte(byte(TDS_LANGUAGE))
+	if err != nil {
+		return fmt.Errorf("failed to write TDS token %s: %w", TDS_LANGUAGE, err)
+	}
+
 	length := 1 + len(pkg.Cmd)
-	err := ch.WriteUint32(uint32(length))
+	err = ch.WriteUint32(uint32(length))
 	if err != nil {
 		return fmt.Errorf("failed to write length: %w", err)
 	}
