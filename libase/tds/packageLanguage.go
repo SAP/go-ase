@@ -7,8 +7,8 @@ type LanguageStatus int
 
 const (
 	TDS_LANGUAGE_NOARGS   LanguageStatus = 0x0
-	TDS_LANGUAGE_HASARGS                 = 0x1
-	TDS_LANG_BATCH_PARAMS                = 0x04
+	TDS_LANGUAGE_HASARGS  LanguageStatus = 0x1
+	TDS_LANG_BATCH_PARAMS LanguageStatus = 0x04
 )
 
 type LanguagePackage struct {

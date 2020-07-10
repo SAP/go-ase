@@ -9,15 +9,26 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[TDS_LANGUAGE_NOARGS-0]
+	_ = x[TDS_LANGUAGE_HASARGS-1]
+	_ = x[TDS_LANG_BATCH_PARAMS-4]
 }
 
-const _LanguageStatus_name = "TDS_LANGUAGE_NOARGS"
+const (
+	_LanguageStatus_name_0 = "TDS_LANGUAGE_NOARGSTDS_LANGUAGE_HASARGS"
+	_LanguageStatus_name_1 = "TDS_LANG_BATCH_PARAMS"
+)
 
-var _LanguageStatus_index = [...]uint8{0, 19}
+var (
+	_LanguageStatus_index_0 = [...]uint8{0, 19, 39}
+)
 
 func (i LanguageStatus) String() string {
-	if i < 0 || i >= LanguageStatus(len(_LanguageStatus_index)-1) {
+	switch {
+	case 0 <= i && i <= 1:
+		return _LanguageStatus_name_0[_LanguageStatus_index_0[i]:_LanguageStatus_index_0[i+1]]
+	case i == 4:
+		return _LanguageStatus_name_1
+	default:
 		return "LanguageStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _LanguageStatus_name[_LanguageStatus_index[i]:_LanguageStatus_index[i+1]]
 }
