@@ -51,9 +51,9 @@ func (tds *TDSConn) setCapabilities() error {
 			// Support bulk copy
 			// TODO: TDS_REQ_BCP,
 			// Support cursors requests
-			TDS_REQ_CURSOR,
+			// TODO: TDS_REQ_CURSOR,
 			// Support dynamic SQL
-			TDS_REQ_DYNF,
+			// TODO: TDS_REQ_DYNF,
 			// Support MSG requests
 			TDS_REQ_MSG,
 			// RPC will use TDS_DBRPC and TDS_PARAMFMT / TDS_PARAM
