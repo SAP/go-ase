@@ -232,7 +232,8 @@ func (msg Message) writeToPackets(errCh chan error, byteCh *channel, packetCh ch
 
 		packetCh <- packet
 
-		if errors.Is(err, io.EOF) {
+		// Exit if the header signal end of message
+		if packet.Header.Status&TDS_BUFSTAT_EOM == TDS_BUFSTAT_EOM {
 			return
 		}
 	}
