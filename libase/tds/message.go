@@ -7,6 +7,10 @@ import (
 	"io"
 )
 
+type LastPkgAcceptor interface {
+	LastPkg(Package) error
+}
+
 type Message struct {
 	headerType MessageHeaderType
 	packages   []Package
@@ -21,6 +25,9 @@ func (msg Message) Packages() []Package {
 }
 
 func (msg *Message) AddPackage(pack Package) {
+	if acceptor, ok := pack.(LastPkgAcceptor); ok {
+		acceptor.LastPkg(msg.packages[len(msg.packages)-1])
+	}
 	msg.packages = append(msg.packages, pack)
 }
 
@@ -92,10 +99,6 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 			return
 		}
 	}
-}
-
-type LastPkgAcceptor interface {
-	LastPkg(Package) error
 }
 
 func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byteCh *channel, packageCh chan Package) {
