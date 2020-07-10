@@ -74,7 +74,7 @@ func (pkg EnvChangePackage) WriteTo(ch *channel) error {
 }
 
 func (pkg EnvChangePackage) String() string {
-	s := "TDS_ENVCHANGE("
+	s := fmt.Sprintf("%T(", pkg)
 
 	for _, member := range pkg.members {
 		s += fmt.Sprintf("%s(%s -> %s)", member.Type, member.OldValue, member.NewValue)

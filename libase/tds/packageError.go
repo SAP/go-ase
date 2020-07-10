@@ -131,5 +131,5 @@ func (pkg ErrorPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg ErrorPackage) String() string {
-	return fmt.Sprintf("%d: %s", pkg.ErrorNumber, pkg.ErrorMsg)
+	return fmt.Sprintf("%T(%d: %s)", pkg, pkg.ErrorNumber, pkg.ErrorMsg)
 }

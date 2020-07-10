@@ -104,5 +104,5 @@ func (pkg LoginAckPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg LoginAckPackage) String() string {
-	return fmt.Sprintf("%s", pkg.Status)
+	return fmt.Sprintf("%T(%s)", pkg, pkg.Status)
 }

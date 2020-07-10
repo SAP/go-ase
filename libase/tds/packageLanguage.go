@@ -57,5 +57,5 @@ func (pkg *LanguagePackage) WriteTo(ch *channel) error {
 }
 
 func (pkg LanguagePackage) String() string {
-	return fmt.Sprintf("Language(%s): %s", pkg.Status, pkg.Cmd)
+	return fmt.Sprintf("%T(%s): %s", pkg, pkg.Status, pkg.Cmd)
 }

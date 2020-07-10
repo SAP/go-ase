@@ -195,5 +195,5 @@ func (pkg EEDPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg EEDPackage) String() string {
-	return fmt.Sprintf("%d: %s", pkg.MsgNumber, pkg.Msg)
+	return fmt.Sprintf("%T(%d: %s)", pkg, pkg.MsgNumber, pkg.Msg)
 }

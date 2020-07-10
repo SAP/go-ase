@@ -207,15 +207,14 @@ func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 	return nil
 }
 
-// TODO reconsider returning all params
 func (pkg ParamFmtPackage) String() string {
-	name := "PARAMFMT"
+	wide := "nowide"
 	if pkg.wide {
-		name = "PARAMFMT2"
+		wide = "wide"
 	}
-	s := fmt.Sprintf("%s(%d): |", name, len(pkg.Params))
-	for _, param := range pkg.Params {
-		s += fmt.Sprintf(" %s |", param.DataType())
+	s := fmt.Sprintf("%T(%s, %d): |", pkg, wide, len(pkg.Fmts))
+	for _, field := range pkg.Fmts {
+		s += fmt.Sprintf(" %s |", field.DataType())
 	}
 	return s
 }

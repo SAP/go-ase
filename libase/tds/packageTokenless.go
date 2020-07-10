@@ -25,5 +25,5 @@ func (pkg TokenlessPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg TokenlessPackage) String() string {
-	return fmt.Sprintf("Tokenless(possibleToken=%x) %#v", pkg.Data.Bytes()[0], pkg)
+	return fmt.Sprintf("%T(possibleToken=%x) %#v", pkg, pkg.Data.Bytes()[0], pkg)
 }

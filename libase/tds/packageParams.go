@@ -66,7 +66,7 @@ func (pkg ParamsPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg ParamsPackage) String() string {
-	return fmt.Sprintf("PARAMS(%d): ", len(pkg.Params))
+	return fmt.Sprintf("%T(%d): ", pkg, len(pkg.DataFields))
 }
 
 func (pkg ParamsPackage) MultiString() []string {

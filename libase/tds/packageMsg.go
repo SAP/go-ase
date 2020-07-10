@@ -117,5 +117,5 @@ func (pkg MsgPackage) WriteTo(ch *channel) error {
 }
 
 func (pkg MsgPackage) String() string {
-	return fmt.Sprintf("TDS_MSG(%s, %s)", pkg.Status, pkg.MsgId)
+	return fmt.Sprintf("%T(%s, %s)", pkg, pkg.Status, pkg.MsgId)
 }
