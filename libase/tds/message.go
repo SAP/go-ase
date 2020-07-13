@@ -114,9 +114,6 @@ func (msg *Message) readFromPackages(ctx context.Context, errCh chan error, byte
 
 		tokenByte, err := byteCh.Byte()
 		if err != nil {
-			if errors.Is(err, ErrChannelExhausted) {
-				continue
-			}
 			if errors.Is(err, io.EOF) {
 				return
 			}

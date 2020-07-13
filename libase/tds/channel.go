@@ -5,10 +5,6 @@ import (
 	"io"
 )
 
-var (
-	ErrChannelExhausted = errors.New("channel is exhausted")
-)
-
 // channel is used to abstract the conversion of data types away from
 // the package read/write methods.
 type channel struct {
@@ -42,7 +38,7 @@ func (ch *channel) Read(p []byte) (int, error) {
 	for i := range p {
 		p[i], err = ch.Byte()
 		if err != nil {
-			if err == io.EOF || err == ErrChannelExhausted {
+			if errors.Is(err, io.EOF) {
 				return i, io.EOF
 			}
 			return i, err
