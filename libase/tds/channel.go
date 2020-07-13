@@ -9,6 +9,8 @@ var (
 	ErrChannelExhausted = errors.New("channel is exhausted")
 )
 
+// channel is used to abstract the conversion of data types away from
+// the package read/write methods.
 type channel struct {
 	ch     chan byte
 	closed bool
@@ -59,8 +61,12 @@ func (ch *channel) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Read
+// Read methods
 
+// Bytes returns at most n bytes as a slice.
+//
+// If the channel is closed before n bytes could be read Bytes will
+// return a slice of length n with an io.EOF.
 func (ch *channel) Bytes(n int) ([]byte, error) {
 	if n == 0 {
 		return []byte{}, nil
@@ -136,8 +142,12 @@ func (ch *channel) String(size int) (string, error) {
 	return string(bs), err
 }
 
-// Write
+// Write methods
 
+// WriteBytes writes a slice of bytes.
+//
+// An error is only returned if the channel is marked as closed when
+// starting to pass bytes to the underlying channel.
 func (ch *channel) WriteBytes(bs []byte) error {
 	if ch.closed {
 		return io.EOF
