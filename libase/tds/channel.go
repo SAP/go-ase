@@ -143,18 +143,16 @@ func (ch *channel) WriteBytes(bs []byte) error {
 	if ch.closed {
 		return io.EOF
 	}
+
 	for _, b := range bs {
 		ch.ch <- b
 	}
+
 	return nil
 }
 
 func (ch *channel) WriteByte(b byte) error {
-	if ch.closed {
-		return io.EOF
-	}
-	ch.ch <- b
-	return nil
+	return ch.WriteBytes([]byte{b})
 }
 
 func (ch *channel) WriteUint8(i uint8) error {
@@ -166,13 +164,9 @@ func (ch *channel) WriteInt8(i int8) error {
 }
 
 func (ch *channel) WriteUint16(i uint16) error {
-	if ch.closed {
-		return io.EOF
-	}
 	bs := make([]byte, 2)
 	endian.PutUint16(bs, i)
-	ch.WriteBytes(bs)
-	return nil
+	return ch.WriteBytes(bs)
 }
 
 func (ch *channel) WriteInt16(i int16) error {
@@ -182,8 +176,7 @@ func (ch *channel) WriteInt16(i int16) error {
 func (ch *channel) WriteUint32(i uint32) error {
 	bs := make([]byte, 4)
 	endian.PutUint32(bs, i)
-	ch.WriteBytes(bs)
-	return nil
+	return ch.WriteBytes(bs)
 }
 
 func (ch *channel) WriteInt32(i int32) error {
@@ -201,11 +194,5 @@ func (ch *channel) WriteInt64(i int64) error {
 }
 
 func (ch *channel) WriteString(s string) error {
-	if ch.closed {
-		return io.EOF
-	}
-	for _, r := range s {
-		ch.ch <- byte(r)
-	}
-	return nil
+	return ch.WriteBytes([]byte(s))
 }
