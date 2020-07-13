@@ -64,6 +64,8 @@ func LookupPackage(token TDSToken) (Package, error) {
 		return &OrderBy2Package{}, nil
 	case TDS_RETURNSTATUS:
 		return &ReturnStatusPackage{}, nil
+	case TDS_LOGOUT:
+		return &LogoutPackage{}, nil
 	default:
 		return NewTokenlessPackage(), nil
 	}
