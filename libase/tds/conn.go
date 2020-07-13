@@ -17,6 +17,7 @@ type TDSConn struct {
 	odce               odceCipher
 }
 
+// Dial returns a prepared and dialed TDSConn.
 func Dial(network, address string) (*TDSConn, error) {
 	tds := &TDSConn{}
 
@@ -171,6 +172,7 @@ func (tds *TDSConn) setCapabilities() error {
 	return nil
 }
 
+// Close closes a TDSConn.
 func (tds *TDSConn) Close() error {
 	return tds.conn.Close()
 }
@@ -179,6 +181,8 @@ type MultiStringer interface {
 	MultiString() []string
 }
 
+// Receive reads a payload from the server, parses it into a Message and
+// handles any special packages.
 func (tds *TDSConn) Receive() (*Message, error) {
 	msg := NewMessage()
 
