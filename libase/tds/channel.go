@@ -70,18 +70,13 @@ func (ch *channel) Bytes(n int) ([]byte, error) {
 
 	bs := make([]byte, n)
 	for n := range bs {
-		// Keep reading until the channel is closed
-		ok := true
-		for ok {
-			bs[n], ok = <-ch.ch
-			if !ok {
-				if ch.closed {
-					return bs, io.EOF
-				}
-				return bs, ErrChannelExhausted
-			} else {
-				break
-			}
+		var ok bool
+		// Keep reading until the channel provided a byte or until the
+		// channel is closed.
+		bs[n], ok = <-ch.ch
+		// No byte could be read and the channel is marked as closed
+		if !ok && ch.closed {
+			return bs, io.EOF
 		}
 	}
 
