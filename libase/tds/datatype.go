@@ -1,10 +1,11 @@
 package tds
 
 //go:generate stringer -type=DataType
+
+// DataType represents the TDS tokens signaling a database data type.
 type DataType uint8
 
 const (
-	// The TDS datatypes, ordered by tokenvalue.
 	TDS_VOID         DataType = 0x1f
 	TDS_IMAGE        DataType = 0x22
 	TDS_TEXT         DataType = 0x23
