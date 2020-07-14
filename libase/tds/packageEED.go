@@ -2,12 +2,13 @@ package tds
 
 import "fmt"
 
+//go:generate stringer -type=EEDStatus
 type EEDStatus uint8
 
 const (
 	TDS_NO_EED      EEDStatus = 0x00
-	TDS_EED_FOLLOWS           = 0x1
-	TDS_EED_INFO              = 0x2
+	TDS_EED_FOLLOWS EEDStatus = 0x1
+	TDS_EED_INFO    EEDStatus = 0x2
 )
 
 type EEDPackage struct {

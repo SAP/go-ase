@@ -9,11 +9,18 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[TDS_BLOB_FULLCLASSNAME-1]
+	_ = x[TDS_BLOB_DBID_CLASSDEF-2]
+	_ = x[TDS_BLOB_CHAR-3]
+	_ = x[TDS_BLOB_BINARY-4]
+	_ = x[TDS_BLOB_UNICHAR-5]
+	_ = x[TDS_LOBLOC_CHAR-6]
+	_ = x[TDS_LOBLOC_BINARY-7]
+	_ = x[TDS_LOBLOC_UNICHAR-8]
 }
 
-const _BlobType_name = "TDS_BLOB_FULLCLASSNAME"
+const _BlobType_name = "TDS_BLOB_FULLCLASSNAMETDS_BLOB_DBID_CLASSDEFTDS_BLOB_CHARTDS_BLOB_BINARYTDS_BLOB_UNICHARTDS_LOBLOC_CHARTDS_LOBLOC_BINARYTDS_LOBLOC_UNICHAR"
 
-var _BlobType_index = [...]uint8{0, 22}
+var _BlobType_index = [...]uint8{0, 22, 44, 57, 72, 88, 103, 120, 138}
 
 func (i BlobType) String() string {
 	i -= 1

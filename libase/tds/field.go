@@ -529,13 +529,13 @@ type BlobType uint8
 
 const (
 	TDS_BLOB_FULLCLASSNAME BlobType = 0x01
-	TDS_BLOB_DBID_CLASSDEF          = 0x02
-	TDS_BLOB_CHAR                   = 0x03
-	TDS_BLOB_BINARY                 = 0x04
-	TDS_BLOB_UNICHAR                = 0x05
-	TDS_LOBLOC_CHAR                 = 0x06
-	TDS_LOBLOC_BINARY               = 0x07
-	TDS_LOBLOC_UNICHAR              = 0x08
+	TDS_BLOB_DBID_CLASSDEF BlobType = 0x02
+	TDS_BLOB_CHAR          BlobType = 0x03
+	TDS_BLOB_BINARY        BlobType = 0x04
+	TDS_BLOB_UNICHAR       BlobType = 0x05
+	TDS_LOBLOC_CHAR        BlobType = 0x06
+	TDS_LOBLOC_BINARY      BlobType = 0x07
+	TDS_LOBLOC_UNICHAR     BlobType = 0x08
 )
 
 //go:generate stringer -type=BlobSerializationType
