@@ -74,9 +74,6 @@ const (
 func (config *LoginConfig) pack() (Package, error) {
 	buf := &bytes.Buffer{}
 
-	// No error checking required since bytes.Buffer.Write* methods
-	// always return a nil error.
-
 	// lhostname, lhostlen
 	err := writeString(buf, config.Hostname, TDS_MAXNAME)
 	if err != nil {
@@ -84,72 +81,138 @@ func (config *LoginConfig) pack() (Package, error) {
 	}
 
 	// lusername, lusernlen
-	writeString(buf, config.DSN.Username, TDS_MAXNAME)
+	err = writeString(buf, config.DSN.Username, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing username: %w", err)
+	}
 
 	// lpw, lpwnlen
 	switch config.Encrypt {
 	case TDS_MSG_SEC_ENCRYPT, TDS_MSG_SEC_ENCRYPT2, TDS_MSG_SEC_ENCRYPT3, TDS_MSG_SEC_ENCRYPT4:
-		writeString(buf, "", TDS_MAXNAME)
+		err = writeString(buf, "", TDS_MAXNAME)
 	default:
-		writeString(buf, config.DSN.Password, TDS_MAXNAME)
+		err = writeString(buf, config.DSN.Password, TDS_MAXNAME)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error writing password: %w", err)
 	}
 
 	// lhostproc, lhplen
-	writeString(buf, config.HostProc, TDS_MAXNAME)
+	err = writeString(buf, config.HostProc, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing hostproc: %w", err)
+	}
 
 	// lint2
-	writeBasedOnEndian(buf, 3, 2)
+	_, err = writeBasedOnEndian(buf, 3, 2)
+	if err != nil {
+		return nil, fmt.Errorf("error writing int2: %w", err)
+	}
+
 	// lint4
-	writeBasedOnEndian(buf, 1, 0)
+	_, err = writeBasedOnEndian(buf, 1, 0)
+	if err != nil {
+		return nil, fmt.Errorf("error writing int4: %w", err)
+	}
+
 	// lchar -> ASCII
-	buf.WriteByte(6)
+	err = buf.WriteByte(6)
+	if err != nil {
+		return nil, fmt.Errorf("error writing char: %w", err)
+	}
+
 	// lflt
-	writeBasedOnEndian(buf, 10, 4)
+	_, err = writeBasedOnEndian(buf, 10, 4)
+	if err != nil {
+		return nil, fmt.Errorf("error writing flt: %w", err)
+	}
+
 	// ldate
-	writeBasedOnEndian(buf, 9, 8)
+	_, err = writeBasedOnEndian(buf, 9, 8)
+	if err != nil {
+		return nil, fmt.Errorf("error writing date: %w", err)
+	}
 
 	// lusedb
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing usedb: %w", err)
+	}
+
 	// ldmpld
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing dmpld: %w", err)
+	}
 
 	// only relevant for server-server comm
 	// linterfacespare
-	buf.WriteByte(0)
+	err = buf.WriteByte(0)
+	if err != nil {
+		return nil, fmt.Errorf("error writing interfacespare: %w", err)
+	}
+
 	// ltype
-	buf.WriteByte(0)
+	err = buf.WriteByte(0)
+	if err != nil {
+		return nil, fmt.Errorf("error writing type: %w", err)
+	}
 
 	// deprecated
 	// lbufsize
-	buf.Write(make([]byte, TDS_NETBUF))
+	_, err = buf.Write(make([]byte, TDS_NETBUF))
+	if err != nil {
+		return nil, fmt.Errorf("error writing bufsize: %w", err)
+	}
 
 	// lspare
-	buf.Write(make([]byte, 3))
+	_, err = buf.Write(make([]byte, 3))
+	if err != nil {
+		return nil, fmt.Errorf("error writing spare: %w", err)
+	}
 
 	// lappname, lappnlen
-	writeString(buf, config.AppName, TDS_MAXNAME)
+	err = writeString(buf, config.AppName, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing appname: %w", err)
+	}
 
 	// lservname, lservnlen
-	writeString(buf, config.ServName, TDS_MAXNAME)
+	err = writeString(buf, config.ServName, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing servname: %w", err)
+	}
 
 	// TODO only relevant for server-server comm, replace?
 	// lrempw, lrempwlen
 	switch config.Encrypt {
 	case TDS_MSG_SEC_ENCRYPT, TDS_MSG_SEC_ENCRYPT2, TDS_MSG_SEC_ENCRYPT3, TDS_MSG_SEC_ENCRYPT4:
-		writeString(buf, "", TDS_RPLEN)
+		err = writeString(buf, "", TDS_RPLEN)
 	default:
-		writeString(buf, "", TDS_RPLEN)
+		err = writeString(buf, "", TDS_RPLEN)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error writing rempw: %w", err)
 	}
 
 	// ltds
-	buf.Write([]byte{0x5, 0x0, 0x0, 0x0})
+	_, err = buf.Write([]byte{0x5, 0x0, 0x0, 0x0})
+	if err != nil {
+		return nil, fmt.Errorf("error writing tds version: %w", err)
+	}
 
 	// lprogname, lprognlen
-	writeString(buf, libraryName, TDS_PROGNLEN)
+	err = writeString(buf, libraryName, TDS_PROGNLEN)
+	if err != nil {
+		return nil, fmt.Errorf("error writing progname: %w", err)
+	}
 
 	// lprogvers
 	// buf.Write([]byte{versionMajor, versionMinor, versionPatch, 0})
-	buf.Write([]byte{0, 1, 0, 0})
+	_, err = buf.Write([]byte{0, 1, 0, 0})
+	if err != nil {
+		return nil, fmt.Errorf("error writing progversion: %w", err)
+	}
 	// TODO write correct version
 	// ver, err := NewTDSVersionString(libraryVersion)
 	// if err != nil {
@@ -158,66 +221,112 @@ func (config *LoginConfig) pack() (Package, error) {
 	// buf.Write(ver.Bytes())
 
 	// lnoshort - do not convert short data types
-	buf.WriteByte(0)
+	err = buf.WriteByte(0)
+	if err != nil {
+		return nil, fmt.Errorf("error writing noshort: %w", err)
+	}
 
 	// lflt4
-	writeBasedOnEndian(buf, 13, 12)
+	_, err = writeBasedOnEndian(buf, 13, 12)
+	if err != nil {
+		return nil, fmt.Errorf("error writing flt4: %w", err)
+	}
+
 	// ldate4
-	writeBasedOnEndian(buf, 17, 16)
+	_, err = writeBasedOnEndian(buf, 17, 16)
+	if err != nil {
+		return nil, fmt.Errorf("error writing date4: %w", err)
+	}
 
 	// llanguage, llanglen
-	writeString(buf, config.Language, TDS_MAXNAME)
+	err = writeString(buf, config.Language, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing language: %w", err)
+	}
 
 	// lsetlang - notify of language changes
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing setlang: %w", err)
+	}
 
 	// loldsecure - deprecated
-	buf.Write(make([]byte, TDS_OLDSECURE))
+	_, err = buf.Write(make([]byte, TDS_OLDSECURE))
+	if err != nil {
+		return nil, fmt.Errorf("error writing oldsecure: %w", err)
+	}
 
 	// lseclogin
 	switch config.Encrypt {
 	case TDS_MSG_SEC_ENCRYPT:
-		buf.WriteByte(0x01)
+		err = buf.WriteByte(0x01)
 	case TDS_MSG_SEC_ENCRYPT2:
-		buf.WriteByte(0x1 | 0x20)
+		err = buf.WriteByte(0x1 | 0x20)
 	case TDS_MSG_SEC_ENCRYPT3, TDS_MSG_SEC_ENCRYPT4:
-		// TODO is this also correct for encrypt4?
-		buf.WriteByte(0x1 | 0x20 | 0x80)
+		err = buf.WriteByte(0x1 | 0x20 | 0x80)
 	default:
-		buf.WriteByte(0x0)
+		err = buf.WriteByte(0x0)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error writing seclogin: %w", err)
 	}
 
 	// lsecbulk - deprecated
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing secbulk: %w", err)
+	}
 
 	// lhalogin
 	// TODO - values need to be determined by config to allow for
 	// failover reconnects in clusters
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing ailover: %w", err)
+	}
+
 	// lhasessionid
 	// TODO session id for HA failover, find out if this needs to be
 	// user set or retrieved from the server
-	buf.Write(make([]byte, TDS_HA))
+	_, err = buf.Write(make([]byte, TDS_HA))
+	if err != nil {
+		return nil, fmt.Errorf("error writing hasessionid: %w", err)
+	}
 
 	// lsecspare - unused
 	// TODO TDS_SECURE unknown
-	buf.Write(make([]byte, TDS_SECURE))
+	_, err = buf.Write(make([]byte, TDS_SECURE))
+	if err != nil {
+		return nil, fmt.Errorf("error writing secspare: %w", err)
+	}
 
 	// lcharset, lcharsetlen
-	writeString(buf, config.CharSet, TDS_MAXNAME)
+	err = writeString(buf, config.CharSet, TDS_MAXNAME)
+	if err != nil {
+		return nil, fmt.Errorf("error writing charset: %w", err)
+	}
 
 	// lsetcharset - notify of charset changes
-	buf.WriteByte(1)
+	err = buf.WriteByte(1)
+	if err != nil {
+		return nil, fmt.Errorf("error writing setcharset: %w", err)
+	}
 
 	// lpacketsize - 256 to 65535 bytes
 	// TODO Choose default packet size
 	if config.PacketSize < 256 {
 		return nil, fmt.Errorf("packet size too low, must be at least 256 bytes")
 	}
-	writeString(buf, strconv.Itoa(int(config.PacketSize)), TDS_PKTLEN)
+	err = writeString(buf, strconv.Itoa(int(config.PacketSize)), TDS_PKTLEN)
+	if err != nil {
+		return nil, fmt.Errorf("error writing packetsize: %w", err)
+	}
 
 	// ldummy - apparently unused
-	buf.Write(make([]byte, TDS_DUMMY))
+	_, err = buf.Write(make([]byte, TDS_DUMMY))
+	if err != nil {
+		return nil, fmt.Errorf("error writing dummy: %w", err)
+	}
 
 	return &TokenlessPackage{Data: buf}, nil
 }

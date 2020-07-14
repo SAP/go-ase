@@ -24,11 +24,15 @@ func (msg Message) Packages() []Package {
 	return msg.packages
 }
 
-func (msg *Message) AddPackage(pack Package) {
-	if acceptor, ok := pack.(LastPkgAcceptor); ok {
-		acceptor.LastPkg(msg.packages[len(msg.packages)-1])
+func (msg *Message) AddPackage(pkg Package) error {
+	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
+		err := acceptor.LastPkg(msg.packages[len(msg.packages)-1])
+		if err != nil {
+			return fmt.Errorf("error running LastPkg on package %v: %w", pkg, err)
+		}
 	}
-	msg.packages = append(msg.packages, pack)
+	msg.packages = append(msg.packages, pkg)
+	return nil
 }
 
 func (msg *Message) ReadFrom(reader io.Reader) error {
@@ -60,7 +64,10 @@ func (msg *Message) ReadFrom(reader io.Reader) error {
 				continue
 			}
 
-			msg.AddPackage(pkg)
+			err := msg.AddPackage(pkg)
+			if err != nil {
+				return fmt.Errorf("error adding package: %w", err)
+			}
 		default:
 		}
 
@@ -93,7 +100,11 @@ func (msg *Message) readFromPackets(ctx context.Context, errCh chan error, reade
 			}
 		}
 
-		byteCh.WriteBytes(packet.Data)
+		err = byteCh.WriteBytes(packet.Data)
+		if err != nil {
+			errCh <- fmt.Errorf("error writing packet data to channel: %w", err)
+			return
+		}
 
 		if packet.Header.Status == TDS_BUFSTAT_EOM {
 			return

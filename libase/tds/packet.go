@@ -11,11 +11,16 @@ type Packet struct {
 	Data   []byte
 }
 
-func (packet Packet) Bytes() []byte {
+func (packet Packet) Bytes() ([]byte, error) {
 	bs := make([]byte, int(packet.Header.Length))
-	packet.Header.Read(bs[:MsgHeaderLength])
+
+	_, err := packet.Header.Read(bs[:MsgHeaderLength])
+	if err != nil {
+		return nil, fmt.Errorf("error reading header into byte slice: %w", err)
+	}
+
 	copy(bs[MsgHeaderLength:], packet.Data)
-	return bs
+	return bs, nil
 }
 
 func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
@@ -48,7 +53,11 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 }
 
 func (packet Packet) WriteTo(writer io.Writer) (int, error) {
-	return writer.Write(packet.Bytes())
+	bs, err := packet.Bytes()
+	if err != nil {
+		return 0, fmt.Errorf("error compiling packet bytes: %w", err)
+	}
+	return writer.Write(bs)
 }
 
 func (packet Packet) String() string {

@@ -41,9 +41,16 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	if err != nil {
 		return fmt.Errorf("error building login payload: %w", err)
 	}
-	loginMsg.AddPackage(pack)
 
-	loginMsg.AddPackage(tdsconn.caps)
+	err = loginMsg.AddPackage(pack)
+	if err != nil {
+		return fmt.Errorf("error adding login payload package: %w", err)
+	}
+
+	err = loginMsg.AddPackage(tdsconn.caps)
+	if err != nil {
+		return fmt.Errorf("error adding login capabilities package: %w", err)
+	}
 
 	log.Printf("Sending login payload")
 	err = tdsconn.Send(*loginMsg)
@@ -136,20 +143,34 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	// Prepare response
 	response := NewMessage()
 
-	response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
+	err = response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
+	if err != nil {
+		return fmt.Errorf("error adding message package for password transmission: %w", err)
+	}
 
 	passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
 	if err != nil {
 		return fmt.Errorf("failed to look up fields for TDS_LONGBINARY: %w", err)
 	}
+
 	// TDS does not support TDS_WIDETABLES in login negotiation
-	response.AddPackage(NewParamFmtPackage(false, passFmt))
+	err = response.AddPackage(NewParamFmtPackage(false, passFmt))
+	if err != nil {
+		return fmt.Errorf("error adding ParamFmt password package: %w", err)
+	}
+
 	passData.SetData(encryptedPass)
-	response.AddPackage(NewParamsPackage(passData))
+	err = response.AddPackage(NewParamsPackage(passData))
+	if err != nil {
+		return fmt.Errorf("error adding Params password package: %w", err)
+	}
 
 	if len(config.RemoteServers) > 0 {
 		// encrypted remote password
-		response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
+		err = response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
+		if err != nil {
+			return fmt.Errorf("error adding message package for remote servers: %w", err)
+		}
 
 		paramFmts := make([]FieldFmt, len(config.RemoteServers)*2)
 		params := make([]FieldData, len(config.RemoteServers)*2)
@@ -180,8 +201,15 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 			passData.SetData(encryptedServerPass)
 			params[i+1] = passData
 		}
-		response.AddPackage(NewParamFmtPackage(false, paramFmts...))
-		response.AddPackage(NewParamsPackage(params...))
+		err = response.AddPackage(NewParamFmtPackage(false, paramFmts...))
+		if err != nil {
+			return fmt.Errorf("error adding package ParamFmt for remote servers: %w", err)
+		}
+
+		err = response.AddPackage(NewParamsPackage(params...))
+		if err != nil {
+			return fmt.Errorf("error adding package Params for remote servers: %w", err)
+		}
 	}
 
 	symmetricKey, err := generateSymmetricKey(tdsconn.odce)
@@ -207,7 +235,11 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	response.AddPackage(NewParamsPackage(symkeyData))
 
 	log.Printf("sending response with encrypted passwords")
-	tdsconn.Send(*response)
+	err = tdsconn.Send(*response)
+	if err != nil {
+		return fmt.Errorf("error sending login negotiation response: %w", err)
+	}
+
 	msg, err = tdsconn.Receive()
 	if err != nil {
 		return fmt.Errorf("error receiving answer to negotiated login: %w", err)
