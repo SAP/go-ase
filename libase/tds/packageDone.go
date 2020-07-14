@@ -1,6 +1,8 @@
 package tds
 
-import "fmt"
+import (
+	"fmt"
+)
 
 //go:generate stringer -type=DoneState
 type DoneState uint16
@@ -84,19 +86,27 @@ func (pkg DonePackage) WriteTo(ch *channel) error {
 func (pkg DonePackage) String() string {
 	stati := deBitmask(int(pkg.status), int(TDS_DONE_CUMULATIVE))
 	strStati := ""
-	for i, status := range stati {
-		strStati += DoneState(status).String()
-		if i+1 != len(stati) {
-			strStati += "|"
+	if len(stati) == 0 {
+		strStati = TDS_DONE_FINAL.String()
+	} else {
+		for i, status := range stati {
+			strStati += DoneState(status).String()
+			if i+1 != len(stati) {
+				strStati += "|"
+			}
 		}
 	}
 
 	transi := deBitmask(int(pkg.tranState), int(TDS_TRAN_STMT_FAIL))
 	strTransi := ""
-	for i, trans := range transi {
-		strTransi += TransState(trans).String()
-		if i+1 != len(transi) {
-			strTransi += "|"
+	if len(transi) == 0 {
+		strTransi = TDS_NOT_IN_TRAN.String()
+	} else {
+		for i, trans := range transi {
+			strTransi += TransState(trans).String()
+			if i+1 != len(transi) {
+				strTransi += "|"
+			}
 		}
 	}
 
