@@ -30,6 +30,8 @@ func rsaEncrypt(pemPubKey, nonce, password []byte) ([]byte, error) {
 	return rsa.EncryptOAEP(sha1.New(), rand.Reader, publicKey, append(nonce, []byte(password)...), []byte{})
 }
 
+// generateSymmetricKey creates a cryptographically secure key to use
+// for the odceCipher.
 func generateSymmetricKey(odce odceCipher) ([]byte, error) {
 	keyByteLength := 0
 	switch odce {
@@ -44,6 +46,7 @@ func generateSymmetricKey(odce odceCipher) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate symmetric key: %w", err)
 	}
+
 	if readBytes != len(bs) {
 		return nil, fmt.Errorf("read %d random bytes for symmetric key, expected %d",
 			readBytes, len(bs))
@@ -113,6 +116,8 @@ func (cc cipherChannel) encrypt(plaintext, iv []byte) ([]byte, []byte, error) {
 	return ciphertext, iv, nil
 }
 
+// decrypt decrypts ciphertext with the passed IV and returns the
+// plaintext.
 func (cc cipherChannel) decrypt(ciphertext, iv []byte) ([]byte, error) {
 	if iv == nil {
 		return nil, fmt.Errorf("passed IV is nil")
