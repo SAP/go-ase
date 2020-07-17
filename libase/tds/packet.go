@@ -11,6 +11,13 @@ type Packet struct {
 	Data   []byte
 }
 
+func NewPacket() *Packet {
+	packet := &Packet{}
+	packet.Header = NewMessageHeader()
+	packet.Data = make([]byte, packet.Header.Length)
+	return packet
+}
+
 func (packet Packet) Bytes() ([]byte, error) {
 	bs := make([]byte, int(packet.Header.Length))
 
@@ -52,12 +59,14 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 	return totalBytes, nil
 }
 
-func (packet Packet) WriteTo(writer io.Writer) (int, error) {
+func (packet Packet) WriteTo(writer io.Writer) (int64, error) {
 	bs, err := packet.Bytes()
 	if err != nil {
 		return 0, fmt.Errorf("error compiling packet bytes: %w", err)
 	}
-	return writer.Write(bs)
+
+	n, err := writer.Write(bs)
+	return int64(n), err
 }
 
 func (packet Packet) String() string {
