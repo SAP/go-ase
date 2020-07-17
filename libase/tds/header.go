@@ -71,6 +71,12 @@ type MessageHeader struct {
 	Window uint8
 }
 
+func NewMessageHeader() MessageHeader {
+	return MessageHeader{
+		Length: uint16(MsgBodyLength),
+	}
+}
+
 func (header MessageHeader) String() string {
 	return fmt.Sprintf(
 		"MsgType: %s, Status: %s, Length: %d, Channel: %d, PacketNr: %d, Window: %d",
