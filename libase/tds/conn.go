@@ -1,27 +1,42 @@
 package tds
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"sync"
 )
 
 // TDSConn handles a TDS-based connection.
 type TDSConn struct {
-	conn               io.ReadWriteCloser
-	caps               *CapabilityPackage
+	conn io.ReadWriteCloser
+	caps *CapabilityPackage
+
 	envChangeHooks     []EnvChangeHook
 	envChangeHooksLock *sync.Mutex
-	odce               odceCipher
+
+	odce odceCipher
+
+	ctx             context.Context
+	ctxCancel       context.CancelFunc
+	tdsChannels     map[int]*TDSChannel
+	tdsChannelsLock *sync.RWMutex
+	errCh           chan error
 }
 
 // Dial returns a prepared and dialed TDSConn.
 func Dial(network, address string) (*TDSConn, error) {
-	tds := &TDSConn{}
+	c, err := net.Dial(network, address)
+	if err != nil {
+		return nil, fmt.Errorf("error opening connection: %w", err)
+	}
 
-	err := tds.setCapabilities()
+	tds := &TDSConn{}
+	tds.conn = c
+
+	err = tds.setCapabilities()
 	if err != nil {
 		return nil, fmt.Errorf("error setting capabilities on connection: %w", err)
 	}
@@ -29,13 +44,61 @@ func Dial(network, address string) (*TDSConn, error) {
 	tds.envChangeHooksLock = &sync.Mutex{}
 	tds.odce = aes_256_cbc
 
-	c, err := net.Dial(network, address)
-	if err != nil {
-		return nil, fmt.Errorf("error opening connection: %w", err)
-	}
+	tds.ctx, tds.ctxCancel = context.WithCancel(context.Background())
+	tds.tdsChannels = make(map[int]*TDSChannel)
+	tds.tdsChannelsLock = &sync.RWMutex{}
+	tds.errCh = make(chan error, 10)
 
-	tds.conn = c
+	// A goroutine automatically reads payloads from the server and
+	// passes them to the corresponding channel.
+	// Payloads sent to the server are sent in the thread the client
+	// uses.
+	go tds.ReadFrom()
+
 	return tds, nil
+}
+
+// Close closes a TDSConn.
+func (tds *TDSConn) Close() error {
+	tds.ctxCancel()
+	return tds.conn.Close()
+}
+
+func (tds TDSConn) Error() (error, bool) {
+	err, ok := <-tds.errCh
+	return err, ok
+}
+
+// ReadFrom creates packets from payloads from the server and writes
+// them to the corresponding TDSChannel.
+func (tds *TDSConn) ReadFrom() {
+	for {
+		select {
+		case <-tds.ctx.Done():
+			return
+		default:
+			packet := &Packet{}
+			_, err := packet.ReadFrom(tds.conn)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				tds.errCh <- fmt.Errorf("error reading packet: %w", err)
+				continue
+			}
+
+			tds.tdsChannelsLock.RLock()
+			tdsChan, ok := tds.tdsChannels[int(packet.Header.Channel)]
+			tds.tdsChannelsLock.RUnlock()
+			if !ok {
+				tds.errCh <- fmt.Errorf("received packet for invalid channel %d", packet.Header.Channel)
+				continue
+			}
+
+			// Errors are recorded in the channels' error channel.
+			tdsChan.WritePacket(packet)
+		}
+	}
 }
 
 func (tds *TDSConn) setCapabilities() error {
@@ -172,66 +235,14 @@ func (tds *TDSConn) setCapabilities() error {
 	return nil
 }
 
-// Close closes a TDSConn.
-func (tds *TDSConn) Close() error {
-	return tds.conn.Close()
-}
-
-type MultiStringer interface {
-	MultiString() []string
-}
-
-// Receive reads a payload from the server, parses it into a Message and
-// handles any special packages.
-func (tds *TDSConn) Receive() (*Message, error) {
-	msg := NewMessage()
-
-	err := msg.ReadFrom(tds.conn)
-
-	// Handle special packages
-	for _, pack := range msg.Packages() {
-		if envChange, ok := pack.(*EnvChangePackage); ok {
-			for _, member := range envChange.members {
-				go tds.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
-			}
+// receiveHandleSpecialPackage handles special packages received from
+// a TDS server.
+func (tds *TDSConn) receiveHandleSpecialPackage(pkg Package) error {
+	if envChange, ok := pkg.(*EnvChangePackage); ok {
+		for _, member := range envChange.members {
+			go tds.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
 		}
 	}
 
-	// TODO remove
-	log.Printf("Received message: %d Packages", len(msg.packages))
-	for i, pack := range msg.packages {
-		if ms, ok := pack.(MultiStringer); ok {
-			for _, s := range ms.MultiString() {
-				log.Printf("  %s", s)
-			}
-		} else {
-			log.Printf("  Package %d: %s", i, pack)
-			log.Printf("    %#v", pack)
-		}
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to read message: %w", err)
-	}
-
-	return msg, nil
-}
-
-// Send transmits a messages payload to the server.
-func (tds *TDSConn) Send(msg Message) error {
-	log.Printf("Sending message: %d Packages", len(msg.packages))
-
-	// TODO remove
-	for i, pack := range msg.packages {
-		log.Printf("  Package %d: %s", i, pack)
-		if ms, ok := pack.(MultiStringer); ok {
-			for _, s := range ms.MultiString() {
-				log.Printf("    %s", s)
-			}
-		} else {
-			log.Printf("    %#v", pack)
-		}
-	}
-
-	return msg.WriteTo(tds.conn)
+	return nil
 }

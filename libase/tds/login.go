@@ -2,16 +2,11 @@ package tds
 
 import (
 	"fmt"
-	"log"
 )
 
-func (tdsconn *TDSConn) Login(config *LoginConfig) error {
+func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	if config == nil {
 		return fmt.Errorf("passed config is nil")
-	}
-
-	if tdsconn.conn == nil {
-		return fmt.Errorf("connection has not been dialed")
 	}
 
 	var withoutEncryption bool
@@ -34,44 +29,31 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		config.RemoteServers = append([]LoginConfigRemoteServer{firstRemoteServer}, config.RemoteServers...)
 	}
 
-	loginMsg := NewMessage()
-	loginMsg.headerType = TDS_BUF_LOGIN
+	tdsChan.currentHeaderType = TDS_BUF_LOGIN
 
 	pack, err := config.pack()
 	if err != nil {
 		return fmt.Errorf("error building login payload: %w", err)
 	}
 
-	err = loginMsg.AddPackage(pack)
+	err = tdsChan.AddPackage(pack)
 	if err != nil {
 		return fmt.Errorf("error adding login payload package: %w", err)
 	}
 
-	err = loginMsg.AddPackage(tdsconn.caps)
+	err = tdsChan.AddPackage(tdsChan.tdsConn.caps)
 	if err != nil {
 		return fmt.Errorf("error adding login capabilities package: %w", err)
 	}
 
-	log.Printf("Sending login payload")
-	err = tdsconn.Send(*loginMsg)
+	pkg, err := tdsChan.NextPackage(true)
 	if err != nil {
-		return fmt.Errorf("failed to sent login payload: %w", err)
+		return err
 	}
 
-	log.Printf("Reading response")
-	msg, err := tdsconn.Receive()
-	if err != nil {
-		return fmt.Errorf("error reading login response: %w", err)
-	}
-
-	log.Printf("Handling response")
-	if IsError(msg.packages[0]) {
-		return fmt.Errorf("received error from server: %s", msg.packages[0])
-	}
-
-	loginack, ok := msg.packages[0].(*LoginAckPackage)
+	loginack, ok := pkg.(*LoginAckPackage)
 	if !ok {
-		return fmt.Errorf("expected LoginAck as first response, received: %v", msg.packages[0])
+		return fmt.Errorf("expected LoginAck as first response, received: %v", pkg)
 	}
 
 	if withoutEncryption {
@@ -81,9 +63,14 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 			return fmt.Errorf("login failed: %s", loginack.Status)
 		}
 
-		done, ok := msg.packages[1].(*DonePackage)
+		pkg, err = tdsChan.NextPackage(true)
+		if err != nil {
+			return err
+		}
+
+		done, ok := pkg.(*DonePackage)
 		if !ok {
-			return fmt.Errorf("expected Done as second response, received: %v", msg.packages[1])
+			return fmt.Errorf("expected Done as second response, received: %v", pkg)
 		}
 
 		if done.status != TDS_DONE_FINAL {
@@ -97,18 +84,28 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("expected loginack with negotation, received: %s", loginack)
 	}
 
-	negotiationMsg, ok := msg.packages[1].(*MsgPackage)
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return err
+	}
+
+	negotiationMsg, ok := pkg.(*MsgPackage)
 	if !ok {
-		return fmt.Errorf("expected msg package as second response, received: %s", msg.packages[1])
+		return fmt.Errorf("expected msg package as second response, received: %s", pkg)
 	}
 
 	if negotiationMsg.MsgId != TDS_MSG_SEC_ENCRYPT4 {
 		return fmt.Errorf("expected TDS_MSG_SEC_ENCRYPT4, received: %s", negotiationMsg.MsgId)
 	}
 
-	params, ok := msg.packages[3].(*ParamsPackage)
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return err
+	}
+
+	params, ok := pkg.(*ParamsPackage)
 	if !ok {
-		return fmt.Errorf("expected params package as fourth response, received: %s", msg.packages[3])
+		return fmt.Errorf("expected params package as fourth response, received: %s", pkg)
 	}
 
 	// get asymmetric encryption type
@@ -141,9 +138,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	// Prepare response
-	response := NewMessage()
-
-	err = response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
+	tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
 	if err != nil {
 		return fmt.Errorf("error adding message package for password transmission: %w", err)
 	}
@@ -154,20 +149,20 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 
 	// TDS does not support TDS_WIDETABLES in login negotiation
-	err = response.AddPackage(NewParamFmtPackage(false, passFmt))
+	tdsChan.AddPackage(NewParamFmtPackage(false, passFmt))
 	if err != nil {
 		return fmt.Errorf("error adding ParamFmt password package: %w", err)
 	}
 
 	passData.SetData(encryptedPass)
-	err = response.AddPackage(NewParamsPackage(passData))
+	tdsChan.AddPackage(NewParamsPackage(passData))
 	if err != nil {
 		return fmt.Errorf("error adding Params password package: %w", err)
 	}
 
 	if len(config.RemoteServers) > 0 {
 		// encrypted remote password
-		err = response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
+		tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
 		if err != nil {
 			return fmt.Errorf("error adding message package for remote servers: %w", err)
 		}
@@ -201,18 +196,18 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 			passData.SetData(encryptedServerPass)
 			params[i+1] = passData
 		}
-		err = response.AddPackage(NewParamFmtPackage(false, paramFmts...))
+		tdsChan.AddPackage(NewParamFmtPackage(false, paramFmts...))
 		if err != nil {
 			return fmt.Errorf("error adding package ParamFmt for remote servers: %w", err)
 		}
 
-		err = response.AddPackage(NewParamsPackage(params...))
+		tdsChan.AddPackage(NewParamsPackage(params...))
 		if err != nil {
 			return fmt.Errorf("error adding package Params for remote servers: %w", err)
 		}
 	}
 
-	symmetricKey, err := generateSymmetricKey(tdsconn.odce)
+	symmetricKey, err := generateSymmetricKey(tdsChan.tdsConn.odce)
 	if err != nil {
 		return fmt.Errorf("error generating session key: %w", err)
 	}
@@ -223,7 +218,7 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 		return fmt.Errorf("error encrypting session key: %w", err)
 	}
 
-	response.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
+	tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
 
 	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
 	if err != nil {
@@ -231,23 +226,12 @@ func (tdsconn *TDSConn) Login(config *LoginConfig) error {
 	}
 	symkeyData.SetData(encryptedSymKey)
 
-	response.AddPackage(NewParamFmtPackage(false, symkeyFmt))
-	response.AddPackage(NewParamsPackage(symkeyData))
-
-	log.Printf("sending response with encrypted passwords")
-	err = tdsconn.Send(*response)
-	if err != nil {
-		return fmt.Errorf("error sending login negotiation response: %w", err)
-	}
-
-	msg, err = tdsconn.Receive()
-	if err != nil {
-		return fmt.Errorf("error receiving answer to negotiated login: %w", err)
-	}
+	tdsChan.AddPackage(NewParamFmtPackage(false, symkeyFmt))
+	tdsChan.AddPackage(NewParamsPackage(symkeyData))
 
 	// Filter received packages to single out the login-relevant ones.
 	relevantPackages := []Package{}
-	for _, pkg := range msg.Packages() {
+	for pkg, err := tdsChan.NextPackage(false); err != nil; pkg, err = tdsChan.NextPackage(false) {
 		switch pkg.(type) {
 		case *EnvChangePackage, *EEDPackage:
 			// these packages are handled in .Receive, ignore
