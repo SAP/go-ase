@@ -15,12 +15,12 @@ func NewTokenlessPackage() *TokenlessPackage {
 	}
 }
 
-func (pkg *TokenlessPackage) ReadFrom(ch *channel) error {
+func (pkg *TokenlessPackage) ReadFrom(ch BytesChannel) error {
 	_, err := pkg.Data.ReadFrom(ch)
 	return err
 }
 
-func (pkg TokenlessPackage) WriteTo(ch *channel) error {
+func (pkg TokenlessPackage) WriteTo(ch BytesChannel) error {
 	return ch.WriteBytes(pkg.Data.Bytes())
 }
 

@@ -16,7 +16,7 @@ type ErrorPackage struct {
 	LineNr       uint16
 }
 
-func (pkg *ErrorPackage) ReadFrom(ch *channel) error {
+func (pkg *ErrorPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 	pkg.Length, err = ch.Uint16()
 	if err != nil {
@@ -66,7 +66,7 @@ func (pkg *ErrorPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg ErrorPackage) WriteTo(ch *channel) error {
+func (pkg ErrorPackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteByte(byte(TDS_ERROR))
 	if err != nil {
 		return fmt.Errorf("failed to write TDS Token %s: %w", TDS_ERROR, err)

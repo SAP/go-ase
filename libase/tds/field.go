@@ -104,8 +104,8 @@ type FieldFmt interface {
 	// TODO: is this actually required when sending from client?
 	MaxLength() int
 
-	ReadFrom(*channel) (int, error)
-	WriteTo(*channel) (int, error)
+	ReadFrom(BytesChannel) (int, error)
+	WriteTo(BytesChannel) (int, error)
 
 	FormatByteLength() int
 }
@@ -117,8 +117,8 @@ type FieldData interface {
 	// Interface methods for go-ase
 	SetData([]byte)
 	Data() []byte
-	ReadFrom(*channel) (int, error)
-	WriteTo(*channel) (int, error)
+	ReadFrom(BytesChannel) (int, error)
+	WriteTo(BytesChannel) (int, error)
 }
 
 // Base structs
@@ -229,7 +229,7 @@ func (field fieldFmtBase) MaxLength() int {
 	return field.maxLength
 }
 
-func (field *fieldFmtBase) readFromBase(ch *channel) (int, error) {
+func (field *fieldFmtBase) readFromBase(ch BytesChannel) (int, error) {
 	if field.isFixedLength {
 		return 0, nil
 	}
@@ -243,7 +243,7 @@ func (field *fieldFmtBase) readFromBase(ch *channel) (int, error) {
 	return field.lengthBytes, nil
 }
 
-func (field fieldFmtBase) writeToBase(ch *channel) (int, error) {
+func (field fieldFmtBase) writeToBase(ch BytesChannel) (int, error) {
 	if field.isFixedLength {
 		return 0, nil
 	}
@@ -259,7 +259,7 @@ func (field fieldFmtBasePrecision) Precision() uint8 {
 	return field.precision
 }
 
-func (field *fieldFmtBasePrecision) readFromPrecision(ch *channel) (int, error) {
+func (field *fieldFmtBasePrecision) readFromPrecision(ch BytesChannel) (int, error) {
 	var err error
 	field.precision, err = ch.Uint8()
 	if err != nil {
@@ -268,7 +268,7 @@ func (field *fieldFmtBasePrecision) readFromPrecision(ch *channel) (int, error) 
 	return 1, nil
 }
 
-func (field fieldFmtBasePrecision) writeToPrecision(ch *channel) (int, error) {
+func (field fieldFmtBasePrecision) writeToPrecision(ch BytesChannel) (int, error) {
 	err := ch.WriteUint8(field.precision)
 	if err != nil {
 		return 0, fmt.Errorf("failed to write precision: %w", err)
@@ -284,7 +284,7 @@ func (field fieldFmtBaseScale) Scale() uint8 {
 	return field.scale
 }
 
-func (field *fieldFmtBaseScale) readFromScale(ch *channel) (int, error) {
+func (field *fieldFmtBaseScale) readFromScale(ch BytesChannel) (int, error) {
 	var err error
 	field.scale, err = ch.Uint8()
 	if err != nil {
@@ -293,7 +293,7 @@ func (field *fieldFmtBaseScale) readFromScale(ch *channel) (int, error) {
 	return 1, nil
 }
 
-func (field fieldFmtBaseScale) writeToScale(ch *channel) (int, error) {
+func (field fieldFmtBaseScale) writeToScale(ch BytesChannel) (int, error) {
 	err := ch.WriteUint8(field.scale)
 	if err != nil {
 		return 0, fmt.Errorf("failed to write scale: %w", err)
@@ -323,7 +323,7 @@ func (field fieldDataBase) String() string {
 	return string(field.data)
 }
 
-func (field *fieldDataBase) readFromStatus(ch *channel) (int, error) {
+func (field *fieldDataBase) readFromStatus(ch BytesChannel) (int, error) {
 	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
 		return 0, nil
 	}
@@ -336,7 +336,7 @@ func (field *fieldDataBase) readFromStatus(ch *channel) (int, error) {
 	return 1, nil
 }
 
-func (field fieldDataBase) writeToStatus(ch *channel) (int, error) {
+func (field fieldDataBase) writeToStatus(ch BytesChannel) (int, error) {
 	if fmtStatus(field.fmt.Status())&tdsFmtColumnStatus != tdsFmtColumnStatus {
 		return 0, nil
 	}
@@ -349,7 +349,7 @@ func (field fieldDataBase) writeToStatus(ch *channel) (int, error) {
 	return 1, nil
 }
 
-func (field *fieldDataBase) readFrom(ch *channel) (int, error) {
+func (field *fieldDataBase) readFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromStatus(ch)
 	if err != nil {
 		return n, err
@@ -373,7 +373,7 @@ func (field *fieldDataBase) readFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field fieldDataBase) writeTo(ch *channel) (int, error) {
+func (field fieldDataBase) writeTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToStatus(ch)
 	if err != nil {
 		return n, err
@@ -405,11 +405,11 @@ func (field fieldFmtLength) FormatByteLength() int {
 	return field.lengthBytes
 }
 
-func (field *fieldFmtLength) ReadFrom(ch *channel) (int, error) {
+func (field *fieldFmtLength) ReadFrom(ch BytesChannel) (int, error) {
 	return field.readFromBase(ch)
 }
 
-func (field fieldFmtLength) WriteTo(ch *channel) (int, error) {
+func (field fieldFmtLength) WriteTo(ch BytesChannel) (int, error) {
 	return field.writeToBase(ch)
 }
 
@@ -458,7 +458,7 @@ func (field fieldFmtLengthScale) FormatByteLength() int {
 	return 1 + field.lengthBytes
 }
 
-func (field *fieldFmtLengthScale) ReadFrom(ch *channel) (int, error) {
+func (field *fieldFmtLengthScale) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromBase(ch)
 	if err != nil {
 		return n, err
@@ -468,7 +468,7 @@ func (field *fieldFmtLengthScale) ReadFrom(ch *channel) (int, error) {
 	return n + n2, err
 }
 
-func (field fieldFmtLengthScale) WriteTo(ch *channel) (int, error) {
+func (field fieldFmtLengthScale) WriteTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToBase(ch)
 	if err != nil {
 		return n, err
@@ -491,7 +491,7 @@ func (field fieldFmtLengthPrecisionScale) FormatByteLength() int {
 	return 2 + field.lengthBytes
 }
 
-func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch *channel) (int, error) {
+func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromBase(ch)
 	if err != nil {
 		return n, err
@@ -506,7 +506,7 @@ func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch *channel) (int, error) {
 	return n + n2 + n3, err
 }
 
-func (field fieldFmtLengthPrecisionScale) WriteTo(ch *channel) (int, error) {
+func (field fieldFmtLengthPrecisionScale) WriteTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToBase(ch)
 	if err != nil {
 		return n, err
@@ -560,7 +560,7 @@ func (field fieldFmtBlob) FormatByteLength() int {
 	return 1 + 1 + len(field.classID) + field.lengthBytes
 }
 
-func (field *fieldFmtBlob) ReadFrom(ch *channel) (int, error) {
+func (field *fieldFmtBlob) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromBase(ch)
 	if err != nil {
 		return n, err
@@ -590,7 +590,7 @@ func (field *fieldFmtBlob) ReadFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field fieldFmtBlob) WriteTo(ch *channel) (int, error) {
+func (field fieldFmtBlob) WriteTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToBase(ch)
 	if err != nil {
 		return n, err
@@ -622,11 +622,11 @@ type BlobFieldFmt struct{ fieldFmtBlob }
 
 type fieldData struct{ fieldDataBase }
 
-func (field *fieldData) ReadFrom(ch *channel) (int, error) {
+func (field *fieldData) ReadFrom(ch BytesChannel) (int, error) {
 	return field.readFrom(ch)
 }
 
-func (field fieldData) WriteTo(ch *channel) (int, error) {
+func (field fieldData) WriteTo(ch BytesChannel) (int, error) {
 	return field.writeTo(ch)
 }
 
@@ -677,7 +677,7 @@ type fieldDataBlob struct {
 
 const fieldDataBlobHighBit uint32 = 0x80000000
 
-func (field *fieldDataBlob) ReadFrom(ch *channel) (int, error) {
+func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 	fieldFmt, ok := field.fmt.(*BlobFieldFmt)
 	if !ok {
 		return 0, fmt.Errorf("field.fmt is not of type BlobFieldfmt")
@@ -789,7 +789,7 @@ func (field *fieldDataBlob) ReadFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field fieldDataBlob) Writeto(ch *channel) (int, error) {
+func (field fieldDataBlob) Writeto(ch BytesChannel) (int, error) {
 	fieldFmt, ok := field.fmt.(*BlobFieldFmt)
 	if !ok {
 		return 0, fmt.Errorf("field.fmt is not of type BlobFieldFmt")
@@ -882,7 +882,7 @@ func (field fieldFmtTxtPtr) FormatByteLength() int {
 	return 1 + len(field.tableName) + field.lengthBytes
 }
 
-func (field *fieldFmtTxtPtr) ReadFrom(ch *channel) (int, error) {
+func (field *fieldFmtTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromBase(ch)
 	if err != nil {
 		return n, err
@@ -903,7 +903,7 @@ func (field *fieldFmtTxtPtr) ReadFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field fieldFmtTxtPtr) WriteTo(ch *channel) (int, error) {
+func (field fieldFmtTxtPtr) WriteTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToBase(ch)
 	if err != nil {
 		return n, err
@@ -934,7 +934,7 @@ type fieldDataTxtPtr struct {
 	timeStamp []byte
 }
 
-func (field *fieldDataTxtPtr) ReadFrom(ch *channel) (int, error) {
+func (field *fieldDataTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFromStatus(ch)
 	if err != nil {
 		return n, err
@@ -973,7 +973,7 @@ func (field *fieldDataTxtPtr) ReadFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field fieldDataTxtPtr) WriteTo(ch *channel) (int, error) {
+func (field fieldDataTxtPtr) WriteTo(ch BytesChannel) (int, error) {
 	n, err := field.writeToStatus(ch)
 	if err != nil {
 		return n, err
@@ -1014,7 +1014,7 @@ type XMLFieldData struct{ fieldDataTxtPtr }
 
 // utils
 
-func readLengthBytes(ch *channel, n int) (int, error) {
+func readLengthBytes(ch BytesChannel, n int) (int, error) {
 	var length int
 	var err error
 	switch n {
@@ -1039,7 +1039,7 @@ func readLengthBytes(ch *channel, n int) (int, error) {
 	return length, nil
 }
 
-func writeLengthBytes(ch *channel, byteCount int, n int) error {
+func writeLengthBytes(ch BytesChannel, byteCount int, n int) error {
 	var err error
 	switch byteCount {
 	case 4:

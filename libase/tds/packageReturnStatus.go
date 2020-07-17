@@ -8,7 +8,7 @@ type ReturnStatusPackage struct {
 	returnValue int32
 }
 
-func (pkg *ReturnStatusPackage) ReadFrom(ch *channel) error {
+func (pkg *ReturnStatusPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 
 	pkg.returnValue, err = ch.Int32()
@@ -19,7 +19,7 @@ func (pkg *ReturnStatusPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg ReturnStatusPackage) WriteTo(ch *channel) error {
+func (pkg ReturnStatusPackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteInt32(pkg.returnValue)
 	if err != nil {
 		return fmt.Errorf("error writing return value: %w", err)

@@ -18,7 +18,7 @@ func (pkg *OrderByPackage) LastPkg(other Package) error {
 	return fmt.Errorf("received package other than RowFmtPackage: %T", other)
 }
 
-func (pkg *OrderByPackage) ReadFrom(ch *channel) error {
+func (pkg *OrderByPackage) ReadFrom(ch BytesChannel) error {
 	columnCount, err := ch.Uint16()
 	if err != nil {
 		return fmt.Errorf("error reading column count: %w", err)
@@ -37,7 +37,7 @@ func (pkg *OrderByPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg OrderByPackage) WriteTo(ch *channel) error {
+func (pkg OrderByPackage) WriteTo(ch BytesChannel) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -53,7 +53,7 @@ type OrderBy2Package struct {
 	OrderByPackage
 }
 
-func (pkg *OrderBy2Package) ReadFrom(ch *channel) error {
+func (pkg *OrderBy2Package) ReadFrom(ch BytesChannel) error {
 	totalBytes, err := ch.Uint32()
 	if err != nil {
 		return fmt.Errorf("error reading byte length: %w", err)
@@ -84,7 +84,7 @@ func (pkg *OrderBy2Package) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg OrderBy2Package) WriteTo(ch *channel) error {
+func (pkg OrderBy2Package) WriteTo(ch BytesChannel) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -16,7 +16,7 @@ type EnvChangePackage struct {
 	members []EnvChangePackageField
 }
 
-func (pkg *EnvChangePackage) ReadFrom(ch *channel) error {
+func (pkg *EnvChangePackage) ReadFrom(ch BytesChannel) error {
 	length, err := ch.Uint16()
 	if err != nil {
 		return fmt.Errorf("error reading length: %w", err)
@@ -41,7 +41,7 @@ func (pkg *EnvChangePackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg EnvChangePackage) WriteTo(ch *channel) error {
+func (pkg EnvChangePackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteUint8(byte(TDS_ENVCHANGE))
 	if err != nil {
 		return fmt.Errorf("error writing TDS token %s: %w", TDS_ENVCHANGE, err)
@@ -88,7 +88,7 @@ type EnvChangePackageField struct {
 	NewValue, OldValue string
 }
 
-func (field *EnvChangePackageField) ReadFrom(ch *channel) (int, error) {
+func (field *EnvChangePackageField) ReadFrom(ch BytesChannel) (int, error) {
 	// n is the amount of bytes read from channel
 	n := 0
 
@@ -130,7 +130,7 @@ func (field *EnvChangePackageField) ReadFrom(ch *channel) (int, error) {
 	return n, nil
 }
 
-func (field EnvChangePackageField) WriteTo(ch *channel) (int, error) {
+func (field EnvChangePackageField) WriteTo(ch BytesChannel) (int, error) {
 	n := 1
 	err := ch.WriteUint8(uint8(field.Type))
 	if err != nil {

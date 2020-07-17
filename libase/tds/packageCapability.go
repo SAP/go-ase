@@ -272,7 +272,7 @@ func (pkg *CapabilityPackage) HasSecurityCapability(capability SecurityCapabilit
 	return pkg.HasCapability(CapabilitySecurity, int(capability))
 }
 
-func (pkg *CapabilityPackage) ReadFrom(ch *channel) error {
+func (pkg *CapabilityPackage) ReadFrom(ch BytesChannel) error {
 	totalLength, err := ch.Uint16()
 	if err != nil {
 		return fmt.Errorf("failed to read length: %w", err)
@@ -310,7 +310,7 @@ func (pkg *CapabilityPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg CapabilityPackage) WriteTo(ch *channel) error {
+func (pkg CapabilityPackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteByte(byte(TDS_CAPABILITY))
 	if err != nil {
 		return fmt.Errorf("failed to write token: %w", err)

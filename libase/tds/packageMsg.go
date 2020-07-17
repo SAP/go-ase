@@ -76,7 +76,7 @@ func NewMsgPackage(status TDSMsgStatus, msgId TDSMsgId) *MsgPackage {
 	}
 }
 
-func (pkg *MsgPackage) ReadFrom(ch *channel) error {
+func (pkg *MsgPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 
 	_, err = ch.Uint8()
@@ -96,7 +96,7 @@ func (pkg *MsgPackage) ReadFrom(ch *channel) error {
 	return err
 }
 
-func (pkg MsgPackage) WriteTo(ch *channel) error {
+func (pkg MsgPackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteByte(byte(TDS_MSG))
 	if err != nil {
 		return err

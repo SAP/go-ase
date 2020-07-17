@@ -20,7 +20,7 @@ type LoginAckPackage struct {
 	ProgramVersion *TDSVersion
 }
 
-func (pkg *LoginAckPackage) ReadFrom(ch *channel) error {
+func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 
 	pkg.Length, err = ch.Uint16()
@@ -64,7 +64,7 @@ func (pkg *LoginAckPackage) ReadFrom(ch *channel) error {
 	return err
 }
 
-func (pkg LoginAckPackage) WriteTo(ch *channel) error {
+func (pkg LoginAckPackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteByte(byte(TDS_LOGINACK))
 	if err != nil {
 		return fmt.Errorf("failed to write TDS Token %s: %w", TDS_LOGINACK, err)

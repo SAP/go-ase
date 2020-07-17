@@ -39,7 +39,7 @@ type DonePackage struct {
 type DoneProcPackage struct{ DonePackage }
 type DoneInProcPackage struct{ DonePackage }
 
-func (pkg *DonePackage) ReadFrom(ch *channel) error {
+func (pkg *DonePackage) ReadFrom(ch BytesChannel) error {
 	status, err := ch.Uint16()
 	if err != nil {
 		return fmt.Errorf("failed to read done status: %w", err)
@@ -60,7 +60,7 @@ func (pkg *DonePackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg DonePackage) WriteTo(ch *channel) error {
+func (pkg DonePackage) WriteTo(ch BytesChannel) error {
 	err := ch.WriteByte(byte(TDS_DONE))
 	if err != nil {
 		return err

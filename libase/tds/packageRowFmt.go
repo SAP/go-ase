@@ -12,7 +12,7 @@ type RowFmtPackage struct {
 	wide bool
 }
 
-func (pkg *RowFmtPackage) ReadFrom(ch *channel) error {
+func (pkg *RowFmtPackage) ReadFrom(ch BytesChannel) error {
 	totalLength, err := ch.Uint32()
 	if err != nil {
 		return fmt.Errorf("error reading length: %w", err)
@@ -42,7 +42,7 @@ func (pkg *RowFmtPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg *RowFmtPackage) ReadFromField(ch *channel) (FieldFmt, int, error) {
+func (pkg *RowFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) {
 	n := 0
 
 	var label, catalogue, schema, table string
@@ -174,7 +174,7 @@ func (pkg *RowFmtPackage) ReadFromField(ch *channel) (FieldFmt, int, error) {
 	return fieldFmt, n, nil
 }
 
-func (pkg *RowFmtPackage) WriteTo(ch *channel) error {
+func (pkg *RowFmtPackage) WriteTo(ch BytesChannel) error {
 	return fmt.Errorf("not implemented")
 }
 

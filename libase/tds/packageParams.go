@@ -70,7 +70,7 @@ func (pkg *ParamsPackage) LastPkg(other Package) error {
 	return nil
 }
 
-func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
+func (pkg *ParamsPackage) ReadFrom(ch BytesChannel) error {
 
 	for i, field := range pkg.DataFields {
 		// TODO can the written byte count be validated?
@@ -83,7 +83,7 @@ func (pkg *ParamsPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg ParamsPackage) WriteTo(ch *channel) error {
+func (pkg ParamsPackage) WriteTo(ch BytesChannel) error {
 	var token TDSToken
 	if pkg.paramFmt != nil {
 		token = TDS_PARAMS

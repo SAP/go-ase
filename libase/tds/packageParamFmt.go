@@ -18,7 +18,7 @@ func NewParamFmtPackage(wide bool, fmts ...FieldFmt) *ParamFmtPackage {
 	return &ParamFmtPackage{wide: wide, Fmts: fmts}
 }
 
-func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
+func (pkg *ParamFmtPackage) ReadFrom(ch BytesChannel) error {
 	// Read length
 	totalBytes := 0
 	if pkg.wide {
@@ -81,7 +81,7 @@ func (pkg *ParamFmtPackage) ReadFrom(ch *channel) error {
 	return nil
 }
 
-func (pkg *ParamFmtPackage) ReadFromField(ch *channel) (FieldFmt, int, error) {
+func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) {
 	nameLength, err := ch.Uint8()
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to retrieve name length: %w", err)
@@ -156,7 +156,7 @@ func (pkg *ParamFmtPackage) ReadFromField(ch *channel) (FieldFmt, int, error) {
 	return fieldFmt, n, nil
 }
 
-func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
+func (pkg ParamFmtPackage) WriteTo(ch BytesChannel) error {
 	var err error
 	if pkg.wide {
 		err = ch.WriteByte(byte(TDS_PARAMFMT2))
@@ -218,7 +218,7 @@ func (pkg ParamFmtPackage) WriteTo(ch *channel) error {
 	return nil
 }
 
-func (pkg ParamFmtPackage) WriteToField(ch *channel, field FieldFmt) (int, error) {
+func (pkg ParamFmtPackage) WriteToField(ch BytesChannel, field FieldFmt) (int, error) {
 	if err := ch.WriteUint8(uint8(len(field.Name()))); err != nil {
 		return 0, fmt.Errorf("failed to write Name length: %w", err)
 	}
