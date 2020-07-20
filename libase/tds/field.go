@@ -115,6 +115,7 @@ type FieldData interface {
 	Status() DataStatus
 
 	// Interface methods for go-ase
+	Format() FieldFmt
 	SetData([]byte)
 	Data() []byte
 	ReadFrom(BytesChannel) (int, error)
@@ -305,6 +306,10 @@ type fieldDataBase struct {
 	fmt    FieldFmt
 	status DataStatus
 	data   []byte
+}
+
+func (field fieldDataBase) Format() FieldFmt {
+	return field.fmt
 }
 
 func (field fieldDataBase) Status() DataStatus {
