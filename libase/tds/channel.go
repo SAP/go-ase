@@ -17,6 +17,8 @@ type TDSChannel struct {
 	CurrentHeaderType MessageHeaderType
 	// curPacketNr is the number of the next packet being sent
 	curPacketNr int
+	// window is the amount of buffers transmitted between ACKs
+	window int
 
 	// packets stores unconsumed Packets
 	queue *PacketQueue
@@ -26,6 +28,8 @@ type TDSChannel struct {
 	errCh chan error
 }
 
+// NewTDSChannel communicates the creation of a new channel with the
+// server.
 func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	channelId, err := tds.getValidChannelId()
 	if err != nil {
@@ -36,6 +40,7 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 		tdsConn:           tds,
 		channelId:         channelId,
 		CurrentHeaderType: TDS_BUF_NORMAL,
+		window:            100, // TODO
 		queue:             NewPacketQueue(),
 		packageCh:         make(chan Package, packageChannelSize),
 		errCh:             make(chan error, 10),
