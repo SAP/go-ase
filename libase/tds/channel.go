@@ -217,11 +217,14 @@ func (tdsChan *TDSChannel) AddPackage(pkg Package) error {
 // Send all remaining Packets in queue to the server.
 // This includes Packets whose Data isn't exhausted.
 func (tdsChan *TDSChannel) SendRemainingPackets() error {
+	// SendRemainingPackets is only called when completing sending
+	// packets to the server and preparing to receive the answer.
+	defer tdsChan.Reset()
 	return tdsChan.sendPackets(false)
 }
 
 func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
-	defer func() { tdsChan.queue.DiscardUntilCurrentPosition() }()
+	defer tdsChan.queue.DiscardUntilCurrentPosition()
 
 	for i, packet := range tdsChan.queue.queue {
 		// Only the last packet should not be full.
