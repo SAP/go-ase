@@ -14,9 +14,15 @@ type PacketQueue struct {
 }
 
 func NewPacketQueue() *PacketQueue {
-	return &PacketQueue{
-		queue: []*Packet{},
-	}
+	queue := &PacketQueue{}
+	queue.Reset()
+	return queue
+}
+
+func (queue *PacketQueue) Reset() {
+	queue.queue = []*Packet{}
+	queue.indexPacket = 0
+	queue.indexData = 0
 }
 
 func (queue *PacketQueue) AddPacket(packet *Packet) {
@@ -33,12 +39,9 @@ func (queue *PacketQueue) SetPosition(indexPacket, indexData int) {
 }
 
 func (queue *PacketQueue) DiscardUntilCurrentPosition() {
-	// .indexPacket points to no particular packet or no queue have
-	// been consumed, empty stored queue and reset indizes.
+	// .indexPacket points to no particular packet, reset queue
 	if len(queue.queue) == 0 || queue.indexPacket >= len(queue.queue) {
-		queue.queue = []*Packet{}
-		queue.indexPacket = 0
-		queue.indexData = 0
+		queue.Reset()
 		return
 	}
 
