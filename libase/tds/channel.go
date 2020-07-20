@@ -3,9 +3,10 @@ package tds
 import (
 	"errors"
 	"fmt"
-	"math"
 )
 
+// TDSChannel is a channel in a multiplexed connection with a TDS
+// server.
 type TDSChannel struct {
 	tdsConn *TDSConn
 
@@ -22,17 +23,10 @@ type TDSChannel struct {
 	errCh chan error
 }
 
-func (tds *TDSConn) NewTDSChannel(channelId, packageChannelSize int) (*TDSChannel, error) {
-	if tdsChan, ok := tds.tdsChannels[channelId]; ok && tdsChan != nil {
-		return nil, fmt.Errorf("channel already in use: %d", channelId)
-	}
-
-	if channelId <= 0 {
-		return nil, fmt.Errorf("channelId cannot be less or equal to zero")
-	}
-
-	if channelId > math.MaxUint16 {
-		return nil, fmt.Errorf("channelId cannot must fit into a uint16")
+func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
+	channelId, err := tds.getValidChannelId()
+	if err != nil {
+		return nil, fmt.Errorf("error getting channel ID: %w", err)
 	}
 
 	tdsChan := &TDSChannel{
@@ -53,6 +47,8 @@ func (tdsChan *TDSChannel) Close() {
 	close(tdsChan.errCh)
 }
 
+// Error returns either communications errors from the underlying
+// TDSConn or parse errors from the TDSChannel.
 func (tdsChan *TDSChannel) Error() error {
 	if err, ok := tdsChan.tdsConn.Error(); ok {
 		return fmt.Errorf("error in tds connection: %w", err)

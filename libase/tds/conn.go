@@ -5,11 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 // TDSConn handles a TDS-based connection.
+//
+// Note: This is not the underlying structure for driver.Conn - that is
+// TDSChannel.
 type TDSConn struct {
 	conn io.ReadWriteCloser
 	caps *CapabilityPackage
@@ -19,11 +24,12 @@ type TDSConn struct {
 
 	odce odceCipher
 
-	ctx             context.Context
-	ctxCancel       context.CancelFunc
-	tdsChannels     map[int]*TDSChannel
-	tdsChannelsLock *sync.RWMutex
-	errCh           chan error
+	ctx                 context.Context
+	ctxCancel           context.CancelFunc
+	tdsChannelCurFreeId uint32
+	tdsChannels         map[int]*TDSChannel
+	tdsChannelsLock     *sync.RWMutex
+	errCh               chan error
 }
 
 // Dial returns a prepared and dialed TDSConn.
@@ -45,6 +51,7 @@ func Dial(network, address string) (*TDSConn, error) {
 	tds.odce = aes_256_cbc
 
 	tds.ctx, tds.ctxCancel = context.WithCancel(context.Background())
+	tds.tdsChannelCurFreeId = uint32(1)
 	tds.tdsChannels = make(map[int]*TDSChannel)
 	tds.tdsChannelsLock = &sync.RWMutex{}
 	tds.errCh = make(chan error, 10)
@@ -67,6 +74,25 @@ func (tds *TDSConn) Close() error {
 func (tds TDSConn) Error() (error, bool) {
 	err, ok := <-tds.errCh
 	return err, ok
+}
+
+func (tds *TDSConn) getValidChannelId() (int, error) {
+	curId := int(tds.tdsChannelCurFreeId)
+
+	if curId > math.MaxUint16 {
+		// TODO create error
+		return 0, fmt.Errorf("exhausted all channel IDs")
+	}
+
+	// increment ID before recursing or returning
+	atomic.AddUint32(&tds.tdsChannelCurFreeId, 1)
+
+	if _, ok := tds.tdsChannels[curId]; ok {
+		// ChannelId is already used, recurse
+		return tds.getValidChannelId()
+	}
+
+	return curId, nil
 }
 
 // ReadFrom creates packets from payloads from the server and writes
