@@ -14,7 +14,10 @@ type TDSChannel struct {
 
 	// currentHeaderType is the MessageHeaderType set on outgoing
 	// packets.
-	currentHeaderType MessageHeaderType
+	CurrentHeaderType MessageHeaderType
+	// curPacketNr is the number of the next packet being sent
+	curPacketNr int
+
 	// packets stores unconsumed Packets
 	queue *PacketQueue
 	// packageCh stores Packages as they are parsed from Packets
@@ -30,16 +33,22 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	}
 
 	tdsChan := &TDSChannel{
-		tdsConn:   tds,
-		channelId: channelId,
-		queue:     NewPacketQueue(),
-		packageCh: make(chan Package, packageChannelSize),
-		errCh:     make(chan error, 10),
+		tdsConn:           tds,
+		channelId:         channelId,
+		CurrentHeaderType: TDS_BUF_NORMAL,
+		queue:             NewPacketQueue(),
+		packageCh:         make(chan Package, packageChannelSize),
+		errCh:             make(chan error, 10),
 	}
 
 	tds.tdsChannels[channelId] = tdsChan
 
 	return tdsChan, nil
+}
+
+// ResetHaderType resets CurrentHeaderType to TDS_BUF_NORMAL
+func (tds *TDSChannel) ResetHeaderType() {
+	tds.CurrentHeaderType = TDS_BUF_NORMAL
 }
 
 func (tdsChan *TDSChannel) Close() {
@@ -104,22 +113,40 @@ func (tdsChan *TDSChannel) SendRemainingPackets() error {
 func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
 	defer func() { tdsChan.queue.DiscardUntilCurrentPosition() }()
 
-	for _, packet := range tdsChan.queue.queue {
-		// Check if Packet.Data is exhausted if only exhausted Packets
-		// should be sent.
-		if onlyFull && len(packet.Data) != int(packet.Header.Length) {
-			// First not exhausted Packet found, return
-			return nil
+	for i, packet := range tdsChan.queue.queue {
+		// Only the last packet should not be full.
+		if i == tdsChan.queue.indexPacket && tdsChan.queue.indexData < MsgBodyLength {
+			if onlyFull {
+				// Packet is not exhausted and only exhausted packets
+				// should be sent. Return.
+				return nil
+			}
+
+			// Packet is not exhausted but should be sent. Adjust header
+			// length
+			packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queue.indexData)
+			packet.Data = packet.Data[:tdsChan.queue.indexData]
 		}
 
 		// TODO maybe check if data is empty - could be an issue
+
+		packet.Header.Channel = uint16(tdsChan.channelId)
+		packet.Header.PacketNr = uint8(tdsChan.curPacketNr)
+		tdsChan.curPacketNr = (tdsChan.curPacketNr + 1) % 256
+
+		packet.Header.MsgType = tdsChan.CurrentHeaderType
+
+		if len(packet.Data) != MsgBodyLength {
+			// Data portion is not exhausted, this is the last packet.
+			packet.Header.Status |= TDS_BUFSTAT_EOM
+		}
 
 		n, err := packet.WriteTo(tdsChan.tdsConn.conn)
 		if err != nil {
 			return fmt.Errorf("error writing packet to server: %w", err)
 		}
 
-		if int(n) != int(packet.Header.Length)+MsgHeaderLength {
+		if int(n) != int(packet.Header.Length) {
 			return fmt.Errorf("expected to write %d bytes for packet, wrote %d instead",
 				int(packet.Header.Length)+MsgHeaderLength, n)
 		}
