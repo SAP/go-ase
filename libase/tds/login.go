@@ -10,7 +10,6 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	}
 
 	tdsChan.CurrentHeaderType = TDS_BUF_LOGIN
-	defer tdsChan.ResetHeaderType()
 
 	var withoutEncryption bool
 	switch config.Encrypt {
@@ -54,7 +53,7 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 
 	pkg, err := tdsChan.NextPackage(true)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading LoginAck package: %w", err)
 	}
 
 	loginack, ok := pkg.(*LoginAckPackage)
@@ -71,7 +70,7 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 
 		pkg, err = tdsChan.NextPackage(true)
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading Done package: %w", err)
 		}
 
 		done, ok := pkg.(*DonePackage)
@@ -92,7 +91,7 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 
 	pkg, err = tdsChan.NextPackage(true)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading Msg package: %w", err)
 	}
 
 	negotiationMsg, ok := pkg.(*MsgPackage)
@@ -106,12 +105,42 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 
 	pkg, err = tdsChan.NextPackage(true)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading ParamFmt package: %w", err)
+	}
+
+	paramFmt, ok := pkg.(*ParamFmtPackage)
+	if !ok {
+		return fmt.Errorf("expected paramfmt package as third response, recevied: %v", pkg)
+	}
+
+	if len(paramFmt.Fmts) != 3 {
+		return fmt.Errorf("invalid paramfmt package, expected 3 fields, got %d: %v",
+			len(paramFmt.Fmts), paramFmt)
+	}
+
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading Params package: %w", err)
 	}
 
 	params, ok := pkg.(*ParamsPackage)
 	if !ok {
 		return fmt.Errorf("expected params package as fourth response, received: %s", pkg)
+	}
+
+	if len(params.DataFields) != 3 {
+		return fmt.Errorf("invalid params package, expected 3 fields, got %d: %v",
+			len(params.DataFields), params)
+	}
+
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading Done package: %w", err)
+	}
+
+	_, ok = pkg.(*DonePackage)
+	if !ok {
+		return fmt.Errorf("expected done package as fifth response, received: %v", pkg)
 	}
 
 	// get asymmetric encryption type
@@ -235,22 +264,37 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	tdsChan.AddPackage(NewParamFmtPackage(false, symkeyFmt))
 	tdsChan.AddPackage(NewParamsPackage(symkeyData))
 
-	// Filter received packages to single out the login-relevant ones.
-	relevantPackages := []Package{}
-	for pkg, err := tdsChan.NextPackage(false); err != nil; pkg, err = tdsChan.NextPackage(false) {
-		switch pkg.(type) {
-		case *EnvChangePackage, *EEDPackage:
-			// these packages are handled in .Receive, ignore
-			continue
-		default:
-			relevantPackages = append(relevantPackages, pkg)
-		}
+	err = tdsChan.SendRemainingPackets()
+	if err != nil {
+		return fmt.Errorf("error sending login payload: %w", err)
 	}
 
-	loginAck, ok := relevantPackages[0].(*LoginAckPackage)
+	// EED encoding
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading EED package: %w", err)
+	}
+
+	// EED database change
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading EED package: %w", err)
+	}
+
+	// EED language
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading EED package: %w", err)
+	}
+
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading LoginAck package: %w", err)
+	}
+
+	loginAck, ok := pkg.(*LoginAckPackage)
 	if !ok {
-		return fmt.Errorf("expected login ack package, received %T instead: %v",
-			relevantPackages[0], relevantPackages[0])
+		return fmt.Errorf("expected login ack package, received %T instead: %v", pkg, pkg)
 	}
 
 	if loginAck.Status != TDS_LOG_SUCCEED {
@@ -258,18 +302,26 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 			loginAck.Status)
 	}
 
-	_, ok = relevantPackages[1].(*CapabilityPackage)
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading Capability package: %w", err)
+	}
+
+	_, ok = pkg.(*CapabilityPackage)
 	if !ok {
-		return fmt.Errorf("expected capability package, received %T instead: %v",
-			relevantPackages[1], relevantPackages[1])
+		return fmt.Errorf("expected capability package, received %T instead: %v", pkg, pkg)
 	}
 
 	// TODO handle caps response
 
-	done, ok := relevantPackages[2].(*DonePackage)
+	pkg, err = tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading Done package: %w", err)
+	}
+
+	done, ok := pkg.(*DonePackage)
 	if !ok {
-		return fmt.Errorf("expected done package, received %T instead: %v",
-			relevantPackages[2], relevantPackages[2])
+		return fmt.Errorf("expected done package, received %T instead: %v", pkg, pkg)
 	}
 
 	if done.status != TDS_DONE_FINAL {
@@ -281,6 +333,8 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 		return fmt.Errorf("expected done package with transtate TDS_TRAN_COMPLETED, received %s",
 			done.tranState)
 	}
+
+	tdsChan.Reset()
 
 	return nil
 }
