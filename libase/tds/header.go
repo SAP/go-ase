@@ -73,7 +73,7 @@ type MessageHeader struct {
 
 func NewMessageHeader() MessageHeader {
 	return MessageHeader{
-		Length: uint16(MsgBodyLength),
+		Length: uint16(MsgLength),
 	}
 }
 
