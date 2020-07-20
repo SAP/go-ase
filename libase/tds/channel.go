@@ -1,8 +1,12 @@
 package tds
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"sync"
 )
 
 // TDSChannel is a channel in a multiplexed connection with a TDS
@@ -26,6 +30,9 @@ type TDSChannel struct {
 	queue *PacketQueue
 	// packageCh stores Packages as they are parsed from Packets
 	packageCh chan Package
+	// lastPkg is the last package sent by the TDS server and added to
+	// the channel.
+	lastPkg Package
 
 	errCh chan error
 }
@@ -82,9 +89,11 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	return tdsChan, nil
 }
 
-// ResetHaderType resets CurrentHeaderType to TDS_BUF_NORMAL
-func (tds *TDSChannel) ResetHeaderType() {
-	tds.CurrentHeaderType = TDS_BUF_NORMAL
+// Reset resets the TDSChannel after a communication has been completed.
+func (tdsChan *TDSChannel) Reset() {
+	tdsChan.CurrentHeaderType = TDS_BUF_NORMAL
+	tdsChan.queue.Reset()
+	tdsChan.lastPkg = nil
 }
 
 // Close communicates the closing of the channel with the TDS server.
@@ -166,10 +175,18 @@ func (tdsChan *TDSChannel) NextPackage(wait bool) (Package, error) {
 // AddPackage utilized PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
 func (tdsChan *TDSChannel) AddPackage(pkg Package) error {
+	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
+		err := acceptor.LastPkg(tdsChan.lastPkg)
+		if err != nil {
+			return fmt.Errorf("error calling LastPkg: %w", err)
+		}
+	}
+
 	err := pkg.WriteTo(tdsChan.queue)
 	if err != nil {
 		return fmt.Errorf("error queueing packets from package: %w", err)
 	}
+	tdsChan.lastPkg = pkg
 
 	return tdsChan.sendPackets(true)
 }
@@ -311,5 +328,6 @@ func (tdsChan *TDSChannel) tryParsePackage() bool {
 	}
 
 	tdsChan.packageCh <- pkg
+	tdsChan.lastPkg = pkg
 	return true
 }
