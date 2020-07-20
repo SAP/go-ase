@@ -14,7 +14,7 @@ type Packet struct {
 func NewPacket() *Packet {
 	packet := &Packet{}
 	packet.Header = NewMessageHeader()
-	packet.Data = make([]byte, packet.Header.Length)
+	packet.Data = make([]byte, MsgBodyLength)
 	return packet
 }
 
