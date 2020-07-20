@@ -30,7 +30,7 @@ type TDSConn struct {
 }
 
 // Dial returns a prepared and dialed TDSConn.
-func Dial(network, address string) (*TDSConn, error) {
+func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) {
 	c, err := net.Dial(network, address)
 	if err != nil {
 		return nil, fmt.Errorf("error opening connection: %w", err)
@@ -46,7 +46,7 @@ func Dial(network, address string) (*TDSConn, error) {
 
 	tds.odce = aes_256_cbc
 
-	tds.ctx, tds.ctxCancel = context.WithCancel(context.Background())
+	tds.ctx, tds.ctxCancel = context.WithCancel(ctx)
 	tds.tdsChannelCurFreeId = uint32(1)
 	tds.tdsChannels = make(map[int]*TDSChannel)
 	tds.tdsChannelsLock = &sync.RWMutex{}
