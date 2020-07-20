@@ -160,26 +160,39 @@ func (tdsChan *TDSChannel) handleSpecialPackage(pkg Package) (bool, error) {
 }
 
 // NextPackage returns the next package in the queue.
-// If wait is true an error is only returned when the context of the
-// associated TDSConn is cancelled.
-// If wait is false an error is only returned if no package is ready to
-// be returned.
+// An error may be returned in the following cases:
+//	1. The connections' context was closed.
+//	2. The connection has a communication error queued.
+//	3. The channel has a parsing error queued.
+//
+// If wait is false a ErrNoPackageReady error may be returned.
+//
+// If multiple errors and a package are ready a random error or package
+// will be returned, as stated in the spec for select.
 func (tdsChan *TDSChannel) NextPackage(wait bool) (Package, error) {
-	if wait {
-		select {
-		case <-tdsChan.tdsConn.ctx.Done():
-			return nil, errors.New("context cancelled")
-		case pkg := <-tdsChan.packageCh:
-			return pkg, nil
-		}
+	ch := make(chan error, 1)
+
+	// Write an error into the channel if the caller does not want to
+	// wait. The channel will be empty otherwise, block the select and
+	// realise the wait.
+	if !wait {
+		// TODO define error
+		ch <- errors.New("no package ready")
 	}
 
-	pkg, ok := <-tdsChan.packageCh
-	if !ok {
-		return nil, errors.New("No Package ready")
+	select {
+	case <-tdsChan.tdsConn.ctx.Done():
+		return nil, context.Canceled
+	case err := <-tdsChan.tdsConn.errCh:
+		return nil, fmt.Errorf("error in TDS connection: %w", err)
+	case err := <-tdsChan.errCh:
+		return nil, fmt.Errorf("error in TDS channel %d: %w",
+			tdsChan.channelId, err)
+	case pkg := <-tdsChan.packageCh:
+		return pkg, nil
+	case err := <-ch:
+		return nil, err
 	}
-
-	return pkg, nil
 }
 
 // AddPackage utilized PacketQueue to convert a Package into packets.
