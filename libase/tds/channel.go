@@ -130,26 +130,35 @@ func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
 
 		// TODO maybe check if data is empty - could be an issue
 
-		packet.Header.Channel = uint16(tdsChan.channelId)
-		packet.Header.PacketNr = uint8(tdsChan.curPacketNr)
-		tdsChan.curPacketNr = (tdsChan.curPacketNr + 1) % 256
-
-		packet.Header.MsgType = tdsChan.CurrentHeaderType
-
-		if len(packet.Data) != MsgBodyLength {
-			// Data portion is not exhausted, this is the last packet.
-			packet.Header.Status |= TDS_BUFSTAT_EOM
-		}
-
-		n, err := packet.WriteTo(tdsChan.tdsConn.conn)
+		err := tdsChan.sendPacket(packet)
 		if err != nil {
-			return fmt.Errorf("error writing packet to server: %w", err)
+			return fmt.Errorf("error sending packet: %w", err)
 		}
+	}
 
-		if int(n) != int(packet.Header.Length) {
-			return fmt.Errorf("expected to write %d bytes for packet, wrote %d instead",
-				int(packet.Header.Length)+MsgHeaderLength, n)
-		}
+	return nil
+}
+
+func (tdsChan *TDSChannel) sendPacket(packet *Packet) error {
+	packet.Header.MsgType = tdsChan.CurrentHeaderType
+	packet.Header.Channel = uint16(tdsChan.channelId)
+	packet.Header.PacketNr = uint8(tdsChan.curPacketNr)
+	tdsChan.curPacketNr = (tdsChan.curPacketNr + 1) % 256
+	packet.Header.Window = uint8(tdsChan.window)
+
+	if len(packet.Data) != MsgBodyLength {
+		// Data portion is not exhausted, this is the last packet.
+		packet.Header.Status |= TDS_BUFSTAT_EOM
+	}
+
+	n, err := packet.WriteTo(tdsChan.tdsConn.conn)
+	if err != nil {
+		return fmt.Errorf("error writing packet to server: %w", err)
+	}
+
+	if int(n) != int(packet.Header.Length) {
+		return fmt.Errorf("expected to write %d bytes for packet, wrote %d instead",
+			int(packet.Header.Length)+MsgHeaderLength, n)
 	}
 
 	return nil
