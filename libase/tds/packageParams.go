@@ -71,12 +71,12 @@ func (pkg *ParamsPackage) LastPkg(other Package) error {
 }
 
 func (pkg *ParamsPackage) ReadFrom(ch BytesChannel) error {
-
 	for i, field := range pkg.DataFields {
 		// TODO can the written byte count be validated?
 		_, err := field.ReadFrom(ch)
 		if err != nil {
-			return fmt.Errorf("error occurred reading param field %d data: %w", i, err)
+			return fmt.Errorf("error occurred reading param field %d data (%s): %w",
+				i, field.Format().DataType(), err)
 		}
 	}
 
