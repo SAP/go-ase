@@ -195,6 +195,10 @@ func (tdsChan *TDSChannel) NextPackage(wait bool) (Package, error) {
 	}
 }
 
+type LastPkgAcceptor interface {
+	LastPkg(Package) error
+}
+
 // AddPackage utilized PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
 func (tdsChan *TDSChannel) AddPackage(pkg Package) error {
@@ -334,6 +338,14 @@ func (tdsChan *TDSChannel) tryParsePackage() bool {
 	// If the Package is tokenless write the token byte back in.
 	if tokenless, ok := pkg.(*TokenlessPackage); ok {
 		tokenless.Data.WriteByte(tokenByte)
+	}
+
+	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
+		err := acceptor.LastPkg(tdsChan.lastPkg)
+		if err != nil {
+			tdsChan.errCh <- fmt.Errorf("error in LastPkg: %w", err)
+			return false
+		}
 	}
 
 	// Read data into Package.
