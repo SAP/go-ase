@@ -90,7 +90,7 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 			header)
 	}
 
-	tdsChan.ResetHeaderType()
+	tdsChan.Reset()
 	return tdsChan, nil
 }
 
