@@ -9,6 +9,9 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 		return fmt.Errorf("passed config is nil")
 	}
 
+	tdsChan.CurrentHeaderType = TDS_BUF_LOGIN
+	defer tdsChan.ResetHeaderType()
+
 	var withoutEncryption bool
 	switch config.Encrypt {
 	case TDS_MSG_SEC_ENCRYPT, TDS_MSG_SEC_ENCRYPT2, TDS_MSG_SEC_ENCRYPT3:
@@ -29,8 +32,6 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 		config.RemoteServers = append([]LoginConfigRemoteServer{firstRemoteServer}, config.RemoteServers...)
 	}
 
-	tdsChan.currentHeaderType = TDS_BUF_LOGIN
-
 	pack, err := config.pack()
 	if err != nil {
 		return fmt.Errorf("error building login payload: %w", err)
@@ -44,6 +45,11 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	err = tdsChan.AddPackage(tdsChan.tdsConn.caps)
 	if err != nil {
 		return fmt.Errorf("error adding login capabilities package: %w", err)
+	}
+
+	err = tdsChan.SendRemainingPackets()
+	if err != nil {
+		return fmt.Errorf("error sending packets: %w", err)
 	}
 
 	pkg, err := tdsChan.NextPackage(true)
