@@ -200,15 +200,15 @@ func (queue *PacketQueue) WriteBytes(bs []byte) error {
 		// Retrieve current package and calculate how many bytes can
 		// still be written to it.
 		curPacket := queue.queue[queue.indexPacket]
-		freeBytes := int(curPacket.Header.Length) - queue.indexData
+		freeBytes := int(curPacket.Header.Length) - MsgHeaderLength - queue.indexData
 
 		// No free bytes, add a new packet.
 		if freeBytes == 0 {
-			curPacket = &Packet{}
+			curPacket = NewPacket()
 			queue.queue = append(queue.queue, curPacket)
 			queue.indexPacket++
 			queue.indexData = 0
-			freeBytes = int(curPacket.Header.Length)
+			freeBytes = int(curPacket.Header.Length) - MsgHeaderLength
 		}
 
 		// Calculate how many bytes are left in bs if more free bytes
