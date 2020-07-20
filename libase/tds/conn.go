@@ -19,9 +19,6 @@ type TDSConn struct {
 	conn io.ReadWriteCloser
 	caps *CapabilityPackage
 
-	envChangeHooks     []EnvChangeHook
-	envChangeHooksLock *sync.Mutex
-
 	odce odceCipher
 
 	ctx                 context.Context
@@ -47,7 +44,6 @@ func Dial(network, address string) (*TDSConn, error) {
 		return nil, fmt.Errorf("error setting capabilities on connection: %w", err)
 	}
 
-	tds.envChangeHooksLock = &sync.Mutex{}
 	tds.odce = aes_256_cbc
 
 	tds.ctx, tds.ctxCancel = context.WithCancel(context.Background())
@@ -258,17 +254,5 @@ func (tds *TDSConn) setCapabilities() error {
 	}
 
 	tds.caps = caps
-	return nil
-}
-
-// receiveHandleSpecialPackage handles special packages received from
-// a TDS server.
-func (tds *TDSConn) receiveHandleSpecialPackage(pkg Package) error {
-	if envChange, ok := pkg.(*EnvChangePackage); ok {
-		for _, member := range envChange.members {
-			go tds.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
-		}
-	}
-
 	return nil
 }

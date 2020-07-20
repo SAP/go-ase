@@ -10,7 +10,9 @@ import (
 type TDSChannel struct {
 	tdsConn *TDSConn
 
-	channelId int
+	channelId          int
+	envChangeHooks     []EnvChangeHook
+	envChangeHooksLock *sync.Mutex
 
 	// currentHeaderType is the MessageHeaderType set on outgoing
 	// packets.
@@ -39,6 +41,7 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	tdsChan := &TDSChannel{
 		tdsConn:           tds,
 		channelId:         channelId,
+		envChangeHooksLock: &sync.Mutex{},
 		CurrentHeaderType: TDS_BUF_NORMAL,
 		window:            100, // TODO
 		queue:             NewPacketQueue(),
@@ -120,6 +123,21 @@ func (tdsChan *TDSChannel) Error() error {
 	}
 
 	return nil
+}
+
+// handleSpecialPackage handles special packages such as env changes.
+// The returned boolean signals if the package should be passed along or
+// skipped.
+// An error is returned if the handling errored.
+func (tdsChan *TDSChannel) handleSpecialPackage(pkg Package) (bool, error) {
+	if envChange, ok := pkg.(*EnvChangePackage); ok {
+		for _, member := range envChange.members {
+			go tdsChan.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
+		}
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // NextPackage returns the next package in the queue.
@@ -277,6 +295,19 @@ func (tdsChan *TDSChannel) tryParsePackage() bool {
 		// Not enough data available
 		// TODO: create an explicit error to check for
 		return false
+	}
+
+	pass, err := tdsChan.handleSpecialPackage(pkg)
+	if err != nil {
+		tdsChan.errCh <- fmt.Errorf("error while handling sepcial package: %w", err)
+		// Package handling errored, but the package could be parsed.
+		// Continue.
+		return true
+	}
+
+	if !pass {
+		// Package should not be handled further, continue
+		return true
 	}
 
 	tdsChan.packageCh <- pkg
