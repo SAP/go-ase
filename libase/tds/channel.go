@@ -48,6 +48,34 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 
 	tds.tdsChannels[channelId] = tdsChan
 
+	// Send packets to setup logical channel
+	setup := NewPacket()
+	setup.Header.Length = MsgHeaderLength
+	setup.Data = nil
+
+	tdsChan.CurrentHeaderType = TDS_BUF_SETUP
+	err = tdsChan.sendPacket(setup)
+	if err != nil {
+		return nil, fmt.Errorf("error sending setup for channel %d: %w",
+			tdsChan.channelId, err)
+	}
+
+	pkg, err := tdsChan.NextPackage(true)
+	if err != nil {
+		return nil, fmt.Errorf("error receiving ack for channel setup: %w", err)
+	}
+
+	header, ok := pkg.(*HeaderOnlyPackage)
+	if !ok {
+		return nil, fmt.Errorf("did not received expected header-only packet: %v", pkg)
+	}
+
+	if header.Header.MsgType&TDS_BUF_PROTACK != TDS_BUF_PROTACK {
+		return nil, fmt.Errorf("did not receive protack in header-only packet: %s",
+			header)
+	}
+
+	tdsChan.ResetHeaderType()
 	return tdsChan, nil
 }
 
@@ -56,9 +84,28 @@ func (tds *TDSChannel) ResetHeaderType() {
 	tds.CurrentHeaderType = TDS_BUF_NORMAL
 }
 
-func (tdsChan *TDSChannel) Close() {
-	close(tdsChan.packageCh)
-	close(tdsChan.errCh)
+// Close communicates the closing of the channel with the TDS server.
+//
+// The teardown on client side is guaranteed, even if Close returns an
+// error. An error is only returned if the communication with the server
+// fails.
+func (tdsChan *TDSChannel) Close() error {
+	defer close(tdsChan.packageCh)
+	defer close(tdsChan.errCh)
+
+	// Send packet to teardown logical channel
+	teardown := NewPacket()
+	teardown.Header.Length = MsgHeaderLength
+	teardown.Data = nil
+	tdsChan.CurrentHeaderType = TDS_BUF_CLOSE
+
+	err := tdsChan.sendPacket(teardown)
+	if err != nil {
+		return fmt.Errorf("error sending teardown for channel %d: %w",
+			tdsChan.channelId, err)
+	}
+
+	return nil
 }
 
 // Error returns either communications errors from the underlying
