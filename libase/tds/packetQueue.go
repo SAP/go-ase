@@ -99,8 +99,9 @@ func (queue *PacketQueue) Bytes(n int) ([]byte, error) {
 	bsOffset := 0
 
 	for {
-		if queue.indexPacket > len(queue.queue) {
-			return nil, fmt.Errorf("not enough queue")
+		if queue.indexPacket >= len(queue.queue) {
+			// Signal io.EOF but add the context of the packet queue
+			return bs, fmt.Errorf("not enough packets in queue: %w", io.EOF)
 		}
 		data := queue.queue[queue.indexPacket].Data
 
