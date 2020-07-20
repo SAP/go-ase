@@ -136,7 +136,7 @@ func (header *MessageHeader) Write(bs []byte) (int64, error) {
 	header.Status = MessageHeaderStatus(bs[1])
 	uvarint := binary.BigEndian.Uint16(bs[2:4])
 	header.Length = uint16(uvarint)
-	uvarint = binary.BigEndian.Uint16(bs[2:4])
+	uvarint = binary.BigEndian.Uint16(bs[4:6])
 	header.Channel = uint16(uvarint)
 	header.PacketNr = uint8(bs[6])
 	header.Window = uint8(bs[7])
