@@ -47,7 +47,9 @@ func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) 
 	tds.odce = aes_256_cbc
 
 	tds.ctx, tds.ctxCancel = context.WithCancel(ctx)
-	tds.tdsChannelCurFreeId = uint32(1)
+	// Channels cannot have ID 0 - but channel with the id 0 is used to
+	// communicate general packets such as login/logout.
+	tds.tdsChannelCurFreeId = uint32(0)
 	tds.tdsChannels = make(map[int]*TDSChannel)
 	tds.tdsChannelsLock = &sync.RWMutex{}
 	tds.errCh = make(chan error, 10)

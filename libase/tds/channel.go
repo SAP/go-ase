@@ -58,6 +58,11 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 
 	tds.tdsChannels[channelId] = tdsChan
 
+	// channel 0 needs no setup
+	if channelId == 0 {
+		return tdsChan, nil
+	}
+
 	// Send packets to setup logical channel
 	setup := NewPacket()
 	setup.Header.Length = MsgHeaderLength
@@ -104,6 +109,11 @@ func (tdsChan *TDSChannel) Reset() {
 func (tdsChan *TDSChannel) Close() error {
 	defer close(tdsChan.packageCh)
 	defer close(tdsChan.errCh)
+
+	// Channel 0 needs to teardown..
+	if tdsChan.channelId == 0 {
+		return nil
+	}
 
 	// Send packet to teardown logical channel
 	teardown := NewPacket()
@@ -228,10 +238,14 @@ func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
 
 func (tdsChan *TDSChannel) sendPacket(packet *Packet) error {
 	packet.Header.MsgType = tdsChan.CurrentHeaderType
-	packet.Header.Channel = uint16(tdsChan.channelId)
-	packet.Header.PacketNr = uint8(tdsChan.curPacketNr)
-	tdsChan.curPacketNr = (tdsChan.curPacketNr + 1) % 256
-	packet.Header.Window = uint8(tdsChan.window)
+
+	// Channel 0 does not need PacketNr or Window
+	if tdsChan.channelId > 0 {
+		packet.Header.Channel = uint16(tdsChan.channelId)
+		packet.Header.PacketNr = uint8(tdsChan.curPacketNr)
+		tdsChan.curPacketNr = (tdsChan.curPacketNr + 1) % 256
+		packet.Header.Window = uint8(tdsChan.window)
+	}
 
 	if len(packet.Data) != MsgBodyLength {
 		// Data portion is not exhausted, this is the last packet.
