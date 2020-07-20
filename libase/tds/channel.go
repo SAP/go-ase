@@ -167,6 +167,13 @@ func (tdsChan *TDSChannel) sendPacket(packet *Packet) error {
 // WritePacket received packets from the associated TDSConn and attempts
 // to produce Packages from the existing data.
 func (tdsChan *TDSChannel) WritePacket(packet *Packet) {
+	// The packet is header-only - pass it directly into the package
+	// channel.
+	if packet.Header.Length == MsgHeaderLength {
+		tdsChan.packageCh <- HeaderOnlyPackage{Header: packet.Header}
+		return
+	}
+
 	// Add packet into queue
 	tdsChan.queue.AddPacket(packet)
 
