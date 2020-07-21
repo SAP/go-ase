@@ -3,37 +3,33 @@
 Conn is used to connect to a TDS server such as ASE.
 
 The communication between the client and server is abstracted using
-`Message`, which contain multiple packages.
+`Conn` and `Channel`s.
 
-A Package is a single type of information or instruction and may span
-multiple Packets.
-Packets are the equivalent of a PDU (Protocol Data Unit) in the official
-TDS documentation and contain only the header and the data part.
+The `Conn` reads payloads from the server in a separate goroutine and
+routes them to their respecitve `Channel`.
+
+The `Channel`s provide two main methods to send and receive data:
+`NextPackage` to receive packages and `QueuePackage` to send packages.
+
+A Package is a single type of information or instruction.
 
 Communication:
 	Client				Server
-	Message ->
+	SendPackage ->
 		Package 1
-			Packet/PDU 1
-			Packet/PDU 2
 		Package 2
-			Packet 1
 		Package 3
-			Packet 1
-						<- Message
+						<- NextPackage
 							Package 1
-								Packet 1
 							Package 2
-								Packet 1
 							Package 3
-								Packet 1
-								Packet 2
 							Done
-	Message ->
+	SendPackage ->
 		Package 1
-			Packet 1
 
-Messages are always sent and received in full or must be aborted.
+The client/server communication is half-duplex - a string of consecutive
+packages must be sent or received in full before a response or new
+request can be transmitted.
 
 */
 package tds
