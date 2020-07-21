@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -13,7 +14,9 @@ func main() {
 	dsn := libdsn.NewDsnInfoFromEnv("")
 
 	log.Printf("Dialing to server")
-	c, err := tds.Dial("tcp",
+	tdsConn, err := tds.NewTDSConn(
+		context.Background(),
+		"tcp",
 		fmt.Sprintf("%s:%s", dsn.Host, dsn.Port),
 	)
 	if err != nil {
@@ -21,11 +24,19 @@ func main() {
 		return
 	}
 	defer func() {
-		err := c.Close()
+		err := tdsConn.Close()
 		if err != nil {
 			log.Printf("Error closing connection: %v", err)
 		}
 	}()
+
+	// Channel 0
+	tdsCh0, err := tdsConn.NewTDSChannel(100)
+	if err != nil {
+		log.Printf("Failed to open channel: %w", err)
+		return
+	}
+	defer tdsCh0.Close()
 
 	log.Printf("Preparing login packet")
 	conf, err := tds.NewLoginConfig(dsn)
@@ -36,28 +47,35 @@ func main() {
 	conf.AppName = "goconntest"
 
 	log.Printf("Logging in")
-	err = c.Login(conf)
+	err = tdsCh0.Login(conf)
 	if err != nil {
 		log.Printf("Login failed: %v", err)
 		return
 	}
 
-	msg := tds.NewMessage()
 	langPkg := &tds.LanguagePackage{
 		Status: tds.TDS_LANGUAGE_NOARGS,
 		Cmd:    "sp_help",
 	}
-	msg.AddPackage(langPkg)
 
-	err = c.Send(*msg)
+	log.Printf("Sending language command")
+	err = tdsCh0.QueuePackage(langPkg)
 	if err != nil {
-		log.Printf("Sending language command failed: %v", err)
+		log.Printf("Error sending package: %w", err)
 		return
 	}
 
-	_, err = c.Receive()
+	err = tdsCh0.SendRemainingPackets()
 	if err != nil {
-		log.Printf("Receiving response to language command failed: %v", err)
+		log.Printf("Error sending packets: %w", err)
 		return
 	}
+
+	pkg, err := tdsCh0.NextPackage(true)
+	if err != nil {
+		log.Printf("Error receiving package: %w", err)
+		return
+	}
+
+	log.Printf("%#v", pkg)
 }
