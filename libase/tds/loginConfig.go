@@ -51,7 +51,6 @@ func NewLoginConfig(dsn *libdsn.DsnInfo) (*LoginConfig, error) {
 	conf.CharSet = "utf8"
 	conf.Language = "us_english"
 
-	conf.PacketSize = 512
 	conf.Encrypt = TDS_MSG_SEC_ENCRYPT4
 
 	return conf, nil
