@@ -69,11 +69,6 @@ func (tds *TDSConn) Close() error {
 	return tds.conn.Close()
 }
 
-func (tds TDSConn) Error() (error, bool) {
-	err, ok := <-tds.errCh
-	return err, ok
-}
-
 func (tds *TDSConn) getValidChannelId() (int, error) {
 	curId := int(tds.tdsChannelCurFreeId)
 

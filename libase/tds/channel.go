@@ -129,20 +129,6 @@ func (tdsChan *TDSChannel) Close() error {
 	return nil
 }
 
-// Error returns either communications errors from the underlying
-// TDSConn or parse errors from the TDSChannel.
-func (tdsChan *TDSChannel) Error() error {
-	if err, ok := tdsChan.tdsConn.Error(); ok {
-		return fmt.Errorf("error in tds connection: %w", err)
-	}
-
-	if err, ok := <-tdsChan.errCh; ok {
-		return fmt.Errorf("error in tds channel: %w", err)
-	}
-
-	return nil
-}
-
 // handleSpecialPackage handles special packages such as env changes.
 // The returned boolean signals if the package should be passed along or
 // skipped.
