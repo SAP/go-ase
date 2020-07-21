@@ -102,7 +102,7 @@ type FieldFmt interface {
 	LengthBytes() int
 	// Length returns the maximum length of the column
 	// TODO: is this actually required when sending from client?
-	MaxLength() int
+	MaxLength() int64
 
 	ReadFrom(BytesChannel) (int, error)
 	WriteTo(BytesChannel) (int, error)
@@ -147,7 +147,7 @@ type fieldFmtBase struct {
 	// lengthBytes defines the byte size of the length field
 	lengthBytes int
 	// length is the maximum length of the data type
-	maxLength int
+	maxLength int64
 }
 
 func (field fieldFmtBase) DataType() DataType {
@@ -226,7 +226,7 @@ func (field fieldFmtBase) LengthBytes() int {
 	return field.lengthBytes
 }
 
-func (field fieldFmtBase) MaxLength() int {
+func (field fieldFmtBase) MaxLength() int64 {
 	return field.maxLength
 }
 
@@ -239,7 +239,7 @@ func (field *fieldFmtBase) readFromBase(ch BytesChannel) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	field.maxLength = length
+	field.maxLength = int64(length)
 
 	return field.lengthBytes, nil
 }
@@ -385,7 +385,7 @@ func (field fieldDataBase) writeTo(ch BytesChannel) (int, error) {
 	}
 
 	if !field.fmt.IsFixedLength() {
-		if err := writeLengthBytes(ch, field.fmt.LengthBytes(), len(field.data)); err != nil {
+		if err := writeLengthBytes(ch, field.fmt.LengthBytes(), int64(len(field.data))); err != nil {
 			return n, fmt.Errorf("failed to write data length: %w", err)
 		}
 		n += field.fmt.LengthBytes()
@@ -1026,15 +1026,15 @@ func readLengthBytes(ch BytesChannel, n int) (int, error) {
 	case 4:
 		var tmp uint32
 		tmp, err = ch.Uint32()
-		length = int(tmp)
+		length = int(int32(tmp))
 	case 2:
 		var tmp uint16
 		tmp, err = ch.Uint16()
-		length = int(tmp)
+		length = int(int16(tmp))
 	default:
 		var tmp uint8
 		tmp, err = ch.Uint8()
-		length = int(tmp)
+		length = int(int8(tmp))
 	}
 
 	if err != nil {
@@ -1044,7 +1044,7 @@ func readLengthBytes(ch BytesChannel, n int) (int, error) {
 	return length, nil
 }
 
-func writeLengthBytes(ch BytesChannel, byteCount int, n int) error {
+func writeLengthBytes(ch BytesChannel, byteCount int, n int64) error {
 	var err error
 	switch byteCount {
 	case 4:
