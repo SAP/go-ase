@@ -191,11 +191,3 @@ func (pkg RowFmtPackage) String() string {
 
 	return s
 }
-
-func (pkg RowFmtPackage) MultiString() []string {
-	ret := make([]string, len(pkg.Fmts))
-	for i, f := range pkg.Fmts {
-		ret[i] = fmt.Sprintf("%#v", f)
-	}
-	return ret
-}

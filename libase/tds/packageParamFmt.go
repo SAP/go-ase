@@ -281,11 +281,3 @@ func (pkg ParamFmtPackage) String() string {
 	}
 	return s
 }
-
-func (pkg ParamFmtPackage) MultiString() []string {
-	ret := make([]string, len(pkg.Fmts))
-	for i, field := range pkg.Fmts {
-		ret[i] = fmt.Sprintf("%#v", field)
-	}
-	return ret
-}

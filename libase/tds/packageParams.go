@@ -109,14 +109,3 @@ func (pkg ParamsPackage) WriteTo(ch BytesChannel) error {
 func (pkg ParamsPackage) String() string {
 	return fmt.Sprintf("%T(%d): ", pkg, len(pkg.DataFields))
 }
-
-func (pkg ParamsPackage) MultiString() []string {
-	ret := make([]string, (len(pkg.DataFields) * 2))
-	n := 0
-	for _, field := range pkg.DataFields {
-		ret[n] = fmt.Sprintf("%#v", field)
-		ret[n+1] = fmt.Sprintf("  String: %s", field)
-		n += 2
-	}
-	return ret
-}
