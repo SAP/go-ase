@@ -14,8 +14,8 @@ SAP ASE is the shorthand for [SAP Adaptive Server Enterprise][sap-ase],
 a relational model database server originally known as Sybase SQL
 Server.
 
-`go-ase` currently contains one implementation in [cgo] in the directory
-`cgo`. A pure go driver is planned.
+`go-ase` contains two implementations in [cgo] in the directory
+`cgo` and in pure go in the directory `purego`.
 
 [cgo][cgo] enables Go to call C code and to link against shared objects.
 
@@ -35,6 +35,11 @@ shared objects can be found in the folder `lib` at the chosen
 installation path.
 
 The headers are provided at `cgo/includes`.
+
+### pure go
+
+The pure go driver has no special requirements other than Go standard
+library and the third part modules listed in `go.mod`.
 
 ## Download and Usage
 
@@ -87,10 +92,48 @@ Execution:
 LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
 ```
 
+### go Usage
+
+```go
+package main
+
+import (
+    "database/sql"
+    _ "github.com/SAP/go-ase/purego"
+)
+
+func main() {
+    db, err := sql.Open("ase", "ase://user:pass@host:port/")
+    if err != nil {
+        log.Printf("Failed to open database: %v", err)
+        return
+    }
+    defer db.Close()
+
+    err = db.Ping()
+    if err != nil {
+        log.Printf("Failed to ping database: %v", err)
+        return
+    }
+}
+```
+
+Compilation:
+
+```sh
+go build -o cmd ./
+```
+
+Execution:
+
+```sh
+./cmd
+```
+
 ### Examples
 
 More examples can be found in the folder `examples/$type`, where `$type`
-is either `go` or `cgo`.
+is either `purego` or `cgo`.
 
 ### Unit tests
 
@@ -100,7 +143,7 @@ and can be run using `go test`.
 ### Integration tests
 
 Integration tests are available in `tests/` and can be run using `go test test/${type}test`,
-where `$type` is either `go` or `cgo`.
+where `$type` is either `purego` or `cgo`.
 
 These require the following environment variables to be set:
 
@@ -152,9 +195,9 @@ will only honour the last given value for a property.
 
 #### Connector
 
-As an alternative to the string DSNs `cgo.NewConnector` accepts
-a `libdsn.DsnInfo` directly and returns a `driver.Connector`, which can be
-passed to `sql.OpenDB`:
+As an alternative to the string DSNs `cgo.NewConnector` and
+`purego.NewConnector` accept a `libdsn.DsnInfo` directly and return
+a `driver.Connector`, which can be passed to `sql.OpenDB`:
 
 ```go
 package main
@@ -163,6 +206,7 @@ import (
     "database/sql"
 
     "github.com/SAP/go-ase/libase/libdsn"
+    // "github.com/SAP/go-ase/purego" for the pure go implementation
     ase "github.com/SAP/go-ase/cgo"
 )
 
@@ -222,7 +266,54 @@ register your own message handler with the `GlobalServerMessageBroker`.
 
 When set to any other string the callback will not be set.
 
+#### pure go
+
+##### appname
+
+Recognized values: string
+
+Sets the application name to the value. This can be used in ASE to
+determine which application opened a connection.
+
+Defaults to `database/sql driver github.com/SAP/go-ase/purego`.
+
+##### read-only
+
+Recognized values: string
+
+If the value is recognized by `strconv.ParseBool` to represent `true`
+the connection will be created as read only.
+
+##### network
+
+Recognized values: string
+
+The network must be a network type recognized by `net.Dial` - at the
+time of writing this is either `udp` or `tcp`.
+
+This should only be required to be set if the database is only reachable
+through a UDP proxy.
+
+Defaults to `tcp`.
+
+##### channel-package-queue-size
+
+Recognized values: integer
+
+Defines how many packages a TDS channel can buffer at most. When working
+with very large datasets where heavy computation only occurs every
+hundred packages or so it may be feasible to improve performance by
+increasing the queue size.
+
+Defaults to 100.
+
 ## Limitations
+
+### Pure go beta
+
+The pure go implementation is currently in beta and under active
+development. As such most features of the TDS protocol and ASE are not
+supported.
 
 ### Unsupported ASE data types
 
@@ -256,13 +347,9 @@ Any help to improve this package is highly appreciated.
 For details on how to contribute please see the
 [contributing](CONTRIBUTING.md) file.
 
-## To-Do (upcoming changes)
-
-A pure go driver is planned.
-
 ## License
 
-Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved.
+Copyright (c) 2019-2020 SAP SE or an SAP affiliate company. All rights reserved.
 This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE)
 
 [cgo]: https://golang.org/cmd/cgo
