@@ -46,6 +46,14 @@ func (tds *Conn) NewChannel(packageChannelSize int) (*Channel, error) {
 		return nil, fmt.Errorf("error getting channel ID: %w", err)
 	}
 
+	queueSize := 100
+	if prop := tds.dsn.Prop("channel-package-queue-size"); prop != "" {
+		queueSize, err = strconv.Atoi(prop)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing number from channel-package-queue-size '%s': %w", prop, err)
+		}
+	}
+
 	tdsChan := &Channel{
 		tdsConn:            tds,
 		channelId:          channelId,
@@ -53,7 +61,7 @@ func (tds *Conn) NewChannel(packageChannelSize int) (*Channel, error) {
 		CurrentHeaderType:  TDS_BUF_NORMAL,
 		window:             100, // TODO
 		queue:              NewPacketQueue(),
-		packageCh:          make(chan Package, packageChannelSize),
+		packageCh:          make(chan Package, queueSize),
 		errCh:              make(chan error, 10),
 	}
 
