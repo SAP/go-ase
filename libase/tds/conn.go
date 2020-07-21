@@ -13,11 +13,11 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// TDSConn handles a TDS-based connection.
+// Conn handles a TDS-based connection.
 //
 // Note: This is not the underlying structure for driver.Conn - that is
-// TDSChannel.
-type TDSConn struct {
+// Channel.
+type Conn struct {
 	conn io.ReadWriteCloser
 	caps *CapabilityPackage
 
@@ -26,19 +26,19 @@ type TDSConn struct {
 	ctx                 context.Context
 	ctxCancel           context.CancelFunc
 	tdsChannelCurFreeId uint32
-	tdsChannels         map[int]*TDSChannel
+	tdsChannels         map[int]*Channel
 	tdsChannelsLock     *sync.RWMutex
 	errCh               chan error
 }
 
-// Dial returns a prepared and dialed TDSConn.
-func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) {
+// Dial returns a prepared and dialed Conn.
+func NewConn(ctx context.Context, network, address string) (*Conn, error) {
 	c, err := net.Dial(network, address)
 	if err != nil {
 		return nil, fmt.Errorf("error opening connection: %w", err)
 	}
 
-	tds := &TDSConn{}
+	tds := &Conn{}
 	tds.conn = c
 
 	err = tds.setCapabilities()
@@ -52,7 +52,7 @@ func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) 
 	// Channels cannot have ID 0 - but channel with the id 0 is used to
 	// communicate general packets such as login/logout.
 	tds.tdsChannelCurFreeId = uint32(0)
-	tds.tdsChannels = make(map[int]*TDSChannel)
+	tds.tdsChannels = make(map[int]*Channel)
 	tds.tdsChannelsLock = &sync.RWMutex{}
 	tds.errCh = make(chan error, 10)
 
@@ -65,14 +65,14 @@ func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) 
 	return tds, nil
 }
 
-// Close closes a TDSConn and its unclosed TDSChannels.
+// Close closes a Conn and its unclosed Channels.
 //
 // Teardown and closing on the client side is guaranteed, even if Close
 // returns an error. An error is only returned if the communication with
 // the server fails or if channels report errors during closing.
 //
 // If an error is returned it is a *multierror.Error with all errors.
-func (tds *TDSConn) Close() error {
+func (tds *Conn) Close() error {
 	tds.ctxCancel()
 
 	var me error
@@ -92,7 +92,7 @@ func (tds *TDSConn) Close() error {
 	return me
 }
 
-func (tds *TDSConn) getValidChannelId() (int, error) {
+func (tds *Conn) getValidChannelId() (int, error) {
 	curId := int(tds.tdsChannelCurFreeId)
 
 	if curId > math.MaxUint16 {
@@ -112,8 +112,8 @@ func (tds *TDSConn) getValidChannelId() (int, error) {
 }
 
 // ReadFrom creates packets from payloads from the server and writes
-// them to the corresponding TDSChannel.
-func (tds *TDSConn) ReadFrom() {
+// them to the corresponding Channel.
+func (tds *Conn) ReadFrom() {
 	for {
 		select {
 		case <-tds.ctx.Done():
@@ -143,7 +143,7 @@ func (tds *TDSConn) ReadFrom() {
 	}
 }
 
-func (tds *TDSConn) setCapabilities() error {
+func (tds *Conn) setCapabilities() error {
 	caps, err := NewCapabilityPackage(
 		[]RequestCapability{
 			// Support language requests

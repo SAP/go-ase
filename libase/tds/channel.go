@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// TDSChannel is a channel in a multiplexed connection with a TDS
+// Channel is a channel in a multiplexed connection with a TDS
 // server.
-type TDSChannel struct {
-	tdsConn *TDSConn
+type Channel struct {
+	tdsConn *Conn
 
 	channelId          int
 	envChangeHooks     []EnvChangeHook
@@ -38,15 +38,15 @@ type TDSChannel struct {
 	errCh chan error
 }
 
-// NewTDSChannel communicates the creation of a new channel with the
+// NewChannel communicates the creation of a new channel with the
 // server.
-func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
+func (tds *Conn) NewChannel(packageChannelSize int) (*Channel, error) {
 	channelId, err := tds.getValidChannelId()
 	if err != nil {
 		return nil, fmt.Errorf("error getting channel ID: %w", err)
 	}
 
-	tdsChan := &TDSChannel{
+	tdsChan := &Channel{
 		tdsConn:            tds,
 		channelId:          channelId,
 		envChangeHooksLock: &sync.Mutex{},
@@ -95,8 +95,8 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	return tdsChan, nil
 }
 
-// Reset resets the TDSChannel after a communication has been completed.
-func (tdsChan *TDSChannel) Reset() {
+// Reset resets the Channel after a communication has been completed.
+func (tdsChan *Channel) Reset() {
 	tdsChan.CurrentHeaderType = TDS_BUF_NORMAL
 	tdsChan.queue.Reset()
 	tdsChan.lastPkg = nil
@@ -109,7 +109,7 @@ func (tdsChan *TDSChannel) Reset() {
 // fails or if packages or error remained in the channels.
 //
 // If an error is returned it is a *multierror.Error with all errors.
-func (tdsChan *TDSChannel) Close() error {
+func (tdsChan *Channel) Close() error {
 	// Remove channel from connection
 	delete(tdsChan.tdsConn.tdsChannels, tdsChan.channelId)
 
@@ -157,7 +157,7 @@ func (tdsChan *TDSChannel) Close() error {
 // The returned boolean signals if the package should be passed along or
 // skipped.
 // An error is returned if the handling errored.
-func (tdsChan *TDSChannel) handleSpecialPackage(pkg Package) (bool, error) {
+func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 	if envChange, ok := pkg.(*EnvChangePackage); ok {
 		for _, member := range envChange.members {
 			go tdsChan.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
@@ -178,7 +178,7 @@ func (tdsChan *TDSChannel) handleSpecialPackage(pkg Package) (bool, error) {
 //
 // If multiple errors and a package are ready a random error or package
 // will be returned, as stated in the spec for select.
-func (tdsChan *TDSChannel) NextPackage(wait bool) (Package, error) {
+func (tdsChan *Channel) NextPackage(wait bool) (Package, error) {
 	ch := make(chan error, 1)
 
 	// Write an error into the channel if the caller does not want to
@@ -210,7 +210,7 @@ type LastPkgAcceptor interface {
 
 // QueuePackage utilizes PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
-func (tdsChan *TDSChannel) QueuePackage(pkg Package) error {
+func (tdsChan *Channel) QueuePackage(pkg Package) error {
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
 		err := acceptor.LastPkg(tdsChan.lastPkg)
 		if err != nil {
@@ -229,14 +229,14 @@ func (tdsChan *TDSChannel) QueuePackage(pkg Package) error {
 
 // Send all remaining Packets in queue to the server.
 // This includes Packets whose Data isn't exhausted.
-func (tdsChan *TDSChannel) SendRemainingPackets() error {
+func (tdsChan *Channel) SendRemainingPackets() error {
 	// SendRemainingPackets is only called when completing sending
 	// packets to the server and preparing to receive the answer.
 	defer tdsChan.Reset()
 	return tdsChan.sendPackets(false)
 }
 
-func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
+func (tdsChan *Channel) sendPackets(onlyFull bool) error {
 	defer tdsChan.queue.DiscardUntilCurrentPosition()
 
 	for i, packet := range tdsChan.queue.queue {
@@ -265,7 +265,7 @@ func (tdsChan *TDSChannel) sendPackets(onlyFull bool) error {
 	return nil
 }
 
-func (tdsChan *TDSChannel) sendPacket(packet *Packet) error {
+func (tdsChan *Channel) sendPacket(packet *Packet) error {
 	packet.Header.MsgType = tdsChan.CurrentHeaderType
 
 	// Channel 0 does not need PacketNr or Window
@@ -294,9 +294,9 @@ func (tdsChan *TDSChannel) sendPacket(packet *Packet) error {
 	return nil
 }
 
-// WritePacket received packets from the associated TDSConn and attempts
+// WritePacket received packets from the associated Conn and attempts
 // to produce Packages from the existing data.
-func (tdsChan *TDSChannel) WritePacket(packet *Packet) {
+func (tdsChan *Channel) WritePacket(packet *Packet) {
 	// The packet is header-only - pass it directly into the package
 	// channel.
 	if packet.Header.Length == MsgHeaderLength {
@@ -327,7 +327,7 @@ func (tdsChan *TDSChannel) WritePacket(packet *Packet) {
 }
 
 // tryParsePackage attempts to parse a Package from the queued Packets.
-func (tdsChan *TDSChannel) tryParsePackage() bool {
+func (tdsChan *Channel) tryParsePackage() bool {
 	// Attempt to process data from channel into a Package.
 	tokenByte, err := tdsChan.queue.Byte()
 	if err != nil {

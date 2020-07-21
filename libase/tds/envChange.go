@@ -1,6 +1,6 @@
 package tds
 
-// EnvChangeHook defines the signature of functions called by a TDSConn
+// EnvChangeHook defines the signature of functions called by a Conn
 // when the server sends a TDS_ENV_CHANGE package.
 type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
 
@@ -17,14 +17,14 @@ type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
 // registered. Hooks with a longer run time or waiting on locks should
 // utilize goroutines or use other means to prevent blocking other
 // hooks.
-func (tdsChan *TDSChannel) RegisterEnvChangeHook(fn EnvChangeHook) {
+func (tdsChan *Channel) RegisterEnvChangeHook(fn EnvChangeHook) {
 	tdsChan.envChangeHooksLock.Lock()
 	defer tdsChan.envChangeHooksLock.Unlock()
 
 	tdsChan.envChangeHooks = append(tdsChan.envChangeHooks, fn)
 }
 
-func (tdsChan *TDSChannel) callEnvChangeHooks(typ EnvChangeType, oldValue, newValue string) {
+func (tdsChan *Channel) callEnvChangeHooks(typ EnvChangeType, oldValue, newValue string) {
 	tdsChan.envChangeHooksLock.Lock()
 	defer tdsChan.envChangeHooksLock.Unlock()
 

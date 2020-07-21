@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
+func (tdsChan *Channel) Login(config *LoginConfig) error {
 	if config == nil {
 		return fmt.Errorf("passed config is nil")
 	}

@@ -1,6 +1,6 @@
 /*
 
-TDSConn is used to connect to a TDS server such as ASE.
+Conn is used to connect to a TDS server such as ASE.
 
 The communication between the client and server is abstracted using
 `Message`, which contain multiple packages.
