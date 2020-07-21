@@ -36,12 +36,12 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 		return fmt.Errorf("error building login payload: %w", err)
 	}
 
-	err = tdsChan.AddPackage(pack)
+	err = tdsChan.QueuePackage(pack)
 	if err != nil {
 		return fmt.Errorf("error adding login payload package: %w", err)
 	}
 
-	err = tdsChan.AddPackage(tdsChan.tdsConn.caps)
+	err = tdsChan.QueuePackage(tdsChan.tdsConn.caps)
 	if err != nil {
 		return fmt.Errorf("error adding login capabilities package: %w", err)
 	}
@@ -173,7 +173,7 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	}
 
 	// Prepare response
-	tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
+	tdsChan.QueuePackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
 	if err != nil {
 		return fmt.Errorf("error adding message package for password transmission: %w", err)
 	}
@@ -184,20 +184,20 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	}
 
 	// TDS does not support TDS_WIDETABLES in login negotiation
-	tdsChan.AddPackage(NewParamFmtPackage(false, passFmt))
+	tdsChan.QueuePackage(NewParamFmtPackage(false, passFmt))
 	if err != nil {
 		return fmt.Errorf("error adding ParamFmt password package: %w", err)
 	}
 
 	passData.SetData(encryptedPass)
-	tdsChan.AddPackage(NewParamsPackage(passData))
+	tdsChan.QueuePackage(NewParamsPackage(passData))
 	if err != nil {
 		return fmt.Errorf("error adding Params password package: %w", err)
 	}
 
 	if len(config.RemoteServers) > 0 {
 		// encrypted remote password
-		tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
+		tdsChan.QueuePackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
 		if err != nil {
 			return fmt.Errorf("error adding message package for remote servers: %w", err)
 		}
@@ -231,12 +231,12 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 			passData.SetData(encryptedServerPass)
 			params[i+1] = passData
 		}
-		tdsChan.AddPackage(NewParamFmtPackage(false, paramFmts...))
+		tdsChan.QueuePackage(NewParamFmtPackage(false, paramFmts...))
 		if err != nil {
 			return fmt.Errorf("error adding package ParamFmt for remote servers: %w", err)
 		}
 
-		tdsChan.AddPackage(NewParamsPackage(params...))
+		tdsChan.QueuePackage(NewParamsPackage(params...))
 		if err != nil {
 			return fmt.Errorf("error adding package Params for remote servers: %w", err)
 		}
@@ -253,7 +253,7 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 		return fmt.Errorf("error encrypting session key: %w", err)
 	}
 
-	tdsChan.AddPackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
+	tdsChan.QueuePackage(NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
 
 	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
 	if err != nil {
@@ -261,8 +261,8 @@ func (tdsChan *TDSChannel) Login(config *LoginConfig) error {
 	}
 	symkeyData.SetData(encryptedSymKey)
 
-	tdsChan.AddPackage(NewParamFmtPackage(false, symkeyFmt))
-	tdsChan.AddPackage(NewParamsPackage(symkeyData))
+	tdsChan.QueuePackage(NewParamFmtPackage(false, symkeyFmt))
+	tdsChan.QueuePackage(NewParamsPackage(symkeyData))
 
 	err = tdsChan.SendRemainingPackets()
 	if err != nil {

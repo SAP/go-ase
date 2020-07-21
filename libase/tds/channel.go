@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 )
 
@@ -199,9 +198,9 @@ type LastPkgAcceptor interface {
 	LastPkg(Package) error
 }
 
-// AddPackage utilized PacketQueue to convert a Package into packets.
+// QueuePackage utilizes PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
-func (tdsChan *TDSChannel) AddPackage(pkg Package) error {
+func (tdsChan *TDSChannel) QueuePackage(pkg Package) error {
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
 		err := acceptor.LastPkg(tdsChan.lastPkg)
 		if err != nil {
