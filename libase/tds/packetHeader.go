@@ -6,11 +6,11 @@ import (
 	"io"
 )
 
-//go:generate stringer -type=MessageHeaderType
-type MessageHeaderType uint8
+//go:generate stringer -type=PacketHeaderType
+type PacketHeaderType uint8
 
 const (
-	TDS_BUF_LANG MessageHeaderType = iota + 1
+	TDS_BUF_LANG PacketHeaderType = iota + 1
 	TDS_BUF_LOGIN
 	TDS_BUF_RPC
 	TDS_BUF_RESPONSE
@@ -35,32 +35,32 @@ const (
 	TDS_BUF_CMDSEQ_RESERVED2
 )
 
-//go:generate stringer -type=MessageHeaderStatus
-type MessageHeaderStatus uint8
+//go:generate stringer -type=PacketHeaderStatus
+type PacketHeaderStatus uint8
 
 const (
 	// Last buffer in a request or response
-	TDS_BUFSTAT_EOM MessageHeaderStatus = 0x1
+	TDS_BUFSTAT_EOM PacketHeaderStatus = 0x1
 	// Acknowledgment of last receiver attention
-	TDS_BUFSTAT_ATTNACK MessageHeaderStatus = 0x2
+	TDS_BUFSTAT_ATTNACK PacketHeaderStatus = 0x2
 	// Attention request
-	TDS_BUFSTAT_ATTN MessageHeaderStatus = 0x4
+	TDS_BUFSTAT_ATTN PacketHeaderStatus = 0x4
 	// Event notification
-	TDS_BUFSTAT_EVENT MessageHeaderStatus = 0x8
+	TDS_BUFSTAT_EVENT PacketHeaderStatus = 0x8
 	// Buffer is encrypted
-	TDS_BUFSTAT_SEAL MessageHeaderStatus = 0x10
+	TDS_BUFSTAT_SEAL PacketHeaderStatus = 0x10
 	// Buffer is encrypted (SQL Anywhere CMDSQ protocol)
-	TDS_BUFSTAT_ENCRYPT MessageHeaderStatus = 0x20
+	TDS_BUFSTAT_ENCRYPT PacketHeaderStatus = 0x20
 	// Buffer is encrypted with symmetric key for on demand command
 	// encryption
-	TDS_BUFSTAT_SYMENCRYPT MessageHeaderStatus = 0x40
+	TDS_BUFSTAT_SYMENCRYPT PacketHeaderStatus = 0x40
 )
 
-type MessageHeader struct {
+type PacketHeader struct {
 	// Message type, e.g. for login or language command
-	MsgType MessageHeaderType
+	MsgType PacketHeaderType
 	// Status, e.g. encrypted or EOM
-	Status MessageHeaderStatus
+	Status PacketHeaderStatus
 	// Length of package in bytes
 	Length uint16
 	// Channel the packet belongs to when multiplexing
@@ -71,13 +71,13 @@ type MessageHeader struct {
 	Window uint8
 }
 
-func NewMessageHeader() MessageHeader {
-	return MessageHeader{
+func NewPacketHeader() PacketHeader {
+	return PacketHeader{
 		Length: uint16(MsgLength),
 	}
 }
 
-func (header MessageHeader) String() string {
+func (header PacketHeader) String() string {
 	return fmt.Sprintf(
 		"MsgType: %s, Status: %s, Length: %d, Channel: %d, PacketNr: %d, Window: %d",
 		header.MsgType, header.Status, header.Length, header.Channel, header.PacketNr, header.Window,
@@ -90,7 +90,7 @@ const (
 	MsgBodyLength   = MsgLength - MsgHeaderLength
 )
 
-func (header MessageHeader) WriteTo(w io.Writer) (int64, error) {
+func (header PacketHeader) WriteTo(w io.Writer) (int64, error) {
 	bs := make([]byte, MsgHeaderLength)
 	n, err := header.Read(bs)
 	if err != nil || n != MsgHeaderLength {
@@ -101,7 +101,7 @@ func (header MessageHeader) WriteTo(w io.Writer) (int64, error) {
 	return int64(m), err
 }
 
-func (header MessageHeader) Read(bs []byte) (int64, error) {
+func (header PacketHeader) Read(bs []byte) (int64, error) {
 	if len(bs) != MsgHeaderLength {
 		return 0, fmt.Errorf("target buffer has unexpected length, expected 8 bytes, buffer length is %d", len(bs))
 	}
@@ -116,7 +116,7 @@ func (header MessageHeader) Read(bs []byte) (int64, error) {
 	return MsgHeaderLength, nil
 }
 
-func (header *MessageHeader) ReadFrom(r io.Reader) (int64, error) {
+func (header *PacketHeader) ReadFrom(r io.Reader) (int64, error) {
 	bs := make([]byte, MsgHeaderLength)
 	n, err := r.Read(bs)
 	if err != nil || n != MsgHeaderLength {
@@ -127,13 +127,13 @@ func (header *MessageHeader) ReadFrom(r io.Reader) (int64, error) {
 	return int64(m), err
 }
 
-func (header *MessageHeader) Write(bs []byte) (int64, error) {
+func (header *PacketHeader) Write(bs []byte) (int64, error) {
 	if len(bs) != MsgHeaderLength {
 		return 0, fmt.Errorf("passed buffer has unexpected length, expected 8 bytes, buffer length is %d", len(bs))
 	}
 
-	header.MsgType = MessageHeaderType(bs[0])
-	header.Status = MessageHeaderStatus(bs[1])
+	header.MsgType = PacketHeaderType(bs[0])
+	header.Status = PacketHeaderStatus(bs[1])
 	uvarint := binary.BigEndian.Uint16(bs[2:4])
 	header.Length = uint16(uvarint)
 	uvarint = binary.BigEndian.Uint16(bs[4:6])

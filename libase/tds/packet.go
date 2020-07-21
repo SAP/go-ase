@@ -7,13 +7,13 @@ import (
 
 // Packet represents a single packet in a message.
 type Packet struct {
-	Header MessageHeader
+	Header PacketHeader
 	Data   []byte
 }
 
 func NewPacket() *Packet {
 	packet := &Packet{}
-	packet.Header = NewMessageHeader()
+	packet.Header = NewPacketHeader()
 	packet.Data = make([]byte, MsgBodyLength)
 	return packet
 }
@@ -33,7 +33,7 @@ func (packet Packet) Bytes() ([]byte, error) {
 func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 	var totalBytes int64
 
-	packet.Header = MessageHeader{}
+	packet.Header = PacketHeader{}
 	n, err := packet.Header.ReadFrom(reader)
 	if err != nil {
 		return n, fmt.Errorf("failed to read header: %w", err)

@@ -22,9 +22,9 @@ type Channel struct {
 	envChangeHooks     []EnvChangeHook
 	envChangeHooksLock *sync.Mutex
 
-	// currentHeaderType is the MessageHeaderType set on outgoing
+	// currentHeaderType is the PacketHeaderType set on outgoing
 	// packets.
-	CurrentHeaderType MessageHeaderType
+	CurrentHeaderType PacketHeaderType
 	// curPacketNr is the number of the next packet being sent
 	curPacketNr int
 	// window is the amount of buffers transmitted between ACKs

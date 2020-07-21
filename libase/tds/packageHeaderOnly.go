@@ -6,7 +6,7 @@ import "fmt"
 // the same cummincation channels as regular token-based packages in
 // go-ase.
 type HeaderOnlyPackage struct {
-	Header MessageHeader
+	Header PacketHeader
 }
 
 func (pkg HeaderOnlyPackage) ReadFrom(ch BytesChannel) error {
