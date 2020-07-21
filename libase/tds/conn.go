@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/SAP/go-ase/libase/libdsn"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -20,6 +21,7 @@ import (
 type Conn struct {
 	conn io.ReadWriteCloser
 	caps *CapabilityPackage
+	dsn  *libdsn.DsnInfo
 
 	odce odceCipher
 
@@ -32,13 +34,19 @@ type Conn struct {
 }
 
 // Dial returns a prepared and dialed Conn.
-func NewConn(ctx context.Context, network, address string) (*Conn, error) {
-	c, err := net.Dial(network, address)
+func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
+	network := "tcp"
+	if prop := dsn.Prop("network"); prop != "" {
+		network = prop
+	}
+
+	c, err := net.Dial(network, fmt.Sprintf("%s:%s", dsn.Host, dsn.Port))
 	if err != nil {
 		return nil, fmt.Errorf("error opening connection: %w", err)
 	}
 
 	tds := &Conn{}
+	tds.dsn = dsn
 	tds.conn = c
 
 	err = tds.setCapabilities()
