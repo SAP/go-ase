@@ -25,8 +25,6 @@ type LoginConfig struct {
 	Language string
 	CharSet  string
 
-	PacketSize uint16
-
 	RemoteServers []LoginConfigRemoteServer
 
 	// Encrypt allows any TDSMsgId but only negotation-relevant security
@@ -313,11 +311,8 @@ func (config *LoginConfig) pack() (Package, error) {
 	}
 
 	// lpacketsize - 256 to 65535 bytes
-	// TODO Choose default packet size
-	if config.PacketSize < 256 {
-		return nil, fmt.Errorf("packet size too low, must be at least 256 bytes")
-	}
-	err = writeString(buf, strconv.Itoa(int(config.PacketSize)), TDS_PKTLEN)
+	// Write default packet size - will be renegotiated anyhow.
+	err = writeString(buf, "512", TDS_PKTLEN)
 	if err != nil {
 		return nil, fmt.Errorf("error writing packetsize: %w", err)
 	}
