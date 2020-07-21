@@ -9,6 +9,8 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // TDSConn handles a TDS-based connection.
@@ -63,10 +65,31 @@ func NewTDSConn(ctx context.Context, network, address string) (*TDSConn, error) 
 	return tds, nil
 }
 
-// Close closes a TDSConn.
+// Close closes a TDSConn and its unclosed TDSChannels.
+//
+// Teardown and closing on the client side is guaranteed, even if Close
+// returns an error. An error is only returned if the communication with
+// the server fails or if channels report errors during closing.
+//
+// If an error is returned it is a *multierror.Error with all errors.
 func (tds *TDSConn) Close() error {
 	tds.ctxCancel()
-	return tds.conn.Close()
+
+	var me error
+
+	for _, channel := range tds.tdsChannels {
+		err := channel.Close()
+		if err != nil {
+			me = multierror.Append(me, fmt.Errorf("error closing channel: %w", err))
+		}
+	}
+
+	err := tds.conn.Close()
+	if err != nil {
+		me = multierror.Append(me, fmt.Errorf("error closing connection: %w", err))
+	}
+
+	return me
 }
 
 func (tds *TDSConn) getValidChannelId() (int, error) {

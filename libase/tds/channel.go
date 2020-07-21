@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // TDSChannel is a channel in a multiplexed connection with a TDS
@@ -104,29 +106,51 @@ func (tdsChan *TDSChannel) Reset() {
 //
 // The teardown on client side is guaranteed, even if Close returns an
 // error. An error is only returned if the communication with the server
-// fails.
+// fails or if packages or error remained in the channels.
+//
+// If an error is returned it is a *multierror.Error with all errors.
 func (tdsChan *TDSChannel) Close() error {
-	defer close(tdsChan.packageCh)
-	defer close(tdsChan.errCh)
+	// Remove channel from connection
+	delete(tdsChan.tdsConn.tdsChannels, tdsChan.channelId)
 
-	// Channel 0 needs to teardown..
-	if tdsChan.channelId == 0 {
-		return nil
+	var me error
+
+	// Channel 0 does not need communication to tear down
+	if tdsChan.channelId != 0 {
+
+		// Send packet to tear down logical channel
+		teardown := NewPacket()
+		teardown.Header.Length = MsgHeaderLength
+		teardown.Data = nil
+		tdsChan.CurrentHeaderType = TDS_BUF_CLOSE
+
+		err := tdsChan.sendPacket(teardown)
+		if err != nil {
+			me = multierror.Append(me,
+				fmt.Errorf("error sending teardown for channel %d: %w",
+					tdsChan.channelId, err))
+		}
 	}
 
-	// Send packet to teardown logical channel
-	teardown := NewPacket()
-	teardown.Header.Length = MsgHeaderLength
-	teardown.Data = nil
-	tdsChan.CurrentHeaderType = TDS_BUF_CLOSE
-
-	err := tdsChan.sendPacket(teardown)
-	if err != nil {
-		return fmt.Errorf("error sending teardown for channel %d: %w",
-			tdsChan.channelId, err)
+	close(tdsChan.packageCh)
+	for {
+		if pkg, ok := <-tdsChan.packageCh; ok {
+			me = multierror.Append(me, fmt.Errorf("package still queued: %v", pkg))
+		} else {
+			break
+		}
 	}
 
-	return nil
+	close(tdsChan.errCh)
+	for {
+		if err, ok := <-tdsChan.errCh; ok {
+			me = multierror.Append(me, fmt.Errorf("error still queued: %w", err))
+		} else {
+			break
+		}
+	}
+
+	return me
 }
 
 // handleSpecialPackage handles special packages such as env changes.
