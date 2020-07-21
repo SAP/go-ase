@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	libraryName    = "go-ase"
+	libraryName    = "go-ase/tds"
 	libraryVersion = "0.1.0.0"
 )
 
