@@ -23,9 +23,6 @@ func rsaEncrypt(pemPubKey, nonce, password []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse PKCS#1 public key: %w", err)
 	}
-	if len(rest) > 0 {
-		return nil, fmt.Errorf("public key block has remaining bytes after parsing: %#v", rest)
-	}
 
 	return rsa.EncryptOAEP(sha1.New(), rand.Reader, publicKey, append(nonce, []byte(password)...), []byte{})
 }
