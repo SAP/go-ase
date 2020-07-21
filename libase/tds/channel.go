@@ -45,14 +45,14 @@ func (tds *TDSConn) NewTDSChannel(packageChannelSize int) (*TDSChannel, error) {
 	}
 
 	tdsChan := &TDSChannel{
-		tdsConn:           tds,
-		channelId:         channelId,
+		tdsConn:            tds,
+		channelId:          channelId,
 		envChangeHooksLock: &sync.Mutex{},
-		CurrentHeaderType: TDS_BUF_NORMAL,
-		window:            100, // TODO
-		queue:             NewPacketQueue(),
-		packageCh:         make(chan Package, packageChannelSize),
-		errCh:             make(chan error, 10),
+		CurrentHeaderType:  TDS_BUF_NORMAL,
+		window:             100, // TODO
+		queue:              NewPacketQueue(),
+		packageCh:          make(chan Package, packageChannelSize),
+		errCh:              make(chan error, 10),
 	}
 
 	tds.tdsChannels[channelId] = tdsChan
