@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+var ErrNoPackageReady = errors.New("no package ready")
+
 // Channel is a channel in a multiplexed connection with a TDS
 // server.
 type Channel struct {
@@ -194,8 +196,7 @@ func (tdsChan *Channel) NextPackage(wait bool) (Package, error) {
 	// wait. The channel will be empty otherwise, block the select and
 	// realise the wait.
 	if !wait {
-		// TODO define error
-		ch <- errors.New("no package ready")
+		ch <- ErrNoPackageReady
 	}
 
 	select {
