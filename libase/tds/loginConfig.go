@@ -44,7 +44,9 @@ func NewLoginConfig(dsn *libdsn.DsnInfo) (*LoginConfig, error) {
 	conf.Hostname = hostname
 	conf.HostProc = strconv.Itoa(os.Getpid())
 
-	conf.AppName = fmt.Sprintf("%s:%s", conf.DSN.Host, conf.DSN.Port)
+	conf.ServName = conf.DSN.Host
+	// Should be overwritten by clients
+	conf.AppName = "github.com/SAP/go-ase/libase/tds"
 
 	conf.CharSet = "utf8"
 	conf.Language = "us_english"
