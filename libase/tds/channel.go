@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -40,7 +41,7 @@ type Channel struct {
 
 // NewChannel communicates the creation of a new channel with the
 // server.
-func (tds *Conn) NewChannel(packageChannelSize int) (*Channel, error) {
+func (tds *Conn) NewChannel() (*Channel, error) {
 	channelId, err := tds.getValidChannelId()
 	if err != nil {
 		return nil, fmt.Errorf("error getting channel ID: %w", err)
@@ -59,7 +60,7 @@ func (tds *Conn) NewChannel(packageChannelSize int) (*Channel, error) {
 		channelId:          channelId,
 		envChangeHooksLock: &sync.Mutex{},
 		CurrentHeaderType:  TDS_BUF_NORMAL,
-		window:             100, // TODO
+		window:             0, // TODO
 		queue:              NewPacketQueue(),
 		packageCh:          make(chan Package, queueSize),
 		errCh:              make(chan error, 10),
@@ -218,7 +219,7 @@ type LastPkgAcceptor interface {
 
 // QueuePackage utilizes PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
-func (tdsChan *Channel) QueuePackage(pkg Package) error {
+func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
 		err := acceptor.LastPkg(tdsChan.lastPkg)
 		if err != nil {
@@ -232,41 +233,60 @@ func (tdsChan *Channel) QueuePackage(pkg Package) error {
 	}
 	tdsChan.lastPkg = pkg
 
-	return tdsChan.sendPackets(true)
+	return tdsChan.sendPackets(ctx, true)
 }
 
 // Send all remaining Packets in queue to the server.
 // This includes Packets whose Data isn't exhausted.
-func (tdsChan *Channel) SendRemainingPackets() error {
+func (tdsChan *Channel) SendRemainingPackets(ctx context.Context) error {
 	// SendRemainingPackets is only called when completing sending
 	// packets to the server and preparing to receive the answer.
 	defer tdsChan.Reset()
-	return tdsChan.sendPackets(false)
+	return tdsChan.sendPackets(ctx, false)
 }
 
-func (tdsChan *Channel) sendPackets(onlyFull bool) error {
+// SendPackage combines calls to QueuePackage and SendRemainingPackets
+// and can be used if e.g. the last package or only a single package
+// must be sent.
+func (tdsChan *Channel) SendPackage(ctx context.Context, pkg Package) error {
+	err := tdsChan.QueuePackage(ctx, pkg)
+	if err != nil {
+		return err
+	}
+
+	return tdsChan.SendRemainingPackets(ctx)
+}
+
+func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 	defer tdsChan.queue.DiscardUntilCurrentPosition()
 
 	for i, packet := range tdsChan.queue.queue {
-		// Only the last packet should not be full.
-		if i == tdsChan.queue.indexPacket && tdsChan.queue.indexData < MsgBodyLength {
-			if onlyFull {
-				// Packet is not exhausted and only exhausted packets
-				// should be sent. Return.
-				return nil
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case <-tdsChan.tdsConn.ctx.Done():
+			return context.Canceled
+		default:
+			// Only the last packet should not be full.
+			if i == tdsChan.queue.indexPacket && tdsChan.queue.indexData < MsgBodyLength {
+				if onlyFull {
+					// Packet is not exhausted and only exhausted packets
+					// should be sent. Return.
+					return nil
+				}
+
+				// Packet is not exhausted but should be sent. Adjust header
+				// length
+				packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queue.indexData)
+				packet.Data = packet.Data[:tdsChan.queue.indexData]
 			}
 
-			// Packet is not exhausted but should be sent. Adjust header
-			// length
-			packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queue.indexData)
-			packet.Data = packet.Data[:tdsChan.queue.indexData]
-		}
+			// TODO maybe check if data is empty - could be an issue
 
-		// TODO maybe check if data is empty - could be an issue
-
-		err := tdsChan.sendPacket(packet)
-		if err != nil {
-			return fmt.Errorf("error sending packet: %w", err)
+			err := tdsChan.sendPacket(packet)
+			if err != nil {
+				return fmt.Errorf("error sending packet: %w", err)
+			}
 		}
 	}
 
