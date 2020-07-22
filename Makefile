@@ -13,13 +13,15 @@ else
 	go generate ./$(TARGET)
 endif
 
-test:
-	go test -vet all -cover ./cgo/... ./go/... ./cmd/... ./libase/...
+test: test-cgo test-go
+test-cgo:
+	go test -vet all -cover ./cgo/... ./cmd/cgoase/...
+test-go:
+	go test -vet all -cover ./libase/...
 
 integration: integration-cgo
 integration-cgo:
-	go test ./tests/cgotest
-	go test ./examples/cgo/...
+	go test ./tests/cgotest ./examples/cgo/...
 
 GO_EXAMPLES := $(wildcard examples/go/*)
 CGO_EXAMPLES := $(wildcard examples/cgo/*)
