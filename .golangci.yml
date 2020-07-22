@@ -1,0 +1,7 @@
+---
+run:
+
+  skip-dirs:
+    # golangci-lint fails on cgo packages
+    - cgo/
+    - cmd/cgoase

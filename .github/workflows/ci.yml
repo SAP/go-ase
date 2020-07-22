@@ -1,0 +1,45 @@
+---
+name: CI
+
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+  pull_request: {}
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.28
+          # github.head_ref is only set on pull_request runs, not for
+          # tags or branches.
+          # For commits on master and tags all issues are reported, but
+          # PR runs only report new issues introduced in the PR.
+          only-new-issues: ${{ github.head_ref != '' }}
+
+  generate-required:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - run: |
+          make generate
+          if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
+            printf '::error ::%s' '`make generate` left or changed files'
+            exit 1
+          fi
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - run: |
+          go mod download
+          make test-go
