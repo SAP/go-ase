@@ -146,9 +146,10 @@ func TestDsnInfo_AsSimple(t *testing.T) {
 				ConnectProps: url.Values{
 					"foo": []string{"bar"},
 					"bar": []string{"", "baz"},
+					"baz": []string{""},
 				},
 			},
-			expected: "bar='' bar='baz' db='db_example' foo='bar' host='hostname' pass='passwd' port='4901' user='user'",
+			expected: "db='db_example' host='hostname' pass='passwd' port='4901' user='user' bar='baz' baz='' foo='bar'",
 		},
 	}
 

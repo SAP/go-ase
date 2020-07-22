@@ -126,19 +126,23 @@ func (dsnInfo DsnInfo) AsSimple() string {
 		}
 	}
 
-	// Must be sorted before adding properties, since the properties are
-	// position-dependant.
-	// E.g. a property with the value `[]string{"no", "yes", "no"}` has
-	// a different meaning from `[]string{"no", "no", "yes"}`.
+	// Sort for deterministic output
 	sort.Strings(ret)
 
+	// Handle and sort properties separately, since they are
+	// position-dependant.
+	props := []string{}
 	for key, valueL := range dsnInfo.ConnectProps {
-		for _, value := range valueL {
-			ret = append(ret, fmt.Sprintf("%s='%s'", key, value))
+		if len(valueL) == 0 {
+			props = append(props, key+"=''")
+		} else {
+			props = append(props, fmt.Sprintf("%s='%s'", key, valueL[len(valueL)-1]))
 		}
 	}
 
-	return strings.Join(ret, " ")
+	sort.Strings(props)
+
+	return strings.Join(append(ret, props...), " ")
 }
 
 // Prop returns the last value for a property or empty string.
