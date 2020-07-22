@@ -6,7 +6,7 @@ The communication between the client and server is abstracted using
 `Conn` and `Channel`s.
 
 The `Conn` reads payloads from the server in a separate goroutine and
-routes them to their respecitve `Channel`.
+routes them to their respective `Channel`.
 
 The `Channel`s provide two main methods to send and receive data:
 `NextPackage` to receive packages and `QueuePackage` to send packages.
