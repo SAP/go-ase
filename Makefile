@@ -13,11 +13,24 @@ else
 	go generate ./$(TARGET)
 endif
 
+LINT_IGNORE ?= /cgo \
+	      /cmd/cgoase
+LINT_IGNORE := $(patsubst %,-e %,$(LINT_IGNORE))
+LINT_DO_DIRS = $(shell go list -f '{{.Dir}}' ./... | grep -v $(LINT_IGNORE))
+
+lint:
+	golangci-lint run $(LINT_DO_DIRS)
+
+# lint-echo is used by github actions to lint the same files as
+# `make lint`.
+lint-dirs:
+	@echo $(LINT_DO_DIRS)
+
 test: test-cgo test-go
 test-cgo:
-	go test -vet all -cover ./cgo/... ./cmd/cgoase/...
+	go test -cover ./cgo/... ./cmd/cgoase/...
 test-go:
-	go test -vet all -cover ./libase/...
+	go test -cover ./libase/...
 
 integration: integration-cgo
 integration-cgo:

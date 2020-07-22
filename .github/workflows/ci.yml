@@ -14,9 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+      - name: lint-dirs
+        run: |
+          printf '::set-output out="%s"' "$(make lint-dirs)"
       - uses: golangci/golangci-lint-action@v2
         with:
           version: v1.28
+          # Restrict golangci-lint to run against chosen directories.
+          # Otherwise golangci-lint attempts to lint files it cannot
+          # process, such as cgo code.
+          args: ${{ steps.lint-dirs.output }}
           # github.head_ref is only set on pull_request runs, not for
           # tags or branches.
           # For commits on master and tags all issues are reported, but
