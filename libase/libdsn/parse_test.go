@@ -73,8 +73,12 @@ func TestParseDsnUriFail(t *testing.T) {
 		dsn, errorMsg string
 	}{
 		"URI DSN Password special characters": {
+			dsn:      "ase://user:pass$@!%=word@hostname:4901?",
+			errorMsg: "Failed to parse DSN using url.Parse: parse \"ase://user:pass$@!%=word@hostname:4901?\": invalid URL escape \"%=w\"",
+		},
+		"URI DSN Password with pound": {
 			dsn:      "ase://user:pass$#@!%=word@hostname:4901?",
-			errorMsg: "Failed to parse DSN using url.Parse: parse ase://user:pass$#@!%=word@hostname:4901?: invalid URL escape \"%=w\"",
+			errorMsg: "Failed to parse DSN using url.Parse: parse \"ase://user:pass$\": invalid port \":pass$\" after host",
 		},
 	}
 
@@ -92,7 +96,7 @@ func TestParseDsnUriFail(t *testing.T) {
 				}
 
 				if res != nil {
-					t.Errorf("Received parsed DsnInfo, expected error: %v", res)
+					t.Errorf("Received parsed DsnInfo %v, expected error: %s", res, cas.errorMsg)
 				}
 			},
 		)
