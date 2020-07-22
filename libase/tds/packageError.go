@@ -20,47 +20,47 @@ func (pkg *ErrorPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 	pkg.Length, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ErrorNumber, err = ch.Int32()
 	if err != nil {
-		return fmt.Errorf("failed to read error number: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.MsgLength, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read message length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ErrorMsg, err = ch.String(int(pkg.MsgLength))
 	if err != nil {
-		return fmt.Errorf("failed to read error message: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ServerLength, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read servername length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ServerName, err = ch.String(int(pkg.ServerLength))
 	if err != nil {
-		return fmt.Errorf("failed to read servername: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ProcLength, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read procname length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ProcName, err = ch.String(int(pkg.ProcLength))
 	if err != nil {
-		return fmt.Errorf("failed to read procname: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.LineNr, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read line nr: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	return nil

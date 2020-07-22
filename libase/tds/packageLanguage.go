@@ -19,18 +19,18 @@ type LanguagePackage struct {
 func (pkg *LanguagePackage) ReadFrom(ch BytesChannel) error {
 	totalLength, err := ch.Uint32()
 	if err != nil {
-		return fmt.Errorf("failed to read length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	status, err := ch.Byte()
 	if err != nil {
-		return fmt.Errorf("failed to read status: %w", err)
+		return ErrNotEnoughBytes
 	}
 	pkg.Status = LanguageStatus(status)
 
 	pkg.Cmd, err = ch.String(int(totalLength) - 1)
 	if err != nil {
-		return fmt.Errorf("failed to read language command: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	return nil

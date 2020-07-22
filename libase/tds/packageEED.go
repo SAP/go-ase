@@ -29,83 +29,83 @@ func (pkg *EEDPackage) ReadFrom(ch BytesChannel) error {
 	var err error
 	pkg.Length, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read TDS token %s: %w", TDS_EED, err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.MsgNumber, err = ch.Uint32()
 	if err != nil {
-		return fmt.Errorf("failed to read message number: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.State, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read state: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.Class, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read class: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var sqlStateLen uint8
 	sqlStateLen, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read SQL state length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.SQLState, err = ch.Bytes(int(sqlStateLen))
 	if err != nil {
-		return fmt.Errorf("failed to read SQL state: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var status uint8
 	status, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read status: %w", err)
+		return ErrNotEnoughBytes
 	}
 	pkg.Status = EEDStatus(status)
 
 	pkg.TranState, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read tran state: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var msgLength uint16
 	msgLength, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read message length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.Msg, err = ch.String(int(msgLength))
 	if err != nil {
-		return fmt.Errorf("failed to read message: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var serverLength uint8
 	serverLength, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read server name length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ServerName, err = ch.String(int(serverLength))
 	if err != nil {
-		return fmt.Errorf("failed to read server name: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var procLength uint8
 	procLength, err = ch.Uint8()
 	if err != nil {
-		return fmt.Errorf("failed to read proc name length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ProcName, err = ch.String(int(procLength))
 	if err != nil {
-		return fmt.Errorf("failed to read proc name: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.LineNr, err = ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read line nr: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	return nil

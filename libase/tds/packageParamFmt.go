@@ -24,13 +24,13 @@ func (pkg *ParamFmtPackage) ReadFrom(ch BytesChannel) error {
 	if pkg.wide {
 		length, err := ch.Uint32()
 		if err != nil {
-			return fmt.Errorf("failed to read length: %w", err)
+			return ErrNotEnoughBytes
 		}
 		totalBytes = int(uint(length))
 	} else {
 		length, err := ch.Uint16()
 		if err != nil {
-			return fmt.Errorf("failed to read length: %w", err)
+			return ErrNotEnoughBytes
 		}
 		totalBytes = int(uint(length))
 	}
@@ -39,7 +39,7 @@ func (pkg *ParamFmtPackage) ReadFrom(ch BytesChannel) error {
 
 	paramsCount, err := ch.Uint16()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 	n += 2
 
@@ -84,14 +84,14 @@ func (pkg *ParamFmtPackage) ReadFrom(ch BytesChannel) error {
 func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) {
 	nameLength, err := ch.Uint8()
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to retrieve name length: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	n := 1
 
 	var name string
 	name, err = ch.String(int(nameLength))
 	if err != nil {
-		return nil, n, fmt.Errorf("failed to retrieve name: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	n += int(nameLength)
 
@@ -99,14 +99,14 @@ func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error
 	if pkg.wide {
 		status32, err := ch.Uint32()
 		if err != nil {
-			return nil, n, fmt.Errorf("failed to retrieve status: %w", err)
+			return nil, 0, ErrNotEnoughBytes
 		}
 		status = uint(status32)
 		n += 4
 	} else {
 		status8, err := ch.Uint8()
 		if err != nil {
-			return nil, n, fmt.Errorf("failed to retrieve status: %w", err)
+			return nil, 0, ErrNotEnoughBytes
 		}
 		status = uint(status8)
 		n++
@@ -114,13 +114,13 @@ func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error
 
 	userType, err := ch.Int32()
 	if err != nil {
-		return nil, n, fmt.Errorf("failed to retrieve usertype: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	n += 4
 
 	token, err := ch.Byte()
 	if err != nil {
-		return nil, n, fmt.Errorf("failed to retrieve token: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	n++
 
@@ -142,13 +142,13 @@ func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error
 
 	localeLen, err := ch.Uint8()
 	if err != nil {
-		return nil, n, fmt.Errorf("error occurred reading locale length: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	n++
 
 	localeInfo, err := ch.String(int(localeLen))
 	if err != nil {
-		return nil, n, fmt.Errorf("error occurred reading locale info: %w", err)
+		return nil, 0, ErrNotEnoughBytes
 	}
 	fieldFmt.SetLocaleInfo(localeInfo)
 	n += int(localeLen)

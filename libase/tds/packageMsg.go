@@ -81,19 +81,23 @@ func (pkg *MsgPackage) ReadFrom(ch BytesChannel) error {
 
 	_, err = ch.Uint8()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 
 	var status uint8
 	status, err = ch.Uint8()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 	pkg.Status = (TDSMsgStatus)(status)
 
 	msgId, err := ch.Uint16()
+	if err != nil {
+		return ErrNotEnoughBytes
+	}
 	pkg.MsgId = TDSMsgId(msgId)
-	return err
+
+	return nil
 }
 
 func (pkg MsgPackage) WriteTo(ch BytesChannel) error {

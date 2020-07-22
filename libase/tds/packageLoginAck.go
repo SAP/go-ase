@@ -25,20 +25,20 @@ func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
 
 	pkg.Length, err = ch.Uint16()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 
 	var status uint8
 	status, err = ch.Uint8()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 	pkg.Status = (LoginAckStatus)(status)
 
 	var vers []byte
 	vers, err = ch.Bytes(4)
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 	pkg.TDSVersion, err = NewTDSVersion(vers)
 	if err != nil {
@@ -47,17 +47,17 @@ func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
 
 	pkg.NameLength, err = ch.Uint8()
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ProgramName, err = ch.String(int(pkg.NameLength))
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 
 	vers, err = ch.Bytes(4)
 	if err != nil {
-		return err
+		return ErrNotEnoughBytes
 	}
 	pkg.ProgramVersion, err = NewTDSVersion(vers)
 

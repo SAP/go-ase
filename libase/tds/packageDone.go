@@ -42,19 +42,19 @@ type DoneInProcPackage struct{ DonePackage }
 func (pkg *DonePackage) ReadFrom(ch BytesChannel) error {
 	status, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read done status: %w", err)
+		return ErrNotEnoughBytes
 	}
 	pkg.status = DoneState(status)
 
 	tranState, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read done tran state: %w", err)
+		return ErrNotEnoughBytes
 	}
 	pkg.tranState = TransState(tranState)
 
 	pkg.count, err = ch.Int32()
 	if err != nil {
-		return fmt.Errorf("failed to read done count: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	return nil

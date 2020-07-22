@@ -13,7 +13,7 @@ func (pkg *ReturnStatusPackage) ReadFrom(ch BytesChannel) error {
 
 	pkg.returnValue, err = ch.Int32()
 	if err != nil {
-		return fmt.Errorf("error reading return value: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	return nil

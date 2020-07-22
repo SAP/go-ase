@@ -19,7 +19,7 @@ type EnvChangePackage struct {
 func (pkg *EnvChangePackage) ReadFrom(ch BytesChannel) error {
 	length, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("error reading length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	var n uint16 = 0
@@ -94,35 +94,35 @@ func (field *EnvChangePackageField) ReadFrom(ch BytesChannel) (int, error) {
 
 	typ, err := ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("error reading type: %w", err)
+		return n, ErrNotEnoughBytes
 	}
 	field.Type = EnvChangeType(typ)
 	n++
 
 	length, err := ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("error reading new value length: %w", err)
+		return n, ErrNotEnoughBytes
 	}
 	n++
 
 	if length > 0 {
 		field.NewValue, err = ch.String(int(length))
 		if err != nil {
-			return n, fmt.Errorf("error reading new value: %w", err)
+			return n, ErrNotEnoughBytes
 		}
 		n += int(length)
 	}
 
 	length, err = ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("error reading old value length: %w", err)
+		return n, ErrNotEnoughBytes
 	}
 	n++
 
 	if length > 0 {
 		field.OldValue, err = ch.String(int(length))
 		if err != nil {
-			return n, fmt.Errorf("error reading old value: %w", err)
+			return n, ErrNotEnoughBytes
 		}
 		n += int(length)
 	}

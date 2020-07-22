@@ -21,7 +21,7 @@ func (pkg *OrderByPackage) LastPkg(other Package) error {
 func (pkg *OrderByPackage) ReadFrom(ch BytesChannel) error {
 	columnCount, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("error reading column count: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	pkg.ColumnOrder = make([]int, int(columnCount))
@@ -29,7 +29,7 @@ func (pkg *OrderByPackage) ReadFrom(ch BytesChannel) error {
 	for i := range pkg.ColumnOrder {
 		colNum, err := ch.Uint8()
 		if err != nil {
-			return fmt.Errorf("error reading column order for %d: %w", i, err)
+			return ErrNotEnoughBytes
 		}
 		pkg.ColumnOrder[i] = int(colNum)
 	}

@@ -15,12 +15,12 @@ type RowFmtPackage struct {
 func (pkg *RowFmtPackage) ReadFrom(ch BytesChannel) error {
 	totalLength, err := ch.Uint32()
 	if err != nil {
-		return fmt.Errorf("error reading length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	colCount, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("error reading column count: %w", err)
+		return ErrNotEnoughBytes
 	}
 	readBytes := 2
 	pkg.Fmts = make([]FieldFmt, colCount)
@@ -49,62 +49,62 @@ func (pkg *RowFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) 
 	if pkg.wide {
 		labelLen, err := ch.Uint8()
 		if err != nil {
-			return nil, 0, fmt.Errorf("error reading label length: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n++
 
 		label, err = ch.String(int(labelLen))
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading label: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n += int(labelLen)
 
 		catLen, err := ch.Uint8()
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading catalogue length: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n++
 
 		catalogue, err = ch.String(int(catLen))
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading catalogue name: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n += int(catLen)
 
 		schemaLen, err := ch.Uint8()
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading schema length: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n++
 
 		schema, err = ch.String(int(schemaLen))
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading schema: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n += int(schemaLen)
 
 		tableLen, err := ch.Uint8()
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading table length: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n++
 
 		table, err = ch.String(int(tableLen))
 		if err != nil {
-			return nil, n, fmt.Errorf("error reading table: %w", err)
+			return nil, n, ErrNotEnoughBytes
 		}
 		n += int(tableLen)
 	}
 
 	nameLength, err := ch.Uint8()
 	if err != nil {
-		return nil, 0, fmt.Errorf("error reading name length: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	n++
 
 	name, err := ch.String(int(nameLength))
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading name: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	n += int(nameLength)
 
@@ -121,18 +121,18 @@ func (pkg *RowFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) 
 		n++
 	}
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading rowfmt status: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 
 	userType, err := ch.Int32()
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading user type: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	n += 4
 
 	token, err := ch.Int8()
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading data type: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	n++
 
@@ -160,13 +160,13 @@ func (pkg *RowFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) 
 
 	localeLen, err := ch.Uint8()
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading locale length: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	n++
 
 	localeInfo, err := ch.String(int(localeLen))
 	if err != nil {
-		return nil, n, fmt.Errorf("error reading locale info: %w", err)
+		return nil, n, ErrNotEnoughBytes
 	}
 	fieldFmt.SetLocaleInfo(localeInfo)
 	n += int(localeLen)

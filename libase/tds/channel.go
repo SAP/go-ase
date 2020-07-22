@@ -389,8 +389,13 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	// Read data into Package.
 	err = pkg.ReadFrom(tdsChan.queue)
 	if err != nil {
-		// Not enough data available
-		// TODO: create an explicit error to check for
+		if errors.Is(err, ErrNotEnoughBytes) {
+			// Not enough bytes available to parse package
+			return false
+		}
+
+		// Parsing went wrong, record as error
+		tdsChan.errCh <- fmt.Errorf("error parsing package: %w", err)
 		return false
 	}
 

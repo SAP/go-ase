@@ -1,9 +1,14 @@
 package tds
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
+
+// ErrNotEnoughBytes is returned by packages' ReadFrom if the
+// BytesChannel does not have enough bytes to parse the package fully.
+var ErrNotEnoughBytes = errors.New("not enough bytes in channel to parse package")
 
 type Package interface {
 	// ReadFrom reads bytes from the passed channel until either the

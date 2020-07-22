@@ -237,7 +237,7 @@ func (field *fieldFmtBase) readFromBase(ch BytesChannel) (int, error) {
 
 	length, err := readLengthBytes(ch, field.lengthBytes)
 	if err != nil {
-		return 0, err
+		return 0, ErrNotEnoughBytes
 	}
 	field.maxLength = int64(length)
 
@@ -264,7 +264,7 @@ func (field *fieldFmtBasePrecision) readFromPrecision(ch BytesChannel) (int, err
 	var err error
 	field.precision, err = ch.Uint8()
 	if err != nil {
-		return 0, fmt.Errorf("failed to read precision: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	return 1, nil
 }
@@ -289,7 +289,7 @@ func (field *fieldFmtBaseScale) readFromScale(ch BytesChannel) (int, error) {
 	var err error
 	field.scale, err = ch.Uint8()
 	if err != nil {
-		return 0, fmt.Errorf("failed to read scale: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	return 1, nil
 }
@@ -335,7 +335,7 @@ func (field *fieldDataBase) readFromStatus(ch BytesChannel) (int, error) {
 
 	status, err := ch.Uint8()
 	if err != nil {
-		return 0, fmt.Errorf("failed to read status: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	field.status = DataStatus(status)
 	return 1, nil
@@ -371,7 +371,7 @@ func (field *fieldDataBase) readFrom(ch BytesChannel) (int, error) {
 	}
 
 	if field.data, err = ch.Bytes(length); err != nil {
-		return n, fmt.Errorf("failed to read %d bytes of data: %w", length, err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += length
 
@@ -573,7 +573,7 @@ func (field *fieldFmtBlob) ReadFrom(ch BytesChannel) (int, error) {
 
 	blobType, err := ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("failed to read blobtype: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	field.blobType = BlobType(blobType)
 	n++
@@ -581,13 +581,13 @@ func (field *fieldFmtBlob) ReadFrom(ch BytesChannel) (int, error) {
 	if field.blobType == TDS_BLOB_FULLCLASSNAME || field.blobType == TDS_BLOB_DBID_CLASSDEF {
 		classIdLength, err := ch.Uint16()
 		if err != nil {
-			return n, fmt.Errorf("failed to read ClassID length: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += 2
 
 		field.classID, err = ch.String(int(classIdLength))
 		if err != nil {
-			return n, fmt.Errorf("failed to read ClassID: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += int(classIdLength)
 	}
@@ -695,7 +695,7 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 
 	serialization, err := ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("failed to read serialization type: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n++
 
@@ -731,27 +731,27 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 	case TDS_BLOB_FULLCLASSNAME, TDS_BLOB_DBID_CLASSDEF:
 		subClassIdLength, err := ch.Uint16()
 		if err != nil {
-			return n, fmt.Errorf("failed to read SubClassID length: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += 2
 
 		if subClassIdLength > 0 {
 			field.subClassID, err = ch.String(int(subClassIdLength))
 			if err != nil {
-				return n, fmt.Errorf("failed to read SubClassID: %w", err)
+				return 0, ErrNotEnoughBytes
 			}
 			n += int(subClassIdLength)
 		}
 	case TDS_LOBLOC_CHAR, TDS_LOBLOC_BINARY, TDS_LOBLOC_UNICHAR:
 		locatorLength, err := ch.Uint16()
 		if err != nil {
-			return n, fmt.Errorf("failed to read locator length: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += 2
 
 		field.locator, err = ch.String(int(locatorLength))
 		if err != nil {
-			return n, fmt.Errorf("failed to read locator: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += int(locatorLength)
 	}
@@ -759,7 +759,7 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 	for {
 		dataLen, err := ch.Uint32()
 		if err != nil {
-			return n, fmt.Errorf("failed to read data length: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += 4
 
@@ -781,7 +781,7 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 
 		data, err := ch.Bytes(int(dataLen))
 		if err != nil {
-			return n, fmt.Errorf("failed to read data array: %w", err)
+			return 0, ErrNotEnoughBytes
 		}
 		n += int(dataLen)
 
@@ -895,13 +895,13 @@ func (field *fieldFmtTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 
 	nameLength, err := ch.Uint16()
 	if err != nil {
-		return n, fmt.Errorf("failed to read name length: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += 2
 
 	field.name, err = ch.String(int(nameLength))
 	if err != nil {
-		return n, fmt.Errorf("failed to read name: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += int(nameLength)
 
@@ -947,31 +947,31 @@ func (field *fieldDataTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 
 	txtPtrLen, err := ch.Uint8()
 	if err != nil {
-		return n, fmt.Errorf("failed to read TxtPtrLen: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n++
 
 	field.txtPtr, err = ch.Bytes(int(txtPtrLen))
 	if err != nil {
-		return n, fmt.Errorf("failed to read TxtPtr: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += int(txtPtrLen)
 
 	field.timeStamp, err = ch.Bytes(8)
 	if err != nil {
-		return n, fmt.Errorf("failed to read TimeStamp: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += 8
 
 	dataLen, err := ch.Uint32()
 	if err != nil {
-		return n, fmt.Errorf("failed to read data length: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += 4
 
 	field.data, err = ch.Bytes(int(dataLen))
 	if err != nil {
-		return n, fmt.Errorf("failed to read data: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 	n += int(dataLen)
 
@@ -1038,7 +1038,7 @@ func readLengthBytes(ch BytesChannel, n int) (int, error) {
 	}
 
 	if err != nil {
-		return 0, fmt.Errorf("failed to read length: %w", err)
+		return 0, ErrNotEnoughBytes
 	}
 
 	return length, nil

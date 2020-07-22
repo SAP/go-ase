@@ -275,7 +275,7 @@ func (pkg *CapabilityPackage) HasSecurityCapability(capability SecurityCapabilit
 func (pkg *CapabilityPackage) ReadFrom(ch BytesChannel) error {
 	totalLength, err := ch.Uint16()
 	if err != nil {
-		return fmt.Errorf("failed to read length: %w", err)
+		return ErrNotEnoughBytes
 	}
 
 	// Read out each capability and its value mask
@@ -283,20 +283,20 @@ func (pkg *CapabilityPackage) ReadFrom(ch BytesChannel) error {
 	for length < int(uint(totalLength)) {
 		b, err := ch.Uint8()
 		if err != nil {
-			return fmt.Errorf("failed to read capability type byte: %w", err)
+			return ErrNotEnoughBytes
 		}
 		length++
 		capType := CapabilityType(b)
 
 		capLength, err := ch.Uint8()
 		if err != nil {
-			return fmt.Errorf("failed to read capability length: %w", err)
+			return ErrNotEnoughBytes
 		}
 		length++
 
 		bs, err := ch.Bytes(int(capLength))
 		if err != nil {
-			return fmt.Errorf("failed to read capabilities: %w", err)
+			return ErrNotEnoughBytes
 		}
 		length += int(capLength)
 
