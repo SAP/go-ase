@@ -8,8 +8,16 @@ import (
 )
 
 const (
-	libraryName    = "go-ase/tds"
-	libraryVersion = "0.1.0.0"
+	libraryName = "go-ase/tds"
+)
+
+var (
+	libraryVersion = Version{
+		major: 0x0,
+		minor: 0x1,
+		sp:    0x0,
+		patch: 0x0,
+	}
 )
 
 type Version struct {
