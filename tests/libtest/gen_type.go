@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -200,7 +201,10 @@ func main() {
 	}
 
 	d := data{
-		Args:         strings.Join(os.Args, " "),
+		Args: strings.Join(
+			append([]string{filepath.Base(os.Args[0])}, os.Args[1:]...),
+			" ",
+		),
 		ASEType:      args[0],
 		ASETypeLower: strings.ToLower(args[0]),
 		GoType:       "",
