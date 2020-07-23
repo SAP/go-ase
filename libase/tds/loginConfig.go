@@ -207,17 +207,10 @@ func (config *LoginConfig) pack() (Package, error) {
 	}
 
 	// lprogvers
-	// buf.Write([]byte{versionMajor, versionMinor, versionPatch, 0})
-	_, err = buf.Write([]byte{0, 1, 0, 0})
+	_, err = buf.Write(libraryVersion.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("error writing progversion: %w", err)
 	}
-	// TODO write correct version
-	// ver, err := NewTDSVersionString(libraryVersion)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create TDSVersion from libraryVersion: %w", err)
-	// }
-	// buf.Write(ver.Bytes())
 
 	// lnoshort - do not convert short data types
 	err = buf.WriteByte(0)
