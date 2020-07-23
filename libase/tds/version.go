@@ -12,16 +12,16 @@ const (
 	libraryVersion = "0.1.0.0"
 )
 
-type TDSVersion struct {
+type Version struct {
 	major, minor, sp, patch uint8
 }
 
-func NewTDSVersion(bs []byte) (*TDSVersion, error) {
+func NewVersion(bs []byte) (*Version, error) {
 	if len(bs) != 4 {
 		return nil, fmt.Errorf("expected 4 byte array, received %d byte array: %v", len(bs), bs)
 	}
 
-	v := &TDSVersion{}
+	v := &Version{}
 	v.major = uint8(bs[0])
 	v.minor = uint8(bs[1])
 	v.sp = uint8(bs[2])
@@ -30,13 +30,13 @@ func NewTDSVersion(bs []byte) (*TDSVersion, error) {
 	return v, nil
 }
 
-func NewTDSVersionString(s string) (*TDSVersion, error) {
+func NewVersionString(s string) (*Version, error) {
 	split := strings.Split(s, ".")
 	if len(split) != 4 {
 		return nil, fmt.Errorf("expected 4 parts, received %d part string: %v", len(split), s)
 	}
 
-	v := &TDSVersion{}
+	v := &Version{}
 
 	major, err := strconv.Atoi(split[0])
 	if err != nil {
@@ -81,10 +81,10 @@ func NewTDSVersionString(s string) (*TDSVersion, error) {
 	return v, nil
 }
 
-func (tdsv TDSVersion) String() string {
+func (tdsv Version) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", tdsv.major, tdsv.minor, tdsv.sp, tdsv.patch)
 }
 
-func (tdsv TDSVersion) Bytes() []byte {
+func (tdsv Version) Bytes() []byte {
 	return []byte{byte(tdsv.major), byte(tdsv.minor), byte(tdsv.sp), byte(tdsv.patch)}
 }

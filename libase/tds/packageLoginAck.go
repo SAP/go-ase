@@ -14,10 +14,10 @@ const (
 type LoginAckPackage struct {
 	Length         uint16
 	Status         LoginAckStatus
-	TDSVersion     *TDSVersion
+	Version        *Version
 	NameLength     uint8
 	ProgramName    string
-	ProgramVersion *TDSVersion
+	ProgramVersion *Version
 }
 
 func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
@@ -40,7 +40,7 @@ func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
-	pkg.TDSVersion, err = NewTDSVersion(vers)
+	pkg.Version, err = NewVersion(vers)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (pkg *LoginAckPackage) ReadFrom(ch BytesChannel) error {
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
-	pkg.ProgramVersion, err = NewTDSVersion(vers)
+	pkg.ProgramVersion, err = NewVersion(vers)
 
 	return err
 }
@@ -80,7 +80,7 @@ func (pkg LoginAckPackage) WriteTo(ch BytesChannel) error {
 		return fmt.Errorf("failed to write : %w", err)
 	}
 
-	err = ch.WriteBytes(pkg.TDSVersion.Bytes())
+	err = ch.WriteBytes(pkg.Version.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to write : %w", err)
 	}
