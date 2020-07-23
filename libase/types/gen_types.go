@@ -140,7 +140,7 @@ func main() {
 		case "USMALLINT", "USHORT":
 			type2reflect[key] = "reflect.TypeOf(uint16(0))"
 			type2interface[key] = "uint16(0)"
-		case "INT":
+		case "INT", "LONG":
 			type2reflect[key] = "reflect.TypeOf(int32(0))"
 			type2interface[key] = "int32(0)"
 		case "UINT":
@@ -152,7 +152,7 @@ func main() {
 		case "UBIGINT":
 			type2reflect[key] = "reflect.TypeOf(uint64(0))"
 			type2interface[key] = "uint64(0)"
-		case "FLOAT":
+		case "FLOAT", "REAL":
 			type2reflect[key] = "reflect.TypeOf(float64(0))"
 			type2interface[key] = "float64(0)"
 		case "NUMERIC", "DECIMAL":
