@@ -40,6 +40,8 @@ jobs:
           make generate
           if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
             printf '::error ::%s' '`make generate` left or changed files'
+            git status
+            git diff
             exit 1
           fi
 
