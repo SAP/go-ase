@@ -89,6 +89,42 @@ func NewVersionString(s string) (*Version, error) {
 	return v, nil
 }
 
+func (tdsv Version) Compare(other Version) int {
+	if tdsv.major > other.major {
+		return 1
+	}
+
+	if tdsv.major < other.major {
+		return -1
+	}
+
+	if tdsv.minor > other.minor {
+		return 1
+	}
+
+	if tdsv.minor < other.minor {
+		return -1
+	}
+
+	if tdsv.sp > other.sp {
+		return 1
+	}
+
+	if tdsv.sp < other.sp {
+		return -1
+	}
+
+	if tdsv.patch > other.patch {
+		return 1
+	}
+
+	if tdsv.patch < other.patch {
+		return -1
+	}
+
+	return 0
+}
+
 func (tdsv Version) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", tdsv.major, tdsv.minor, tdsv.sp, tdsv.patch)
 }
