@@ -60,6 +60,7 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 	tdsChan := &Channel{
 		tdsConn:            tds,
 		channelId:          channelId,
+		envChangeHooks:     []EnvChangeHook{},
 		envChangeHooksLock: &sync.Mutex{},
 		CurrentHeaderType:  TDS_BUF_NORMAL,
 		window:             0, // TODO
