@@ -27,7 +27,7 @@ type Conn struct {
 	DSN     *libdsn.DsnInfo
 }
 
-func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *libdsn.DsnInfo, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
 	conn := &Conn{}
 
 	var err error
@@ -40,6 +40,10 @@ func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("go-ase: error opening logical channel: %w", err)
+	}
+
+	if envChangeHooks != nil {
+		conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
 	}
 
 	loginConfig, err := tds.NewLoginConfig(dsn)

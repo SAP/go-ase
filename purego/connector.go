@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/SAP/go-ase/libase/libdsn"
+	"github.com/SAP/go-ase/libase/tds"
 )
 
 var (
@@ -13,12 +14,14 @@ var (
 )
 
 type Connector struct {
-	DSN *libdsn.DsnInfo
+	DSN            *libdsn.DsnInfo
+	EnvChangeHooks []tds.EnvChangeHook
 }
 
-func NewConnector(dsn *libdsn.DsnInfo) (*Connector, error) {
+func NewConnector(dsn *libdsn.DsnInfo, hooks ...tds.EnvChangeHook) (*Connector, error) {
 	connector := &Connector{
-		DSN: dsn,
+		DSN:            dsn,
+		EnvChangeHooks: hooks,
 	}
 
 	conn, err := connector.Connect(context.Background())
@@ -45,5 +48,5 @@ func (c Connector) Driver() driver.Driver {
 }
 
 func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
-	return NewConn(ctx, c.DSN)
+	return NewConn(ctx, c.DSN, c.EnvChangeHooks)
 }
