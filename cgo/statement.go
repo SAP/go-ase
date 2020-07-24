@@ -429,7 +429,7 @@ func (stmt *statement) execResults() (driver.Result, error) {
 			return nil, err
 		}
 
-		if result != nil {
+		if result.rowsAffected != 0 {
 			resResult = result
 		}
 	}

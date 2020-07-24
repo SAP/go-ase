@@ -7,25 +7,25 @@ import (
 	"log"
 	"strings"
 
-	"github.com/SAP/go-ase/cgo"
+	"github.com/SAP/go-ase/libase/tds"
 	"github.com/SAP/go-ase/libase/term"
+	ase "github.com/SAP/go-ase/purego"
 )
 
 func main() {
 	err := doMain()
 	if err != nil {
-		log.Fatalf("cgoase failed: %v", err)
+		log.Fatalf("goase failed: %v", err)
 	}
 }
 
 func doMain() error {
-	cgo.GlobalServerMessageBroker.RegisterHandler(handleMessage)
-	cgo.GlobalClientMessageBroker.RegisterHandler(handleMessage)
-
-	db, err := sql.Open("ase", term.Dsn().AsSimple())
+	connector, err := ase.NewConnectorWithHooks(term.Dsn(), updateDatabaseName)
 	if err != nil {
-		return fmt.Errorf("cgoase: failed to connect to database: %w", err)
+		return fmt.Errorf("goase: failed to create connector: %w", err)
 	}
+
+	db := sql.OpenDB(connector)
 	defer db.Close()
 
 	if len(flag.Args()) > 0 {
@@ -38,10 +38,10 @@ func doMain() error {
 	return term.Repl(db)
 }
 
-func handleMessage(msg cgo.Message) {
-	if msg.MessageSeverity() == 10 {
+func updateDatabaseName(typ tds.EnvChangeType, oldValue, newValue string) {
+	if typ != tds.TDS_ENV_DB {
 		return
 	}
 
-	log.Println(msg.Content())
+	term.PromptDatabaseName = newValue
 }

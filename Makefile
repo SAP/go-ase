@@ -30,13 +30,15 @@ test: test-cgo test-go
 test-cgo:
 	go test -cover ./cgo/... ./cmd/cgoase/...
 test-go:
-	go test -cover ./libase/...
+	go test -cover ./purego/... ./cmd/goase/... ./libase/...
 
-integration: integration-cgo
+integration: integration-cgo integration-go
 integration-cgo:
 	go test ./tests/cgotest ./examples/cgo/...
+integration-go:
+	go test ./tests/puregotest ./examples/purego/...
 
-GO_EXAMPLES := $(wildcard examples/go/*)
+GO_EXAMPLES := $(wildcard examples/purego/*)
 CGO_EXAMPLES := $(wildcard examples/cgo/*)
 EXAMPLES := $(GO_EXAMPLES) $(CGO_EXAMPLES)
 

@@ -213,7 +213,7 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 		return nil, err
 	}
 
-	cmd, err := conn.GenericExec(ctx, q)
+	cmd, err := conn.NewCommand(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}
@@ -248,7 +248,7 @@ func (conn *Connection) QueryContext(ctx context.Context, query string, args []d
 		return nil, err
 	}
 
-	cmd, err := conn.GenericExec(ctx, q)
+	cmd, err := conn.NewCommand(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %v", err)
 	}

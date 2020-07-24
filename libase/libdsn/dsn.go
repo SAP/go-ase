@@ -163,3 +163,13 @@ func (dsnInfo DsnInfo) Prop(property string) string {
 
 	return vals[len(vals)-1]
 }
+
+// PropDefault calls .Prop with property and returns the result if it is
+// not empty and defaultValue otherwise.
+func (dsnInfo DsnInfo) PropDefault(property, defaultValue string) string {
+	if val := dsnInfo.Prop(property); val != "" {
+		return val
+	}
+
+	return defaultValue
+}
