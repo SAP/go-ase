@@ -30,8 +30,8 @@ type Channel struct {
 	// window is the amount of buffers transmitted between ACKs
 	window int
 
-	// packets stores unconsumed Packets
-	queue *PacketQueue
+	// queues store unconsumed Packets
+	queueRx, queueTx *PacketQueue
 	// packageCh stores Packages as they are parsed from Packets
 	packageCh chan Package
 	// lastPkg is the last package sent by the TDS server and added to
@@ -63,7 +63,8 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 		envChangeHooksLock: &sync.Mutex{},
 		CurrentHeaderType:  TDS_BUF_NORMAL,
 		window:             0, // TODO
-		queue:              NewPacketQueue(),
+		queueRx:            NewPacketQueue(),
+		queueTx:            NewPacketQueue(),
 		packageCh:          make(chan Package, queueSize),
 		errCh:              make(chan error, 10),
 	}
@@ -109,7 +110,7 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 // Reset resets the Channel after a communication has been completed.
 func (tdsChan *Channel) Reset() {
 	tdsChan.CurrentHeaderType = TDS_BUF_NORMAL
-	tdsChan.queue.Reset()
+	tdsChan.queueTx.Reset()
 	tdsChan.lastPkg = nil
 }
 
@@ -228,7 +229,7 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 		}
 	}
 
-	err := pkg.WriteTo(tdsChan.queue)
+	err := pkg.WriteTo(tdsChan.queueTx)
 	if err != nil {
 		return fmt.Errorf("error queueing packets from package: %w", err)
 	}
@@ -259,9 +260,9 @@ func (tdsChan *Channel) SendPackage(ctx context.Context, pkg Package) error {
 }
 
 func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
-	defer tdsChan.queue.DiscardUntilCurrentPosition()
+	defer tdsChan.queueTx.DiscardUntilCurrentPosition()
 
-	for i, packet := range tdsChan.queue.queue {
+	for i, packet := range tdsChan.queueTx.queue {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -269,7 +270,7 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 			return context.Canceled
 		default:
 			// Only the last packet should not be full.
-			if i == tdsChan.queue.indexPacket && tdsChan.queue.indexData < MsgBodyLength {
+			if i == tdsChan.queueTx.indexPacket && tdsChan.queueTx.indexData < MsgBodyLength {
 				if onlyFull {
 					// Packet is not exhausted and only exhausted packets
 					// should be sent. Return.
@@ -278,8 +279,8 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 
 				// Packet is not exhausted but should be sent. Adjust header
 				// length
-				packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queue.indexData)
-				packet.Data = packet.Data[:tdsChan.queue.indexData]
+				packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queueTx.indexData)
+				packet.Data = packet.Data[:tdsChan.queueTx.indexData]
 			}
 
 			// TODO maybe check if data is empty - could be an issue
@@ -334,31 +335,31 @@ func (tdsChan *Channel) WritePacket(packet *Packet) {
 	}
 
 	// Add packet into queue
-	tdsChan.queue.AddPacket(packet)
+	tdsChan.queueRx.AddPacket(packet)
 
 	for {
 		// Read out current position for resetting if the existing data
 		// isn't enough to fill a Package.
-		curPacket, curData := tdsChan.queue.Position()
+		curPacket, curData := tdsChan.queueRx.Position()
 
 		// Attempt to parse a Package.
 		ok := tdsChan.tryParsePackage()
 		if !ok {
 			// Attempt failed, roll back position and return.
-			tdsChan.queue.SetPosition(curPacket, curData)
+			tdsChan.queueRx.SetPosition(curPacket, curData)
 			return
 		}
 
 		// Package could be filled with the available data. Discard all
 		// consumed packets.
-		tdsChan.queue.DiscardUntilCurrentPosition()
+		tdsChan.queueRx.DiscardUntilCurrentPosition()
 	}
 }
 
 // tryParsePackage attempts to parse a Package from the queued Packets.
 func (tdsChan *Channel) tryParsePackage() bool {
 	// Attempt to process data from channel into a Package.
-	tokenByte, err := tdsChan.queue.Byte()
+	tokenByte, err := tdsChan.queueRx.Byte()
 	if err != nil {
 		if !errors.Is(err, io.EOF) {
 			tdsChan.errCh <- fmt.Errorf("error reading token byte: %w", err)
@@ -387,7 +388,7 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	}
 
 	// Read data into Package.
-	err = pkg.ReadFrom(tdsChan.queue)
+	err = pkg.ReadFrom(tdsChan.queueRx)
 	if err != nil {
 		if errors.Is(err, ErrNotEnoughBytes) {
 			// Not enough bytes available to parse package
