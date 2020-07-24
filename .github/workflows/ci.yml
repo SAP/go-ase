@@ -2,7 +2,10 @@
 name: CI
 
 on:
-  push: {}
+  push:
+    branches-ignore:
+      # Dependabot pushes are already run for the PR itself.
+      - 'dependabot/**'
   pull_request: {}
   workflow_dispatch: {}
 
