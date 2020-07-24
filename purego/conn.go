@@ -27,7 +27,11 @@ type Conn struct {
 	DSN     *libdsn.DsnInfo
 }
 
-func NewConn(ctx context.Context, dsn *libdsn.DsnInfo, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
+	return NewConnWithHooks(ctx, dsn, nil)
+}
+
+func NewConnWithHooks(ctx context.Context, dsn *libdsn.DsnInfo, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
 	conn := &Conn{}
 
 	var err error

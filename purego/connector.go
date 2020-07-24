@@ -18,7 +18,11 @@ type Connector struct {
 	EnvChangeHooks []tds.EnvChangeHook
 }
 
-func NewConnector(dsn *libdsn.DsnInfo, hooks ...tds.EnvChangeHook) (*Connector, error) {
+func NewConnector(dsn *libdsn.DsnInfo) (*Connector, error) {
+	return NewConnectorWithHooks(dsn, nil)
+}
+
+func NewConnectorWithHooks(dsn *libdsn.DsnInfo, hooks ...tds.EnvChangeHook) (*Connector, error) {
 	connector := &Connector{
 		DSN:            dsn,
 		EnvChangeHooks: hooks,
@@ -48,5 +52,5 @@ func (c Connector) Driver() driver.Driver {
 }
 
 func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
-	return NewConn(ctx, c.DSN, c.EnvChangeHooks)
+	return NewConnWithHooks(ctx, c.DSN, c.EnvChangeHooks)
 }

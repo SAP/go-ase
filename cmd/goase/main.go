@@ -20,7 +20,7 @@ func main() {
 }
 
 func doMain() error {
-	connector, err := ase.NewConnector(term.Dsn(), updateDatabaseName)
+	connector, err := ase.NewConnectorWithHooks(term.Dsn(), updateDatabaseName)
 	if err != nil {
 		return fmt.Errorf("goase: failed to create connector: %w", err)
 	}
