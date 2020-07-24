@@ -16,6 +16,19 @@ func TestASEType_String(t *testing.T) {
 	}
 }
 
+// nilTypes are types that haven't been implemented yet and as such are
+// expected to return nil.
+var nilTypes = map[ASEType]bool{
+	ILLEGAL:        true,
+	TEXTLOCATOR:    true,
+	BOUNDARY:       true,
+	IMAGELOCATOR:   true,
+	UNITEXTLOCATOR: true,
+	SENSITIVITY:    true,
+	USER:           true,
+	VOID:           true,
+}
+
 // TestASEType_GoReflectType ensures that each ASEType returns a non-nil
 // reflect.Type.
 func TestASEType_GoReflectType(t *testing.T) {
@@ -24,14 +37,16 @@ func TestASEType_GoReflectType(t *testing.T) {
 			func(t *testing.T) {
 				reflectType := asetype.GoType()
 
-				if asetype == VOID {
+				shouldskip, ok := nilTypes[asetype]
+				if ok && shouldskip {
 					if reflectType != nil {
-						t.Errorf("%s.GoReflectType() returned non-nil", name)
+						t.Errorf("%s.GoReflectType() should return nil, returned: %v", name, reflectType)
 					}
-				} else {
-					if reflectType == nil {
-						t.Errorf("%s.GoReflectType() returned nil", name)
-					}
+					return
+				}
+
+				if reflectType == nil {
+					t.Errorf("%s.GoReflectType() returned nil", name)
 				}
 			},
 		)
@@ -44,14 +59,16 @@ func TestASEType_GoType(t *testing.T) {
 			func(t *testing.T) {
 				goType := asetype.GoType()
 
-				if asetype == VOID {
+				shouldskip, ok := nilTypes[asetype]
+				if ok && shouldskip {
 					if goType != nil {
-						t.Errorf("%s.GoType() returned non-nil interface", name)
+						t.Errorf("%s.GoType() should return nil, returned: %v", name, goType)
 					}
-				} else {
-					if goType == nil {
-						t.Errorf("%s.GoType() returned nil", name)
-					}
+					return
+				}
+
+				if goType == nil {
+					t.Errorf("%s.GoType() returned nil", name)
 				}
 			},
 		)
