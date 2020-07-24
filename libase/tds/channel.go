@@ -173,7 +173,7 @@ func (tdsChan *Channel) Close() error {
 func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 	if envChange, ok := pkg.(*EnvChangePackage); ok {
 		for _, member := range envChange.members {
-			go tdsChan.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
+			tdsChan.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
 		}
 		return false, nil
 	}
