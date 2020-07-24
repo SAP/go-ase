@@ -17,11 +17,11 @@ type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
 // registered. Hooks with a longer run time or waiting on locks should
 // utilize goroutines or use other means to prevent blocking other
 // hooks.
-func (tdsChan *Channel) RegisterEnvChangeHook(fn EnvChangeHook) {
+func (tdsChan *Channel) RegisterEnvChangeHooks(fns ...EnvChangeHook) {
 	tdsChan.envChangeHooksLock.Lock()
 	defer tdsChan.envChangeHooksLock.Unlock()
 
-	tdsChan.envChangeHooks = append(tdsChan.envChangeHooks, fn)
+	tdsChan.envChangeHooks = append(tdsChan.envChangeHooks, fns...)
 }
 
 func (tdsChan *Channel) callEnvChangeHooks(typ EnvChangeType, oldValue, newValue string) {
