@@ -403,7 +403,7 @@ func (tdsChan *Channel) tryParsePackage() bool {
 
 	pass, err := tdsChan.handleSpecialPackage(pkg)
 	if err != nil {
-		tdsChan.errCh <- fmt.Errorf("error while handling sepcial package: %w", err)
+		tdsChan.errCh <- fmt.Errorf("error while handling special package: %w", err)
 		// Package handling errored, but the package could be parsed.
 		// Continue.
 		return true
