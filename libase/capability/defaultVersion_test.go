@@ -1,5 +1,7 @@
 package capability
 
+import "log"
+
 var (
 	ExampleVersionCapOtherthing   = NewCapability("otherthing", "1.5.0")
 	ExampleVersionBug50           = NewCapability("bug reported in ticket #50", "0.1.0", "0.2.0", "0.9.0", "1.1.0")
@@ -30,11 +32,11 @@ type ExampleSatisfyInterface struct {
 
 // Connect connects to the server, stores the server version in the
 // struct and calls the targets SetCapabilities
-func (v *ExampleSatisfyInterface) Connect() {
+func (v *ExampleSatisfyInterface) Connect() error {
 	v.ServerVersion = "1.0.5"
 
 	// Set capabilities based on server version
-	ExampleVersionTarget.SetCapabilities(v)
+	return ExampleVersionTarget.SetCapabilities(v)
 }
 
 func (v ExampleSatisfyInterface) VersionString() string {
@@ -61,7 +63,11 @@ func (v ExampleSatisfyInterface) Has(cap *Capability) bool {
 func ExampleVersion() {
 	// Create connection to server and connect
 	connection := &ExampleSatisfyInterface{}
-	connection.Connect()
+	err := connection.Connect()
+	if err != nil {
+		log.Printf("Error setting up example connection: %v", err)
+		return
+	}
 
 	// Perform actions against server
 	connection.Do("something")
