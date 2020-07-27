@@ -213,7 +213,7 @@ var samplesBinary = [][]byte{
 var samplesVarBinary = samplesBinary
 
 func compareBinary(recv, expect []byte) bool {
-	return bytes.Compare(bytes.Trim(recv, "\x00"), expect) != 0
+	return !bytes.Equal(bytes.Trim(recv, "\x00"), expect)
 }
 
 //go:generate go run ./gen_type.go Bit bool
