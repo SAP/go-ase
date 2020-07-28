@@ -31,9 +31,9 @@ const (
 )
 
 type DonePackage struct {
-	status    DoneState
-	tranState TransState
-	count     int32
+	Status    DoneState
+	TranState TransState
+	Count     int32
 }
 
 type DoneProcPackage struct{ DonePackage }
@@ -44,15 +44,15 @@ func (pkg *DonePackage) ReadFrom(ch BytesChannel) error {
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
-	pkg.status = DoneState(status)
+	pkg.Status = DoneState(status)
 
 	tranState, err := ch.Uint16()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
-	pkg.tranState = TransState(tranState)
+	pkg.TranState = TransState(tranState)
 
-	pkg.count, err = ch.Int32()
+	pkg.Count, err = ch.Int32()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
@@ -66,25 +66,21 @@ func (pkg DonePackage) WriteTo(ch BytesChannel) error {
 		return err
 	}
 
-	err = ch.WriteUint16(uint16(pkg.status))
+	err = ch.WriteUint16(uint16(pkg.Status))
 	if err != nil {
 		return err
 	}
 
-	err = ch.WriteUint16(uint16(pkg.tranState))
+	err = ch.WriteUint16(uint16(pkg.TranState))
 	if err != nil {
 		return err
 	}
 
-	if pkg.status|TDS_DONE_COUNT == TDS_DONE_COUNT {
-		return ch.WriteInt32(pkg.count)
-	}
-
-	return nil
+	return ch.WriteInt32(pkg.Count)
 }
 
 func (pkg DonePackage) String() string {
-	stati := deBitmask(int(pkg.status), int(TDS_DONE_CUMULATIVE))
+	stati := deBitmask(int(pkg.Status), int(TDS_DONE_CUMULATIVE))
 	strStati := ""
 	if len(stati) == 0 {
 		strStati = TDS_DONE_FINAL.String()
@@ -97,7 +93,7 @@ func (pkg DonePackage) String() string {
 		}
 	}
 
-	transi := deBitmask(int(pkg.tranState), int(TDS_TRAN_STMT_FAIL))
+	transi := deBitmask(int(pkg.TranState), int(TDS_TRAN_STMT_FAIL))
 	strTransi := ""
 	if len(transi) == 0 {
 		strTransi = TDS_NOT_IN_TRAN.String()

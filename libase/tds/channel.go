@@ -190,14 +190,14 @@ func (tdsChan Channel) Logout() error {
 		return fmt.Errorf("expected done package in logout response, got: %v", pkg)
 	}
 
-	if done.status|TDS_DONE_FINAL != TDS_DONE_FINAL {
+	if done.Status&TDS_DONE_FINAL != TDS_DONE_FINAL {
 		return fmt.Errorf("received done package with status %s instead of TDS_DONE_FINAL",
-			done.status)
+			done.Status)
 	}
 
-	if done.tranState|TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
+	if done.TranState&TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
 		return fmt.Errorf("received done package with transtate %s instead of TDS_TRAN_COMPLETED",
-			done.tranState)
+			done.TranState)
 	}
 
 	return nil
