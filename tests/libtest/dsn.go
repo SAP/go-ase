@@ -133,13 +133,13 @@ var sqlDBMap = make(genSQLDBMap)
 
 // ConnectorCreator is the interface for function expected by InitDBs to
 // initialize driver.Connectors.
-type ConnectorCreator func(libdsn.Info) (driver.Connector, error)
+type ConnectorCreator func(*libdsn.Info) (driver.Connector, error)
 
 // RegisterDSN registers at least one new genSQLDBFn in genSQLDBMap
 // based on sql.Open.
 // If connectorFn is non-nil a second genSQLDBFn is stored with the
 // suffix `connector`.
-func RegisterDSN(name string, info libdsn.Info, connectorFn ConnectorCreator) error {
+func RegisterDSN(name string, info *libdsn.Info, connectorFn ConnectorCreator) error {
 	sqlDBMap[name] = func() (*sql.DB, error) {
 		db, err := sql.Open("ase", info.AsSimple())
 		if err != nil {

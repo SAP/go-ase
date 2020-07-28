@@ -29,6 +29,11 @@ type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
 	DSN     *libdsn.Info
+
+	// TODO I don't particularly like locking statements like this
+	stmts map[int]*Stmt
+	// TODO: iirc conns aren't used in multiple threads at the same time
+	stmtLock *sync.RWMutex
 }
 
 func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {

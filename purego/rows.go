@@ -5,6 +5,7 @@
 package purego
 
 import (
+	"context"
 	"database/sql/driver"
 	"errors"
 	"fmt"
@@ -53,7 +54,7 @@ func (rows *Rows) Close() error {
 }
 
 func (rows *Rows) Next(dst []driver.Value) error {
-	pkg, err := rows.Conn.Channel.NextPackage(true)
+	pkg, err := rows.Conn.Channel.NextPackage(context.Background(), true)
 	if err != nil {
 		return fmt.Errorf("go-ase: error reading next row package: %w", err)
 	}
@@ -96,7 +97,7 @@ func (rows *Rows) NextResultSet() error {
 	// discard all RowPackage until either end of communication or next
 	// RowFmtPackage
 	for {
-		pkg, err := rows.Conn.Channel.NextPackage(false)
+		pkg, err := rows.Conn.Channel.NextPackage(context.Background(), false)
 		if err != nil {
 			if errors.Is(err, tds.ErrNoPackageReady) {
 				return io.EOF
