@@ -128,8 +128,15 @@ func (tdsChan *Channel) Close() error {
 
 	var me error
 
-	// Channel 0 does not need communication to tear down
-	if tdsChan.channelId != 0 {
+	if tdsChan.channelId == 0 {
+		// Channel 0 is the main communication channel - send logout packages
+		err := tdsChan.Logout()
+		if err != nil {
+			me = multierror.Append(me, fmt.Errorf("error in logout sequence: %w", err))
+		}
+	} else {
+		// Closing of logical channels must be communicated using
+		// header-only packets
 
 		// Send packet to tear down logical channel
 		teardown := NewPacket()
@@ -164,6 +171,36 @@ func (tdsChan *Channel) Close() error {
 	}
 
 	return me
+}
+
+// Logout implements the logout sequence.
+func (tdsChan Channel) Logout() error {
+	err := tdsChan.SendPackage(context.Background(), &LogoutPackage{})
+	if err != nil {
+		return fmt.Errorf("error sending logout package: %w", err)
+	}
+
+	pkg, err := tdsChan.NextPackage(true)
+	if err != nil {
+		return fmt.Errorf("error reading logout response: %w", err)
+	}
+
+	done, ok := pkg.(*DonePackage)
+	if !ok {
+		return fmt.Errorf("expected done package in logout response, got: %v", pkg)
+	}
+
+	if done.status|TDS_DONE_FINAL != TDS_DONE_FINAL {
+		return fmt.Errorf("received done package with status %s instead of TDS_DONE_FINAL",
+			done.status)
+	}
+
+	if done.tranState|TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
+		return fmt.Errorf("received done package with transtate %s instead of TDS_TRAN_COMPLETED",
+			done.tranState)
+	}
+
+	return nil
 }
 
 // handleSpecialPackage handles special packages such as env changes.
