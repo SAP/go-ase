@@ -282,24 +282,6 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error sending login payload: %w", err)
 	}
 
-	// EED encoding
-	_, err = tdsChan.NextPackage(true)
-	if err != nil {
-		return fmt.Errorf("error reading EED package: %w", err)
-	}
-
-	// EED database change
-	_, err = tdsChan.NextPackage(true)
-	if err != nil {
-		return fmt.Errorf("error reading EED package: %w", err)
-	}
-
-	// EED language
-	_, err = tdsChan.NextPackage(true)
-	if err != nil {
-		return fmt.Errorf("error reading EED package: %w", err)
-	}
-
 	pkg, err = tdsChan.NextPackage(true)
 	if err != nil {
 		return fmt.Errorf("error reading LoginAck package: %w", err)
