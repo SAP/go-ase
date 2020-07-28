@@ -134,7 +134,7 @@ func TestDsnInfo_AsSimple(t *testing.T) {
 				Username: "user",
 				Password: "passwd",
 			},
-			expected: "host='hostname' pass='passwd' port='4901' user='user'",
+			expected: "host='hostname' password='passwd' port='4901' username='user'",
 		},
 		"Everything": {
 			dsn: DsnInfo{
@@ -149,7 +149,7 @@ func TestDsnInfo_AsSimple(t *testing.T) {
 					"baz": []string{""},
 				},
 			},
-			expected: "db='db_example' host='hostname' pass='passwd' port='4901' user='user' bar='baz' baz='' foo='bar'",
+			expected: "database='db_example' host='hostname' password='passwd' port='4901' username='user' bar='baz' baz='' foo='bar'",
 		},
 	}
 

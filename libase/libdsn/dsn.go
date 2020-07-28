@@ -15,12 +15,12 @@ import (
 //
 // The json tag is the expected string in a simple URI.
 type DsnInfo struct {
-	Host         string     `json:"host,hostname" validate:"required"`
+	Host         string     `json:"host" multiref:"hostname" validate:"required"`
 	Port         string     `json:"port" validate:"required"`
-	Username     string     `json:"user,username" validate:"required"`
-	Password     string     `json:"pass,passwd,password" validate:"required"`
-	Userstorekey string     `json:"userstorekey,key" validate:"required"`
-	Database     string     `json:"db,database"`
+	Username     string     `json:"username" multiref:"user" validate:"required"`
+	Password     string     `json:"password" multiref:"passwd,pass" validate:"required"`
+	Userstorekey string     `json:"userstorekey" multiref:"key" validate:"required"`
+	Database     string     `json:"database" multiref:"db"`
 	ConnectProps url.Values `json:"connectprops"`
 }
 
@@ -75,9 +75,9 @@ func NewDsnInfoFromEnv(prefix string) *DsnInfo {
 
 // tagToField returns a mapping from json metadata tags to
 // reflect.Values.
-// If multiref is true each json metadata tag will be mapped to its
-// field.Value; If multref is false only the first json metadata tag
-// will be mapped:
+// If multiref is true the metadata tags from `multiref` will also be
+// mapped to their field.Value.
+// If multiref is false only the json tag will be mapped.
 // multiref = true:
 //   map[string]reflect.Value{"host": dsnInfo.Host, "hostname": dsnInfo.Host}
 // multiref = false:
@@ -100,15 +100,17 @@ func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
 			continue
 		}
 
-		// Allow attributes such as json:"hostname,host" to map
-		// "hostname" and "host" to `.Hostname`.
+		// Grab json tag
 		names := strings.Split(t.Field(i).Tag.Get("json"), ",")
+		names = []string{names[0]}
 		if multiref {
-			for _, name := range names {
-				tTF[name] = v.Field(i)
-			}
-		} else {
-			tTF[names[0]] = v.Field(i)
+			// Grab multiref tags if enabled
+			multirefs := strings.Split(t.Field(i).Tag.Get("multiref"), ",")
+			names = append(names, multirefs...)
+		}
+
+		for _, name := range names {
+			tTF[name] = v.Field(i)
 		}
 	}
 

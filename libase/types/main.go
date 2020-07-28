@@ -81,11 +81,11 @@ func (conv ValueConverter) ConvertValue(v interface{}) (driver.Value, error) {
 		return v, nil
 	}
 
-	switch v.(type) {
+	switch value := v.(type) {
 	case int:
-		return int64(v.(int)), nil
+		return int64(value), nil
 	case uint:
-		return uint64(v.(uint)), nil
+		return uint64(value), nil
 	}
 
 	sv := reflect.TypeOf(v)

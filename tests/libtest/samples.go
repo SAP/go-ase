@@ -181,15 +181,6 @@ var samplesBigTime = []time.Time{
 	time.Date(1, time.January, 1, 23, 59, 59, 999999000, time.UTC),
 }
 
-func convertDuration(s string) (time.Time, error) {
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return time.Time{}.Add(d), nil
-}
-
 //go:generate go run ./gen_type.go VarChar string -columndef varchar(13) -compare compareChar
 // TODO: -null database/sql.NullString
 var samplesVarChar = samplesChar
@@ -222,7 +213,7 @@ var samplesBinary = [][]byte{
 var samplesVarBinary = samplesBinary
 
 func compareBinary(recv, expect []byte) bool {
-	return bytes.Compare(bytes.Trim(recv, "\x00"), expect) != 0
+	return !bytes.Equal(bytes.Trim(recv, "\x00"), expect)
 }
 
 //go:generate go run ./gen_type.go Bit bool
