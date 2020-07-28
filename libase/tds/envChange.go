@@ -1,5 +1,7 @@
 package tds
 
+import "fmt"
+
 // EnvChangeHook defines the signature of functions called by a Conn
 // when the server sends a TDS_ENV_CHANGE package.
 type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
@@ -17,11 +19,18 @@ type EnvChangeHook func(typ EnvChangeType, oldValue, newValue string)
 // registered. Hooks with a longer run time or waiting on locks should
 // utilize goroutines or use other means to prevent blocking other
 // hooks.
-func (tdsChan *Channel) RegisterEnvChangeHooks(fns ...EnvChangeHook) {
+func (tdsChan *Channel) RegisterEnvChangeHooks(fns ...EnvChangeHook) error {
 	tdsChan.envChangeHooksLock.Lock()
 	defer tdsChan.envChangeHooksLock.Unlock()
 
+	for i, fn := range fns {
+		if fn == nil {
+			return fmt.Errorf("received nil function as hook at index %d", i)
+		}
+	}
+
 	tdsChan.envChangeHooks = append(tdsChan.envChangeHooks, fns...)
+	return nil
 }
 
 func (tdsChan *Channel) callEnvChangeHooks(typ EnvChangeType, oldValue, newValue string) {
