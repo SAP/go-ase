@@ -39,5 +39,5 @@ func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 		return nil, fmt.Errorf("error parsing DSN: %w", err)
 	}
 
-	return NewConnector(dsnInfo)
+	return NewConnector(*dsnInfo)
 }

@@ -89,7 +89,7 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 			tdsChan.channelId, err)
 	}
 
-	pkg, err := tdsChan.NextPackage(true)
+	pkg, err := tdsChan.NextPackage(context.Background(), true)
 	if err != nil {
 		return nil, fmt.Errorf("error receiving ack for channel setup: %w", err)
 	}
@@ -180,7 +180,7 @@ func (tdsChan Channel) Logout() error {
 		return fmt.Errorf("error sending logout package: %w", err)
 	}
 
-	pkg, err := tdsChan.NextPackage(true)
+	pkg, err := tdsChan.NextPackage(context.Background(), true)
 	if err != nil {
 		return fmt.Errorf("error reading logout response: %w", err)
 	}
@@ -239,7 +239,7 @@ func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 //
 // If multiple errors and a package are ready a random error or package
 // will be returned, as stated in the spec for select.
-func (tdsChan *Channel) NextPackage(wait bool) (Package, error) {
+func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, error) {
 	ch := make(chan error, 1)
 
 	// Write an error into the channel if the caller does not want to
@@ -249,7 +249,13 @@ func (tdsChan *Channel) NextPackage(wait bool) (Package, error) {
 		ch <- ErrNoPackageReady
 	}
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	select {
+	case <-ctx.Done():
+		return nil, context.Canceled
 	case <-tdsChan.tdsConn.ctx.Done():
 		return nil, context.Canceled
 	case err := <-tdsChan.tdsConn.errCh:

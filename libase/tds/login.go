@@ -53,7 +53,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error sending packets: %w", err)
 	}
 
-	pkg, err := tdsChan.NextPackage(true)
+	pkg, err := tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading LoginAck package: %w", err)
 	}
@@ -70,7 +70,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			return fmt.Errorf("login failed: %s", loginack.Status)
 		}
 
-		pkg, err = tdsChan.NextPackage(true)
+		pkg, err = tdsChan.NextPackage(ctx, true)
 		if err != nil {
 			return fmt.Errorf("error reading Done package: %w", err)
 		}
@@ -91,7 +91,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("expected loginack with negotation, received: %s", loginack)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading Msg package: %w", err)
 	}
@@ -105,7 +105,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("expected TDS_MSG_SEC_ENCRYPT4, received: %s", negotiationMsg.MsgId)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading ParamFmt package: %w", err)
 	}
@@ -120,7 +120,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			len(paramFmt.Fmts), paramFmt)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading Params package: %w", err)
 	}
@@ -135,7 +135,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			len(params.DataFields), params)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading Done package: %w", err)
 	}
@@ -282,7 +282,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error sending login payload: %w", err)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading LoginAck package: %w", err)
 	}
@@ -297,7 +297,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			loginAck.Status)
 	}
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading Capability package: %w", err)
 	}
@@ -309,7 +309,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 
 	// TODO handle caps response
 
-	pkg, err = tdsChan.NextPackage(true)
+	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading Done package: %w", err)
 	}

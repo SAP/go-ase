@@ -13,7 +13,7 @@ import (
 func TestMain(m *testing.M) {
 	err := testMain(m)
 	if err != nil {
-		log.Printf("%v", err)
+		log.Fatalf("%v", err)
 		os.Exit(1)
 	}
 }
@@ -21,24 +21,24 @@ func TestMain(m *testing.M) {
 func testMain(m *testing.M) error {
 	simpleDSN, simpleTeardown, err := libtest.DSN(false)
 	if err != nil {
-		return fmt.Errorf("Failed to setup simple DSN: %v", err)
+		return fmt.Errorf("error setting up simple DSN: %w", err)
 	}
 	defer simpleTeardown()
 
 	err = libtest.RegisterDSN("username password", *simpleDSN, cgo.NewConnector)
 	if err != nil {
-		return fmt.Errorf("Failed to setup simple databases: %v", err)
+		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
 	userstoreDSN, userstoreTeardown, err := libtest.DSN(true)
 	if err != nil {
-		return fmt.Errorf("Failed to setup userstore DSN: %v", err)
+		return fmt.Errorf("error setting up userstore DSN: %v", err)
 	}
 	defer userstoreTeardown()
 
 	err = libtest.RegisterDSN("userstorekey", *userstoreDSN, cgo.NewConnector)
 	if err != nil {
-		return fmt.Errorf("Failed to setup userstorekey databases: %v", err)
+		return fmt.Errorf("error setting up userstore database: %w", err)
 	}
 
 	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
