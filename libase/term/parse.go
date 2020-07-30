@@ -35,5 +35,12 @@ func ParseAndExecQueries(db *sql.DB, line string) error {
 		}
 	}
 
+	if builder.String() != "" {
+		err := process(db, builder.String())
+		if err != nil {
+			return fmt.Errorf("term: failed to process query: %w", err)
+		}
+	}
+
 	return nil
 }
