@@ -24,7 +24,7 @@ type Package interface {
 	fmt.Stringer
 }
 
-func LookupPackage(token TDSToken) (Package, error) {
+func LookupPackage(token Token) (Package, error) {
 	switch token {
 	case TDS_EED:
 		return &EEDPackage{}, nil
