@@ -44,23 +44,25 @@ func Repl(db *sql.DB) error {
 	cmds := []string{}
 	for {
 		UpdatePrompt()
+
+		exitAfterExecution := false
+
 		line, err := rl.Readline()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				return nil
+				// Execute the currently read line and then return
+				exitAfterExecution = true
+			} else {
+				return fmt.Errorf("term: received error from readline: %w", err)
 			}
-			return fmt.Errorf("term: received error from readline: %w", err)
 		}
 
 		line = strings.TrimSpace(line)
-
-		if line == "" {
-			continue
+		if line != "" {
+			cmds = append(cmds, line)
 		}
 
-		cmds = append(cmds, line)
-
-		if !strings.HasSuffix(line, ";") {
+		if !strings.HasSuffix(line, ";") && !exitAfterExecution {
 			promptMultiline = true
 			continue
 		}
@@ -72,6 +74,10 @@ func Repl(db *sql.DB) error {
 		cmds = []string{}
 
 		err = ParseAndExecQueries(db, line)
+		if exitAfterExecution {
+			return err
+		}
+
 		if err != nil {
 			log.Println(err)
 		}
