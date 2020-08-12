@@ -20,12 +20,7 @@ func (pkg *ReturnStatusPackage) ReadFrom(ch BytesChannel) error {
 }
 
 func (pkg ReturnStatusPackage) WriteTo(ch BytesChannel) error {
-	err := ch.WriteInt32(pkg.returnValue)
-	if err != nil {
-		return fmt.Errorf("error writing return value: %w", err)
-	}
-
-	return nil
+	return ch.WriteInt32(pkg.returnValue)
 }
 
 func (pkg ReturnStatusPackage) ReturnValue() int {
