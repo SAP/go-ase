@@ -77,7 +77,7 @@ func (rows *Rows) Next(dst []driver.Value) error {
 
 	for i := range dst {
 		// TODO correctly transform data
-		dst[i] = row.DataFields[i].Data()
+		dst[i] = row.DataFields[i].Value()
 	}
 
 	return nil

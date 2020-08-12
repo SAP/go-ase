@@ -123,10 +123,11 @@ type FieldData interface {
 	// Interface methods for go-ase
 	Format() FieldFmt
 	setFormat(FieldFmt)
-	SetData([]byte)
-	Data() []byte
 	ReadFrom(BytesChannel) (int, error)
 	WriteTo(BytesChannel) (int, error)
+
+	Value() interface{}
+	SetValue(interface{})
 }
 
 // Base structs
@@ -319,7 +320,7 @@ func (field fieldFmtBaseScale) writeToScale(ch BytesChannel) (int, error) {
 type fieldDataBase struct {
 	fmt    FieldFmt
 	status DataStatus
-	data   []byte
+	value  interface{}
 }
 
 func (field *fieldDataBase) setFormat(f FieldFmt) {
@@ -334,16 +335,13 @@ func (field fieldDataBase) Status() DataStatus {
 	return field.status
 }
 
-func (field *fieldDataBase) SetData(data []byte) {
-	field.data = data
+func (field *fieldDataBase) Value() interface{} {
+	// TODO set a default?
+	return field.value
 }
 
-func (field fieldDataBase) Data() []byte {
-	return field.data
-}
-
-func (field fieldDataBase) String() string {
-	return string(field.data)
+func (field *fieldDataBase) SetValue(value interface{}) {
+	field.value = value
 }
 
 func (field *fieldDataBase) readFromStatus(ch BytesChannel) (int, error) {
@@ -388,10 +386,19 @@ func (field *fieldDataBase) readFrom(ch BytesChannel) (int, error) {
 		n += field.fmt.LengthBytes()
 	}
 
-	if field.data, err = ch.Bytes(length); err != nil {
-		return 0, ErrNotEnoughBytes
+	bs, err := ch.Bytes(length)
+	if err != nil {
+		return n, fmt.Errorf("failed to read %d bytes: %w", length, err)
 	}
-	n += length
+
+	field.value, err = field.fmt.DataType().GoValue(endian, bs)
+	if err != nil {
+		return n, fmt.Errorf("failed to parse field data: %w", err)
+	}
+
+	if len(bs) != length {
+		return n, fmt.Errorf("expected to read %d bytes of data, read %d", length, len(bs))
+	}
 
 	return n, nil
 }
@@ -402,17 +409,23 @@ func (field fieldDataBase) writeTo(ch BytesChannel) (int, error) {
 		return n, err
 	}
 
+	bs, err := field.fmt.DataType().Bytes(endian, field.value)
+	if err != nil {
+		return n, fmt.Errorf("error converting field value to bytes: %w", err)
+	}
+
 	if !field.fmt.IsFixedLength() {
-		if err := writeLengthBytes(ch, field.fmt.LengthBytes(), int64(len(field.data))); err != nil {
+		if err := writeLengthBytes(ch, field.fmt.LengthBytes(), int64(len(bs))); err != nil {
 			return n, fmt.Errorf("failed to write data length: %w", err)
 		}
 		n += field.fmt.LengthBytes()
 	}
 
-	if err := ch.WriteBytes(field.data); err != nil {
-		return n, fmt.Errorf("failed to write %d bytes of data: %w", len(field.data), err)
+	err = ch.WriteBytes(bs)
+	if err != nil {
+		return n, fmt.Errorf("failed to write field data: %w", err)
 	}
-	n += len(field.data)
+	n += len(bs)
 
 	return n, nil
 }
@@ -425,6 +438,10 @@ type fieldFmtLength struct {
 
 // TODO is this being used?
 func (field fieldFmtLength) FormatByteLength() int {
+	if field.IsFixedLength() {
+		return 0
+	}
+
 	return field.LengthBytes()
 }
 
@@ -774,6 +791,9 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 		n += int(locatorLength)
 	}
 
+	// TODO better data type
+	data := []byte{}
+
 	for {
 		dataLen, err := ch.Uint32()
 		if err != nil {
@@ -797,7 +817,7 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 			continue
 		}
 
-		data, err := ch.Bytes(int(dataLen))
+		dataPart, err := ch.Bytes(int(dataLen))
 		if err != nil {
 			return 0, ErrNotEnoughBytes
 		}
@@ -806,8 +826,10 @@ func (field *fieldDataBlob) ReadFrom(ch BytesChannel) (int, error) {
 		// TODO this is inefficient for large datasets - must be
 		// replaced by a low-overhead extensible byte storage (so - not
 		// a slice)
-		field.data = append(field.data, data...)
+		data = append(data, dataPart...)
 	}
+
+	field.value = data
 
 	return n, nil
 }
@@ -860,15 +882,20 @@ func (field fieldDataBlob) Writeto(ch BytesChannel) (int, error) {
 		n += len(field.locator)
 	}
 
+	data, ok := field.value.([]byte)
+	if !ok {
+		return n, fmt.Errorf("field.value is not of type []byte, but type %T", field.value)
+	}
+
 	dataLen := 1024
-	if dataLen > len(field.data) {
-		dataLen = len(field.data)
+	if dataLen > len(data) {
+		dataLen = len(data)
 	}
 
 	start, end := 0, dataLen
 	for {
 		passLen := uint32(dataLen)
-		if end == len(field.data) {
+		if end == len(data) {
 			passLen |= fieldDataBlobHighBit
 		}
 
@@ -877,12 +904,12 @@ func (field fieldDataBlob) Writeto(ch BytesChannel) (int, error) {
 		}
 		n += 4
 
-		if err := ch.WriteBytes(field.data[start:end]); err != nil {
+		if err := ch.WriteBytes(data[start:end]); err != nil {
 			return n, fmt.Errorf("failed to write %d bytes of data: %w", dataLen, err)
 		}
 		n += end - start
 
-		if end == len(field.data) {
+		if end == len(data) {
 			break
 		}
 
@@ -987,7 +1014,7 @@ func (field *fieldDataTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 	}
 	n += 4
 
-	field.data, err = ch.Bytes(int(dataLen))
+	field.value, err = ch.Bytes(int(dataLen))
 	if err != nil {
 		return 0, ErrNotEnoughBytes
 	}
@@ -1017,15 +1044,20 @@ func (field fieldDataTxtPtr) WriteTo(ch BytesChannel) (int, error) {
 	}
 	n += len(field.timeStamp)
 
-	if err := ch.WriteUint32(uint32(len(field.data))); err != nil {
+	data, ok := field.value.([]byte)
+	if !ok {
+		return n, fmt.Errorf("field value is of tye %T instead of byte slice", field.value)
+	}
+
+	if err := ch.WriteUint32(uint32(len(data))); err != nil {
 		return n, fmt.Errorf("failed to write Data length: %w", err)
 	}
 	n += 4
 
-	if err := ch.WriteBytes(field.data); err != nil {
+	if err := ch.WriteBytes(data); err != nil {
 		return n, fmt.Errorf("failed to write Data: %w", err)
 	}
-	n += len(field.data)
+	n += len(data)
 
 	return n, nil
 }
