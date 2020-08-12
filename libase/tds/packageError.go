@@ -97,62 +97,52 @@ func (pkg ErrorPackage) WriteTo(ch BytesChannel) error {
 		return fmt.Errorf("failed to write length: %w", err)
 	}
 
-	err = ch.WriteInt32(pkg.ErrorNumber)
-	if err != nil {
+	if err := ch.WriteInt32(pkg.ErrorNumber); err != nil {
 		return fmt.Errorf("failed to write error number: %w", err)
 	}
 	n := 4
 
-	err = ch.WriteUint8(pkg.State)
-	if err != nil {
+	if err := ch.WriteUint8(pkg.State); err != nil {
 		return fmt.Errorf("failed to write state: %w", err)
 	}
 	n++
 
-	err = ch.WriteUint8(pkg.Class)
-	if err != nil {
+	if err := ch.WriteUint8(pkg.Class); err != nil {
 		return fmt.Errorf("failed to write class: %w", err)
 	}
 	n++
 
-	err = ch.WriteUint16(uint16(len(pkg.ErrorMsg)))
-	if err != nil {
+	if err := ch.WriteUint16(uint16(len(pkg.ErrorMsg))); err != nil {
 		return fmt.Errorf("failed to write error message length: %w", err)
 	}
 	n += 2
 
-	err = ch.WriteString(pkg.ErrorMsg)
-	if err != nil {
+	if err := ch.WriteString(pkg.ErrorMsg); err != nil {
 		return fmt.Errorf("failed to write error message: %w", err)
 	}
 	n += len(pkg.ErrorMsg)
 
-	err = ch.WriteUint8(uint8(len(pkg.ServerName)))
-	if err != nil {
+	if err := ch.WriteUint8(uint8(len(pkg.ServerName))); err != nil {
 		return fmt.Errorf("failed to write servername length: %w", err)
 	}
 	n++
 
-	err = ch.WriteString(pkg.ServerName)
-	if err != nil {
+	if err := ch.WriteString(pkg.ServerName); err != nil {
 		return fmt.Errorf("failed to write servername: %w", err)
 	}
 	n += len(pkg.ServerName)
 
-	err = ch.WriteUint8(uint8(len(pkg.ProcName)))
-	if err != nil {
+	if err := ch.WriteUint8(uint8(len(pkg.ProcName))); err != nil {
 		return fmt.Errorf("failed to write procname length: %w", err)
 	}
 	n++
 
-	err = ch.WriteString(pkg.ProcName)
-	if err != nil {
+	if err := ch.WriteString(pkg.ProcName); err != nil {
 		return fmt.Errorf("failed to write procname: %w", err)
 	}
 	n += len(pkg.ProcName)
 
-	err = ch.WriteUint16(pkg.LineNr)
-	if err != nil {
+	if err := ch.WriteUint16(pkg.LineNr); err != nil {
 		return fmt.Errorf("failed to write linenr: %w", err)
 	}
 	n += 2
