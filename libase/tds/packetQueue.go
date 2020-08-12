@@ -1,43 +1,66 @@
 package tds
 
 import (
-	"errors"
 	"fmt"
 	"io"
 )
 
 var _ BytesChannel = (*PacketQueue)(nil)
 
+// PacketQueue is loosely modeled after bytes.Buffer with the
+// difference, that it automatically sorts written data into Packets and
+// can supports reading over packet boundaries.
 type PacketQueue struct {
 	queue                  []*Packet
 	indexPacket, indexData int
 }
 
+// NewPacketQueue returns an initialized PacketQueue.
 func NewPacketQueue() *PacketQueue {
 	queue := &PacketQueue{}
 	queue.Reset()
 	return queue
 }
 
+// Reset resets a PacketQueue as if it were newly initialized.
+// Note: All queued packets will be discarded.
 func (queue *PacketQueue) Reset() {
 	queue.queue = []*Packet{}
 	queue.indexPacket = 0
 	queue.indexData = 0
 }
 
+// AddPacket adds a packet to the queue.
 func (queue *PacketQueue) AddPacket(packet *Packet) {
 	queue.queue = append(queue.queue, packet)
 }
 
+// Position returns the two indizes used by PacketQueue to store its
+// position in the queue and their respective data.
+//
+// The first returned integer is the packet index. Note that the packet
+// index can change in both directions - it grows when bytes are read or
+// written and it shrinks when DiscardUntilCurrentPosition is called.
+//
+// The second returned integer is the data index. The data index points
+// to the last unread or unwritten byte of the packet the packet index
+// points to.
+// The data index only grows when bytes are read or written to the
+// queue. It may shrink when DiscardUntilCurrentPosition is called.
 func (queue PacketQueue) Position() (int, int) {
 	return queue.indexPacket, queue.indexData
 }
 
+// SetPosition sets the two indizes used by PacketQueue.
+// See Position for more details.
 func (queue *PacketQueue) SetPosition(indexPacket, indexData int) {
 	queue.indexPacket = indexPacket
 	queue.indexData = indexData
 }
 
+// DiscardUntilCurrentPosition discards all consumed packets, indicated
+// by the position indizes.
+// See Position for more details regarding positions.
 func (queue *PacketQueue) DiscardUntilCurrentPosition() {
 	// .indexPacket points to no particular packet, reset queue
 	if len(queue.queue) == 0 || queue.indexPacket >= len(queue.queue) {
