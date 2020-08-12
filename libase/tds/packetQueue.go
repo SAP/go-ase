@@ -83,34 +83,23 @@ func (queue *PacketQueue) DiscardUntilCurrentPosition() {
 // Read satisfies the io.Reader interface
 func (queue *PacketQueue) Read(p []byte) (int, error) {
 	var err error
-	for i := range p {
-		p[i], err = queue.Byte()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return i, io.EOF
-			}
-			return i, err
-		}
-	}
-
-	return len(p), nil
+	p, err = queue.Bytes(len(p))
+	return len(p), err
 }
 
 // Write satisfies the io.Writer interface
 func (queue *PacketQueue) Write(p []byte) (int, error) {
-	err := queue.WriteBytes(p)
-	if err != nil {
-		return 0, err
-	}
-	return len(p), nil
+	return len(p), queue.WriteBytes(p)
 }
 
 // Read methods
 
-// Bytes returns at most n bytes as a slice.
+// Bytes returns a slice of bytes from the queue.
 //
-// If the channel is closed before n bytes could be read Bytes will
-// return a slice of length n with an io.EOF.
+// The returned byte slice will always be of length n.
+//
+// If there aren't enough bytes to read n bytes Bytes will return
+// a wrapped io.EOF. The returned byte slice will still be of length n.
 func (queue *PacketQueue) Bytes(n int) ([]byte, error) {
 	if n == 0 {
 		return []byte{}, nil
@@ -209,8 +198,7 @@ func (queue *PacketQueue) String(size int) (string, error) {
 
 // WriteBytes writes a slice of bytes.
 //
-// An error is only returned if the channel is marked as closed when
-// starting to pass bytes to the underlying channel.
+// The returned integer is the size of bs, the returned error is always nil.
 func (queue *PacketQueue) WriteBytes(bs []byte) error {
 	if len(bs) == 0 {
 		return nil
@@ -244,7 +232,6 @@ func (queue *PacketQueue) WriteBytes(bs []byte) error {
 			freeBytes = len(bs) - bsOffset
 		}
 
-		// curPacket.Data = append(curPacket.Data, bs[bsOffset:bsOffset+freeBytes]...)
 		copy(curPacket.Data[queue.indexData:], bs[bsOffset:bsOffset+freeBytes])
 		bsOffset += freeBytes
 		queue.indexData += freeBytes
