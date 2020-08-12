@@ -8,15 +8,10 @@ import (
 	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
+	"github.com/SAP/go-ase/libase/types"
 	"io"
 	"reflect"
-	"strings"
-	"time"
-	"unicode/utf16"
 	"unsafe"
-
-	"github.com/SAP/go-ase/libase/asetime"
-	"github.com/SAP/go-ase/libase/types"
 )
 
 // Rows is the struct which represents a database result set
@@ -31,7 +26,7 @@ type Rows struct {
 	dataFmts []*C.CS_DATAFMT
 	// colASEType maps directly to columns in the result set.
 	// Each colASEType is the ASEType for the column.
-	colASEType []types.ASEType
+	colASEType []ASEType
 	// colData is a pointer to allocated memory according to the type
 	// and size as indicated by the dataFmt.
 	// the ctlibrary copies field data into this memory.
@@ -63,7 +58,7 @@ func newRows(cmd *Command) (*Rows, error) {
 		cmd:        cmd,
 		numCols:    int(numCols),
 		dataFmts:   make([]*C.CS_DATAFMT, int(numCols)),
-		colASEType: make([]types.ASEType, int(numCols)),
+		colASEType: make([]ASEType, int(numCols)),
 		colData:    make([]unsafe.Pointer, int(numCols)),
 	}
 
@@ -80,7 +75,7 @@ func newRows(cmd *Command) (*Rows, error) {
 		}
 
 		// Set ASEType for column
-		asetype := (types.ASEType)(r.dataFmts[i].datatype)
+		asetype := (ASEType)(r.dataFmts[i].datatype)
 		if asetype.String() == "" {
 			r.Close()
 			return nil, fmt.Errorf("Invalid ASEType: %v", r.dataFmts[i].datatype)
@@ -170,153 +165,72 @@ func (rows *Rows) Next(dest []driver.Value) error {
 	}
 
 	for i := 0; i < len(rows.colData); i++ {
+		dataType := rows.colASEType[i].ToDataType()
+
 		switch rows.colASEType[i] {
-		case types.BIGINT:
+		case BIGINT:
 			dest[i] = int64(*((*C.CS_BIGINT)(rows.colData[i])))
-		case types.INT:
+		case INT:
 			dest[i] = int32(*((*C.CS_INT)(rows.colData[i])))
-		case types.SMALLINT:
+		case SMALLINT:
 			dest[i] = int16(*((*C.CS_SMALLINT)(rows.colData[i])))
-		case types.TINYINT:
+		case TINYINT:
 			dest[i] = uint8(*((*C.CS_TINYINT)(rows.colData[i])))
-		case types.UBIGINT:
+		case UBIGINT:
 			dest[i] = uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
-		case types.UINT:
+		case UINT:
 			dest[i] = uint32(*((*C.CS_UBIGINT)(rows.colData[i])))
-		case types.USMALLINT, types.USHORT:
+		case USMALLINT, USHORT:
 			dest[i] = uint16(*((*C.CS_USMALLINT)(rows.colData[i])))
-		case types.DECIMAL, types.NUMERIC:
-			csDec := (*C.CS_DECIMAL)(rows.colData[i])
-
-			dec, err := types.NewDecimal(int(csDec.precision), int(csDec.scale))
-			if err != nil {
-				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
-			}
-
-			bs := C.GoBytes(unsafe.Pointer(&csDec.array), (C.int)(dec.ByteSize()))
-			dec.SetBytes(bs[1:])
-
-			if bs[0] == 0x1 {
-				dec.Negate()
-			}
-
-			dest[i] = dec
-		case types.FLOAT:
+		case FLOAT:
 			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
-		case types.REAL:
+		case REAL:
 			dest[i] = float64(*((*C.CS_REAL)(rows.colData[i])))
-		case types.MONEY:
-			bs := C.GoBytes(rows.colData[i], 8)
-			dec, err := types.NewDecimal(types.ASEMoneyPrecision, types.ASEMoneyScale)
-			if err != nil {
-				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
-			}
-
-			mnyhigh := binary.LittleEndian.Uint32(bs[:4])
-			mnylow := binary.LittleEndian.Uint32(bs[4:])
-
-			mny := int64(int64(mnyhigh)<<32 + int64(mnylow))
-
-			dec.SetInt64(mny)
-
-			dest[i] = dec
-		case types.MONEY4:
-			bs := C.GoBytes(rows.colData[i], 4)
-
-			dec, err := types.NewDecimal(types.ASESmallMoneyPrecision, types.ASESmallMoneyScale)
-			if err != nil {
-				return fmt.Errorf("Received invalid precision/scale values from ASE: %v", err)
-			}
-
-			dec.SetInt64(int64(int32(binary.LittleEndian.Uint32(bs))))
-
-			dest[i] = dec
-		case types.DATE:
-			b := C.GoBytes(rows.colData[i], 4)
-			r := int32(binary.LittleEndian.Uint32(b))
-			days := asetime.ASEDuration(r) * asetime.Day
-			dest[i] = asetime.Epoch1900().AddDate(0, 0, days.Days())
-		case types.TIME:
-			b := C.GoBytes(rows.colData[i], 4)
-			n := int(int32(binary.LittleEndian.Uint32(b)))
-			dur := asetime.FractionalSecondToMillisecond(n)
-			t := time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)
-			dest[i] = t.Add(time.Duration(dur.Milliseconds()) * time.Millisecond)
-		case types.DATETIME4:
-			b := C.GoBytes(rows.colData[i], 4)
-
-			days := binary.LittleEndian.Uint16(b[:2])
-			mins := binary.LittleEndian.Uint16(b[2:])
-
-			t := asetime.Epoch1900()
-			t = t.AddDate(0, 0, int(days))
-			t = t.Add(time.Duration(int(mins)) * time.Minute)
-
-			dest[i] = t
-		case types.DATETIME:
-			b := C.GoBytes(rows.colData[i], 8)
-
-			days := asetime.ASEDuration(int32(binary.LittleEndian.Uint32(b[:4]))) * asetime.Day
-			s := asetime.FractionalSecondToMillisecond(int(binary.LittleEndian.Uint32(b[4:])))
-
-			t := asetime.Epoch1900()
-			t = t.AddDate(0, 0, days.Days())
-			t = t.Add(time.Duration(s.Microseconds()) * time.Microsecond)
-
-			dest[i] = t
-		case types.BIGDATETIME:
-			bs := C.GoBytes(rows.colData[i], 8)
-			dur := asetime.ASEDuration(binary.LittleEndian.Uint64(bs))
-
-			t := time.Date(0, time.January, 1, 0, 0, 0, 0, time.UTC)
-			t = t.AddDate(0, 0, dur.Days())
-			ms := dur.Microseconds() - (dur.Days() * int(asetime.Day))
-			t = t.Add(time.Duration(ms) * time.Microsecond)
-
-			dest[i] = t
-		case types.BIGTIME:
-			bs := C.GoBytes(rows.colData[i], 8)
-			dur := asetime.ASEDuration(binary.LittleEndian.Uint64(bs))
-
-			t := asetime.EpochRataDie()
-			t = t.Add(time.Duration(dur) * time.Microsecond)
-
-			dest[i] = t
-		case types.CHAR, types.VARCHAR, types.TEXT, types.LONGCHAR:
+		case CHAR, VARCHAR, TEXT, LONGCHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
-		case types.BINARY, types.IMAGE:
+		case BINARY, IMAGE:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-		case types.BIT:
+		case BIT:
 			dest[i] = false
 			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {
 				dest[i] = true
 			}
+		case DECIMAL, NUMERIC:
+			csDec := (*C.CS_DECIMAL)(rows.colData[i])
+			bs := C.GoBytes(
+				unsafe.Pointer(&csDec.array),
+				(C.int)(types.DecimalByteSize(int(csDec.precision))),
+			)
 
-		case types.UNICHAR, types.UNITEXT:
-			b := C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-
-			runes := []rune{}
-
-			for i := 0; i < len(b); i++ {
-				// Determine if byte is a utf16 surrogate - if so two
-				// bytes must be consumed to form one utf16 code point
-				if utf16.IsSurrogate(rune(b[i])) {
-					r := utf16.DecodeRune(rune(b[i]), rune(b[i+1]))
-					runes = append(runes, r)
-					i++
-				} else {
-					runes = append(runes, rune(b[i]))
-				}
+			decI, err := dataType.GoValue(binary.LittleEndian, bs)
+			if err != nil {
+				return err
 			}
 
-			s := string(runes)
-			// Trim null bytes from the right - ASE always sends the
-			// maximum bytes for the TEXT datatype, causing the string
-			// to have a couple thousand null bytes. These are also
-			// carried over in a string() conversion and cause
-			// false-negatives in comparisons.
-			s = strings.TrimRight(s, "\x00")
-
+			dec := decI.(*types.Decimal)
+			dec.Precision = int(csDec.precision)
+			dec.Scale = int(csDec.scale)
+			dest[i] = dec
+		case MONEY, MONEY4, DATE, TIME, DATETIME, DATETIME4:
+			bs := C.GoBytes(rows.colData[i], C.int(dataType.ByteSize()))
+			resp, err := dataType.GoValue(binary.LittleEndian, bs)
+			if err != nil {
+				return err
+			}
+			dest[i] = resp
+		case BIGDATETIME, BIGTIME:
+			bs := C.GoBytes(rows.colData[i], 8)
+			resp, err := dataType.GoValue(binary.LittleEndian, bs)
+			if err != nil {
+				return err
+			}
+			dest[i] = resp
+		case UNICHAR, UNITEXT:
+			b := C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
+			s, err := dataType.GoValue(binary.LittleEndian, b)
+			if err != nil {
+				return err
+			}
 			dest[i] = s
 		default:
 			return fmt.Errorf("Unhandled Go type: %+v", rows.colASEType[i])
@@ -344,9 +258,9 @@ func (rows *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 
 func (rows *Rows) ColumnTypeLength(index int) (int64, bool) {
 	switch rows.colASEType[index] {
-	case types.BINARY:
+	case BINARY:
 		return int64(rows.dataFmts[index].maxlength), true
-	case types.CHAR:
+	case CHAR:
 		return int64(C.CS_MAX_CHAR), true
 	default:
 		return 0, false
@@ -358,5 +272,5 @@ func (rows *Rows) ColumnTypeMaxLength(index int) int64 {
 }
 
 func (rows *Rows) ColumnTypeScanType(index int) reflect.Type {
-	return rows.colASEType[index].GoReflectType()
+	return rows.colASEType[index].ToDataType().GoReflectType()
 }
