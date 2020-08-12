@@ -1,6 +1,6 @@
 package types
 
-// ByteSizes is a map that maps a DataType to the length of their byte
+// ByteSizes maps a DataType to the length of their byte
 // representation.
 // Only fixed-length DataTypes are listed.
 // Fixed-length DataTypes that are nullable are not listed.

@@ -12,7 +12,11 @@
 
 package tds
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/SAP/go-ase/libase/types"
+)
 
 // Both Param- and RowFmtStatus are uints communicated using
 // TDS_PARAMFMT* and TDS_ROWFMT*. Depending on the token they have
@@ -66,7 +70,8 @@ const (
 
 type FieldFmt interface {
 	// Format information as sent to or received from TDS server
-	DataType() DataType
+	DataType() types.DataType
+	setDataType(types.DataType)
 	SetName(string)
 	Name() string
 
@@ -103,6 +108,7 @@ type FieldFmt interface {
 	// Length returns the maximum length of the column
 	// TODO: is this actually required when sending from client?
 	MaxLength() int64
+	setMaxLength(int64)
 
 	ReadFrom(BytesChannel) (int, error)
 	WriteTo(BytesChannel) (int, error)
@@ -116,6 +122,7 @@ type FieldData interface {
 
 	// Interface methods for go-ase
 	Format() FieldFmt
+	setFormat(FieldFmt)
 	SetData([]byte)
 	Data() []byte
 	ReadFrom(BytesChannel) (int, error)
@@ -125,7 +132,7 @@ type FieldData interface {
 // Base structs
 
 type fieldFmtBase struct {
-	dataType DataType
+	dataType types.DataType
 	name     string
 
 	// specific to TDS_ROWFMT2
@@ -141,17 +148,16 @@ type fieldFmtBase struct {
 	userType   int32
 	localeInfo string
 
-	// isFixedLength defines if the data field belonging to the fmt may
-	// have its own length.
-	isFixedLength bool
-	// lengthBytes defines the byte size of the length field
-	lengthBytes int
 	// length is the maximum length of the data type
 	maxLength int64
 }
 
-func (field fieldFmtBase) DataType() DataType {
+func (field fieldFmtBase) DataType() types.DataType {
 	return field.dataType
+}
+
+func (field *fieldFmtBase) setDataType(t types.DataType) {
+	field.dataType = t
 }
 
 func (field *fieldFmtBase) SetName(name string) {
@@ -219,11 +225,19 @@ func (field fieldFmtBase) LocaleInfo() string {
 }
 
 func (field fieldFmtBase) IsFixedLength() bool {
-	return field.isFixedLength
+	return field.DataType().ByteSize() != -1
 }
 
 func (field fieldFmtBase) LengthBytes() int {
-	return field.lengthBytes
+	if field.IsFixedLength() {
+		return field.DataType().ByteSize()
+	}
+
+	return field.DataType().LengthBytes()
+}
+
+func (field fieldFmtBase) setMaxLength(i int64) {
+	field.maxLength = i
 }
 
 func (field fieldFmtBase) MaxLength() int64 {
@@ -231,25 +245,25 @@ func (field fieldFmtBase) MaxLength() int64 {
 }
 
 func (field *fieldFmtBase) readFromBase(ch BytesChannel) (int, error) {
-	if field.isFixedLength {
+	if field.IsFixedLength() {
 		return 0, nil
 	}
 
-	length, err := readLengthBytes(ch, field.lengthBytes)
+	length, err := readLengthBytes(ch, field.LengthBytes())
 	if err != nil {
 		return 0, ErrNotEnoughBytes
 	}
 	field.maxLength = int64(length)
 
-	return field.lengthBytes, nil
+	return field.LengthBytes(), nil
 }
 
 func (field fieldFmtBase) writeToBase(ch BytesChannel) (int, error) {
-	if field.isFixedLength {
+	if field.IsFixedLength() {
 		return 0, nil
 	}
 
-	return field.lengthBytes, writeLengthBytes(ch, field.lengthBytes, field.maxLength)
+	return field.LengthBytes(), writeLengthBytes(ch, field.LengthBytes(), field.MaxLength())
 }
 
 type fieldFmtBasePrecision struct {
@@ -306,6 +320,10 @@ type fieldDataBase struct {
 	fmt    FieldFmt
 	status DataStatus
 	data   []byte
+}
+
+func (field *fieldDataBase) setFormat(f FieldFmt) {
+	field.fmt = f
 }
 
 func (field fieldDataBase) Format() FieldFmt {
@@ -407,7 +425,7 @@ type fieldFmtLength struct {
 
 // TODO is this being used?
 func (field fieldFmtLength) FormatByteLength() int {
-	return field.lengthBytes
+	return field.LengthBytes()
 }
 
 func (field *fieldFmtLength) ReadFrom(ch BytesChannel) (int, error) {
@@ -460,7 +478,7 @@ type fieldFmtLengthScale struct {
 func (field fieldFmtLengthScale) FormatByteLength() int {
 	// 1 byte scale
 	// 1 to 4 bytes length
-	return 1 + field.lengthBytes
+	return 1 + field.LengthBytes()
 }
 
 func (field *fieldFmtLengthScale) ReadFrom(ch BytesChannel) (int, error) {
@@ -493,7 +511,7 @@ type fieldFmtLengthPrecisionScale struct {
 }
 
 func (field fieldFmtLengthPrecisionScale) FormatByteLength() int {
-	return 2 + field.lengthBytes
+	return 2 + field.LengthBytes()
 }
 
 func (field *fieldFmtLengthPrecisionScale) ReadFrom(ch BytesChannel) (int, error) {
@@ -562,7 +580,7 @@ type fieldFmtBlob struct {
 }
 
 func (field fieldFmtBlob) FormatByteLength() int {
-	return 1 + 1 + len(field.classID) + field.lengthBytes
+	return 1 + 1 + len(field.classID) + field.LengthBytes()
 }
 
 func (field *fieldFmtBlob) ReadFrom(ch BytesChannel) (int, error) {
@@ -884,7 +902,7 @@ type fieldFmtTxtPtr struct {
 }
 
 func (field fieldFmtTxtPtr) FormatByteLength() int {
-	return 1 + len(field.tableName) + field.lengthBytes
+	return 1 + len(field.tableName) + field.LengthBytes()
 }
 
 func (field *fieldFmtTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
@@ -1058,426 +1076,209 @@ func writeLengthBytes(ch BytesChannel, byteCount int, n int64) error {
 	if err != nil {
 		return fmt.Errorf("failed to write length: %w", err)
 	}
+
 	return nil
 }
 
 // LookupFieldFmt returns the FieldFmt for a given data type and sets
 // required values in it.
-func LookupFieldFmt(dataType DataType) (FieldFmt, error) {
+func LookupFieldFmt(dataType types.DataType) (FieldFmt, error) {
+	var f FieldFmt
 	switch dataType {
-	case TDS_BIGDATETIMEN:
-		v := &BigDateTimeNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_BIGTIMEN:
-		v := &BigTimeNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_BIT:
-		v := &BitFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_DATETIME:
-		v := &DateTimeFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_DATE:
-		v := &DateFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_SHORTDATE:
-		v := &ShortDateFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_FLT4:
-		v := &Flt4FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_FLT8:
-		v := &Flt8FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_INT1:
-		v := &Int1FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_INT2:
-		v := &Int2FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 2
-		return v, nil
-	case TDS_INT4:
-		v := &Int4FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_INT8:
-		v := &Int8FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_INTERVAL:
-		v := &IntervalFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_SINT1:
-		v := &Sint1FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_UINT2:
-		v := &Uint2FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 2
-		return v, nil
-	case TDS_UINT4:
-		v := &Uint4FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_UINT8:
-		v := &Uint8FieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_MONEY:
-		v := &MoneyFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 8
-		return v, nil
-	case TDS_SHORTMONEY:
-		v := &ShortMoneyFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_TIME:
-		v := &TimeFieldFmt{}
-		v.dataType = dataType
-		v.isFixedLength = true
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_BINARY:
-		v := &BinaryFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_BOUNDARY:
-		v := &BoundaryFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_CHAR:
-		v := &CharFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_DATEN:
-		v := &DateNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_DATETIMEN:
-		v := &DateTimeNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_FLTN:
-		v := &FltNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_INTN:
-		v := &IntNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_UINTN:
-		v := &UintNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_LONGBINARY:
-		v := &LongBinaryFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		v.maxLength = 2147483647
-		return v, nil
-	case TDS_LONGCHAR:
-		v := &LongCharFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_MONEYN:
-		v := &MoneyNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_SENSITIVITY:
-		v := &SensitivityFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_TIMEN:
-		v := &TimeNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_VARBINARY:
-		v := &VarBinaryFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_VARCHAR:
-		v := &VarCharFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		v.maxLength = 255
-		return v, nil
-	case TDS_DECN:
-		v := &DecNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_NUMN:
-		v := &NumNFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 1
-		return v, nil
-	case TDS_BLOB:
-		v := &BlobFieldFmt{}
-		v.dataType = dataType
-		return v, nil
-	case TDS_IMAGE:
-		v := &ImageFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_TEXT:
-		v := &TextFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_UNITEXT:
-		v := &UniTextFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		return v, nil
-	case TDS_XML:
-		v := &XMLFieldFmt{}
-		v.dataType = dataType
-		v.lengthBytes = 4
-		return v, nil
+	case types.BIGDATETIMEN:
+		f = &BigDateTimeNFieldFmt{}
+	case types.BIGTIMEN:
+		f = &BigTimeNFieldFmt{}
+	case types.BIT:
+		f = &BitFieldFmt{}
+	case types.DATETIME:
+		f = &DateTimeFieldFmt{}
+	case types.DATE:
+		f = &DateFieldFmt{}
+	case types.SHORTDATE:
+		f = &ShortDateFieldFmt{}
+	case types.FLT4:
+		f = &Flt4FieldFmt{}
+	case types.FLT8:
+		f = &Flt8FieldFmt{}
+	case types.INT1:
+		f = &Int1FieldFmt{}
+	case types.INT2:
+		f = &Int2FieldFmt{}
+	case types.INT4:
+		f = &Int4FieldFmt{}
+	case types.INT8:
+		f = &Int8FieldFmt{}
+	case types.INTERVAL:
+		f = &IntervalFieldFmt{}
+	case types.SINT1:
+		f = &Sint1FieldFmt{}
+	case types.UINT2:
+		f = &Uint2FieldFmt{}
+	case types.UINT4:
+		f = &Uint4FieldFmt{}
+	case types.UINT8:
+		f = &Uint8FieldFmt{}
+	case types.MONEY:
+		f = &MoneyFieldFmt{}
+	case types.SHORTMONEY:
+		f = &ShortMoneyFieldFmt{}
+	case types.TIME:
+		f = &TimeFieldFmt{}
+	case types.BINARY:
+		f = &BinaryFieldFmt{}
+	case types.BOUNDARY:
+		f = &BoundaryFieldFmt{}
+	case types.CHAR:
+		f = &CharFieldFmt{}
+	case types.DATEN:
+		f = &DateNFieldFmt{}
+	case types.DATETIMEN:
+		f = &DateTimeNFieldFmt{}
+	case types.FLTN:
+		f = &FltNFieldFmt{}
+	case types.INTN:
+		f = &IntNFieldFmt{}
+	case types.UINTN:
+		f = &UintNFieldFmt{}
+	case types.LONGBINARY:
+		f = &LongBinaryFieldFmt{}
+		f.setMaxLength(2147483647)
+	case types.LONGCHAR:
+		f = &LongCharFieldFmt{}
+	case types.MONEYN:
+		f = &MoneyNFieldFmt{}
+	case types.SENSITIVITY:
+		f = &SensitivityFieldFmt{}
+	case types.TIMEN:
+		f = &TimeNFieldFmt{}
+	case types.VARBINARY:
+		f = &VarBinaryFieldFmt{}
+	case types.VARCHAR:
+		f = &VarCharFieldFmt{}
+		f.setMaxLength(255)
+	case types.DECN:
+		f = &DecNFieldFmt{}
+	case types.NUMN:
+		f = &NumNFieldFmt{}
+	case types.BLOB:
+		f = &BlobFieldFmt{}
+	case types.IMAGE:
+		f = &ImageFieldFmt{}
+	case types.TEXT:
+		f = &TextFieldFmt{}
+	case types.UNITEXT:
+		f = &UniTextFieldFmt{}
+	case types.XML:
+		f = &XMLFieldFmt{}
 	default:
 		return nil, fmt.Errorf("unhandled datatype '%s'", dataType)
 	}
+
+	f.setDataType(dataType)
+	return f, nil
 }
 
 /// LookupFieldData returns the FieldData for a given field format.
 func LookupFieldData(fieldFmt FieldFmt) (FieldData, error) {
+	var d FieldData
+
 	switch fieldFmt.DataType() {
-	case TDS_BIGDATETIMEN:
-		v := &BigDateTimeNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_BIGTIMEN:
-		v := &BigTimeNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_BIT:
-		v := &BitFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_DATETIME:
-		v := &DateTimeFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_DATE:
-		v := &DateFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_SHORTDATE:
-		v := &ShortDateFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_FLT4:
-		v := &Flt4FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_FLT8:
-		v := &Flt8FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INT1:
-		v := &Int1FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INT2:
-		v := &Int2FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INT4:
-		v := &Int4FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INT8:
-		v := &Int8FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INTERVAL:
-		v := &IntervalFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_SINT1:
-		v := &Sint1FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_UINT2:
-		v := &Uint2FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_UINT4:
-		v := &Uint4FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_UINT8:
-		v := &Uint8FieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_MONEY:
-		v := &MoneyFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_SHORTMONEY:
-		v := &ShortMoneyFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_TIME:
-		v := &TimeFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_BINARY:
-		v := &BinaryFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_BOUNDARY:
-		v := &BoundaryFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_CHAR:
-		v := &CharFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_DATEN:
-		v := &DateNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_DATETIMEN:
-		v := &DateTimeNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_FLTN:
-		v := &FltNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_INTN:
-		v := &IntNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_UINTN:
-		v := &UintNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_LONGBINARY:
-		v := &LongBinaryFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_LONGCHAR:
-		v := &LongCharFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_MONEYN:
-		v := &MoneyNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_SENSITIVITY:
-		v := &SensitivityFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_TIMEN:
-		v := &TimeNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_VARBINARY:
-		v := &VarBinaryFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_VARCHAR:
-		v := &VarCharFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_DECN:
-		v := &DecNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_NUMN:
-		v := &NumNFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_BLOB:
-		v := &BlobFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_IMAGE:
-		v := &ImageFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_TEXT:
-		v := &TextFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_UNITEXT:
-		v := &UniTextFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
-	case TDS_XML:
-		v := &XMLFieldData{}
-		v.fmt = fieldFmt
-		return v, nil
+	case types.BIGDATETIMEN:
+		d = &BigDateTimeNFieldData{}
+	case types.BIGTIMEN:
+		d = &BigTimeNFieldData{}
+	case types.BIT:
+		d = &BitFieldData{}
+	case types.DATETIME:
+		d = &DateTimeFieldData{}
+	case types.DATE:
+		d = &DateFieldData{}
+	case types.SHORTDATE:
+		d = &ShortDateFieldData{}
+	case types.FLT4:
+		d = &Flt4FieldData{}
+	case types.FLT8:
+		d = &Flt8FieldData{}
+	case types.INT1:
+		d = &Int1FieldData{}
+	case types.INT2:
+		d = &Int2FieldData{}
+	case types.INT4:
+		d = &Int4FieldData{}
+	case types.INT8:
+		d = &Int8FieldData{}
+	case types.INTERVAL:
+		d = &IntervalFieldData{}
+	case types.SINT1:
+		d = &Sint1FieldData{}
+	case types.UINT2:
+		d = &Uint2FieldData{}
+	case types.UINT4:
+		d = &Uint4FieldData{}
+	case types.UINT8:
+		d = &Uint8FieldData{}
+	case types.MONEY:
+		d = &MoneyFieldData{}
+	case types.SHORTMONEY:
+		d = &ShortMoneyFieldData{}
+	case types.TIME:
+		d = &TimeFieldData{}
+	case types.BINARY:
+		d = &BinaryFieldData{}
+	case types.BOUNDARY:
+		d = &BoundaryFieldData{}
+	case types.CHAR:
+		d = &CharFieldData{}
+	case types.DATEN:
+		d = &DateNFieldData{}
+	case types.DATETIMEN:
+		d = &DateTimeNFieldData{}
+	case types.FLTN:
+		d = &FltNFieldData{}
+	case types.INTN:
+		d = &IntNFieldData{}
+	case types.UINTN:
+		d = &UintNFieldData{}
+	case types.LONGBINARY:
+		d = &LongBinaryFieldData{}
+	case types.LONGCHAR:
+		d = &LongCharFieldData{}
+	case types.MONEYN:
+		d = &MoneyNFieldData{}
+	case types.SENSITIVITY:
+		d = &SensitivityFieldData{}
+	case types.TIMEN:
+		d = &TimeNFieldData{}
+	case types.VARBINARY:
+		d = &VarBinaryFieldData{}
+	case types.VARCHAR:
+		d = &VarCharFieldData{}
+	case types.DECN:
+		d = &DecNFieldData{}
+	case types.NUMN:
+		d = &NumNFieldData{}
+	case types.BLOB:
+		d = &BlobFieldData{}
+	case types.IMAGE:
+		d = &ImageFieldData{}
+	case types.TEXT:
+		d = &TextFieldData{}
+	case types.UNITEXT:
+		d = &UniTextFieldData{}
+	case types.XML:
+		d = &XMLFieldData{}
 	default:
 		return nil, fmt.Errorf("unhandled datatype: '%s'", fieldFmt.DataType())
 	}
+
+	d.setFormat(fieldFmt)
+	return d, nil
 }
 
 // LookupFieldFmtData returns both Fieldfmt and FieldData for a given
 // data type.
-func LookupFieldFmtData(dataType DataType) (FieldFmt, FieldData, error) {
+func LookupFieldFmtData(dataType types.DataType) (FieldFmt, FieldData, error) {
 	fieldFmt, err := LookupFieldFmt(dataType)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to find field format: %w", err)

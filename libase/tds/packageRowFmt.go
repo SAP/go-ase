@@ -1,6 +1,10 @@
 package tds
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/SAP/go-ase/libase/types"
+)
 
 var _ Package = (*RowFmtPackage)(nil)
 
@@ -136,9 +140,9 @@ func (pkg *RowFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error) 
 	}
 	n++
 
-	fieldFmt, err := LookupFieldFmt(DataType(token))
+	fieldFmt, err := LookupFieldFmt(types.DataType(token))
 	if err != nil {
-		return nil, n, fmt.Errorf("error preparing field format for token %s: %w", DataType(token), err)
+		return nil, n, fmt.Errorf("error preparing field format for token %s: %w", types.DataType(token), err)
 	}
 
 	fieldFmt.SetName(name)
