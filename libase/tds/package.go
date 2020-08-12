@@ -70,6 +70,10 @@ func LookupPackage(token Token) (Package, error) {
 		return &ReturnStatusPackage{}, nil
 	case TDS_LOGOUT:
 		return &LogoutPackage{}, nil
+	case TDS_DYNAMIC:
+		return &DynamicPackage{}, nil
+	case TDS_DYNAMIC2:
+		return &DynamicPackage{wide: true}, nil
 	default:
 		return NewTokenlessPackage(), nil
 	}

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/SAP/go-ase/libase/libdsn"
 	"github.com/SAP/go-ase/libase/tds"
@@ -41,7 +42,10 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 }
 
 func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
-	conn := &Conn{}
+	conn := &Conn{
+		stmts:    map[int]*Stmt{},
+		stmtLock: &sync.RWMutex{},
+	}
 
 	var err error
 	conn.Conn, err = tds.NewConn(ctx, dsn)
@@ -100,34 +104,52 @@ func (c Conn) Begin() (driver.Tx, error) {
 	)
 }
 
-func (c Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	return nil, errors.New("go-ase: BeginTx not implemented")
 }
 
-func (c Conn) Prepare(query string) (driver.Stmt, error) {
-	return c.PrepareContext(context.Background(), query)
-}
-
-func (c Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	return nil, errors.New("go-ase: PrepareContext not implemented")
-}
-
-func (c Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	if len(args) > 0 {
-		return nil, errors.New("go-ase: args not implemented")
+		stmt, err := c.NewStmt(ctx, "", query, true)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
+		}
+
+		result, err := stmt.ExecContext(ctx, args)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
+		}
+
+		return result, nil
 	}
 
 	_, result, err := c.language(ctx, query)
-	return result, err
+	if err != nil {
+		return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
+	}
+	return result, nil
 }
 
-func (c Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	if len(args) > 0 {
-		return nil, errors.New("go-ase: args not implemented")
+		stmt, err := c.NewStmt(ctx, "", query, true)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
+		}
+
+		rows, err := stmt.QueryContext(ctx, args)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
+		}
+
+		return rows, nil
 	}
 
 	rows, _, err := c.language(ctx, query)
-	return rows, err
+	if err != nil {
+		return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
+	}
+	return rows, nil
 }
 
 func (c Conn) Ping(ctx context.Context) error {

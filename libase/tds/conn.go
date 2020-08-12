@@ -171,7 +171,7 @@ func (tds *Conn) setCapabilities() error {
 			// Support cursors requests
 			// TODO: TDS_REQ_CURSOR,
 			// Support dynamic SQL
-			// TODO: TDS_REQ_DYNF,
+			TDS_REQ_DYNF,
 			// Support MSG requests
 			TDS_REQ_MSG,
 			// RPC will use TDS_DBRPC and TDS_PARAMFMT / TDS_PARAM
