@@ -274,6 +274,40 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 	}
 }
 
+// NextPackageUntil calls NextPackage until the passed function
+// processPkg returns true.
+//
+// This can be used to consume all packages of a response until the Done
+// token if an error occurred.
+//
+// If the passed function returns an error the error will be used to
+// wrap all EED messages until the error occurred.
+func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, processPkg func(Package) (bool, error)) (Package, error) {
+	eedError := &EEDError{}
+
+	for {
+		pkg, err := tdsChan.NextPackage(ctx, wait)
+		if err != nil {
+			return nil, err
+		}
+
+		if eed, ok := pkg.(*EEDPackage); ok {
+			eedError.Add(eed)
+			continue
+		}
+
+		ok, err := processPkg(pkg)
+		if err != nil {
+			eedError.WrappedError = err
+			return nil, eedError
+		}
+
+		if ok {
+			return pkg, nil
+		}
+	}
+}
+
 type LastPkgAcceptor interface {
 	LastPkg(Package) error
 }
