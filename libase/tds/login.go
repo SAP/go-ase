@@ -80,7 +80,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			return fmt.Errorf("expected Done as second response, received: %v", pkg)
 		}
 
-		if done.status != TDS_DONE_FINAL {
+		if done.Status&TDS_DONE_FINAL != TDS_DONE_FINAL {
 			return fmt.Errorf("expected DONE(FINAL), received: %s", done)
 		}
 
@@ -319,14 +319,14 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("expected done package, received %T instead: %v", pkg, pkg)
 	}
 
-	if done.status != TDS_DONE_FINAL {
+	if done.Status&TDS_DONE_FINAL != TDS_DONE_FINAL {
 		return fmt.Errorf("expected done package with status TDS_DONE_FINAL, received %s",
-			done.status)
+			done.Status)
 	}
 
-	if done.tranState != TDS_TRAN_COMPLETED {
+	if done.TranState&TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
 		return fmt.Errorf("expected done package with transtate TDS_TRAN_COMPLETED, received %s",
-			done.tranState)
+			done.TranState)
 	}
 
 	tdsChan.Reset()
