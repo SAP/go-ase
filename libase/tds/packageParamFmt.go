@@ -70,7 +70,7 @@ func (pkg *ParamFmtPackage) ReadFrom(ch BytesChannel) error {
 			formatByteLength += 3
 		}
 
-		if readBytes > formatByteLength {
+		if readBytes != formatByteLength {
 			return fmt.Errorf("expected to read %d bytes for field %d, read %d bytes instead",
 				formatByteLength, i, readBytes)
 		}
