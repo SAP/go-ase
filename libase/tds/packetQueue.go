@@ -1,43 +1,66 @@
 package tds
 
 import (
-	"errors"
 	"fmt"
 	"io"
 )
 
 var _ BytesChannel = (*PacketQueue)(nil)
 
+// PacketQueue is loosely modeled after bytes.Buffer with the
+// difference, that it automatically sorts written data into Packets and
+// can supports reading over packet boundaries.
 type PacketQueue struct {
 	queue                  []*Packet
 	indexPacket, indexData int
 }
 
+// NewPacketQueue returns an initialized PacketQueue.
 func NewPacketQueue() *PacketQueue {
 	queue := &PacketQueue{}
 	queue.Reset()
 	return queue
 }
 
+// Reset resets a PacketQueue as if it were newly initialized.
+// Note: All queued packets will be discarded.
 func (queue *PacketQueue) Reset() {
 	queue.queue = []*Packet{}
 	queue.indexPacket = 0
 	queue.indexData = 0
 }
 
+// AddPacket adds a packet to the queue.
 func (queue *PacketQueue) AddPacket(packet *Packet) {
 	queue.queue = append(queue.queue, packet)
 }
 
+// Position returns the two indizes used by PacketQueue to store its
+// position in the queue and their respective data.
+//
+// The first returned integer is the packet index. Note that the packet
+// index can change in both directions - it grows when bytes are read or
+// written and it shrinks when DiscardUntilCurrentPosition is called.
+//
+// The second returned integer is the data index. The data index points
+// to the last unread or unwritten byte of the packet the packet index
+// points to.
+// The data index only grows when bytes are read or written to the
+// queue. It may shrink when DiscardUntilCurrentPosition is called.
 func (queue PacketQueue) Position() (int, int) {
 	return queue.indexPacket, queue.indexData
 }
 
+// SetPosition sets the two indizes used by PacketQueue.
+// See Position for more details.
 func (queue *PacketQueue) SetPosition(indexPacket, indexData int) {
 	queue.indexPacket = indexPacket
 	queue.indexData = indexData
 }
 
+// DiscardUntilCurrentPosition discards all consumed packets, indicated
+// by the position indizes.
+// See Position for more details regarding positions.
 func (queue *PacketQueue) DiscardUntilCurrentPosition() {
 	// .indexPacket points to no particular packet, reset queue
 	if len(queue.queue) == 0 || queue.indexPacket >= len(queue.queue) {
@@ -60,34 +83,23 @@ func (queue *PacketQueue) DiscardUntilCurrentPosition() {
 // Read satisfies the io.Reader interface
 func (queue *PacketQueue) Read(p []byte) (int, error) {
 	var err error
-	for i := range p {
-		p[i], err = queue.Byte()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return i, io.EOF
-			}
-			return i, err
-		}
-	}
-
-	return len(p), nil
+	p, err = queue.Bytes(len(p))
+	return len(p), err
 }
 
 // Write satisfies the io.Writer interface
 func (queue *PacketQueue) Write(p []byte) (int, error) {
-	err := queue.WriteBytes(p)
-	if err != nil {
-		return 0, err
-	}
-	return len(p), nil
+	return len(p), queue.WriteBytes(p)
 }
 
 // Read methods
 
-// Bytes returns at most n bytes as a slice.
+// Bytes returns a slice of bytes from the queue.
 //
-// If the channel is closed before n bytes could be read Bytes will
-// return a slice of length n with an io.EOF.
+// The returned byte slice will always be of length n.
+//
+// If there aren't enough bytes to read n bytes Bytes will return
+// a wrapped io.EOF. The returned byte slice will still be of length n.
 func (queue *PacketQueue) Bytes(n int) ([]byte, error) {
 	if n == 0 {
 		return []byte{}, nil
@@ -186,8 +198,7 @@ func (queue *PacketQueue) String(size int) (string, error) {
 
 // WriteBytes writes a slice of bytes.
 //
-// An error is only returned if the channel is marked as closed when
-// starting to pass bytes to the underlying channel.
+// The returned integer is the size of bs, the returned error is always nil.
 func (queue *PacketQueue) WriteBytes(bs []byte) error {
 	if len(bs) == 0 {
 		return nil
@@ -221,7 +232,6 @@ func (queue *PacketQueue) WriteBytes(bs []byte) error {
 			freeBytes = len(bs) - bsOffset
 		}
 
-		// curPacket.Data = append(curPacket.Data, bs[bsOffset:bsOffset+freeBytes]...)
 		copy(curPacket.Data[queue.indexData:], bs[bsOffset:bsOffset+freeBytes])
 		bsOffset += freeBytes
 		queue.indexData += freeBytes
