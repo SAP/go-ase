@@ -417,7 +417,7 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	}
 
 	// Create Package.
-	pkg, err := LookupPackage(TDSToken(tokenByte))
+	pkg, err := LookupPackage(Token(tokenByte))
 	if err != nil {
 		tdsChan.errCh <- err
 		return false
