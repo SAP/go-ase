@@ -47,7 +47,10 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.DsnInfo, envChangeHooks [
 	}
 
 	if envChangeHooks != nil {
-		conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
+		err := conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error registering hooks: %w", err)
+		}
 	}
 
 	loginConfig, err := tds.NewLoginConfig(dsn)
