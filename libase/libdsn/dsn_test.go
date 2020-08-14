@@ -27,11 +27,11 @@ func setEnv(prefix string, kv map[string]string) (func(), error) {
 	}, nil
 }
 
-func TestNewDsnInfoFromEnv(t *testing.T) {
+func TestNewInfoFromEnv(t *testing.T) {
 	cases := map[string]struct {
 		prefix   string
 		env      map[string]string
-		expected DsnInfo
+		expected Info
 	}{
 		"no prefix": {
 			prefix: "",
@@ -41,7 +41,7 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 				"user": "username",
 				"pass": "password",
 			},
-			expected: DsnInfo{
+			expected: Info{
 				Host:         "testhost",
 				Port:         "4901",
 				Username:     "username",
@@ -59,7 +59,7 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 				"userstorekey": "sapsa",
 				"database":     "testdatabase",
 			},
-			expected: DsnInfo{
+			expected: Info{
 				Host:         "testhost",
 				Port:         "4901",
 				Username:     "username",
@@ -88,10 +88,10 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 				}
 				defer fn()
 
-				d := NewDsnInfoFromEnv(cas.prefix)
+				d := NewInfoFromEnv(cas.prefix)
 
 				if !reflect.DeepEqual(cas.expected, *d) {
-					t.Errorf("Received DsnInfo does not match expected:")
+					t.Errorf("Received Info does not match expected:")
 					t.Errorf("Expected: %#v", cas.expected)
 					t.Errorf("Received: %#v", *d)
 				}
@@ -100,8 +100,8 @@ func TestNewDsnInfoFromEnv(t *testing.T) {
 	}
 }
 
-func TestDsnInfo_tagToField(t *testing.T) {
-	dsn := DsnInfo{
+func TestInfo_tagToField(t *testing.T) {
+	dsn := Info{
 		Host:     "hostname before",
 		Port:     "port before",
 		Username: "user before",
@@ -122,13 +122,13 @@ func TestDsnInfo_tagToField(t *testing.T) {
 	}
 }
 
-func TestDsnInfo_AsSimple(t *testing.T) {
+func TestInfo_AsSimple(t *testing.T) {
 	cases := map[string]struct {
-		dsn      DsnInfo
+		dsn      Info
 		expected string
 	}{
 		"Only required information": {
-			dsn: DsnInfo{
+			dsn: Info{
 				Host:     "hostname",
 				Port:     "4901",
 				Username: "user",
@@ -137,7 +137,7 @@ func TestDsnInfo_AsSimple(t *testing.T) {
 			expected: "host='hostname' password='passwd' port='4901' username='user'",
 		},
 		"Everything": {
-			dsn: DsnInfo{
+			dsn: Info{
 				Host:     "hostname",
 				Port:     "4901",
 				Username: "user",

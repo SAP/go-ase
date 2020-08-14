@@ -14,15 +14,15 @@ var (
 )
 
 type Connector struct {
-	DSN            *libdsn.DsnInfo
+	DSN            *libdsn.Info
 	EnvChangeHooks []tds.EnvChangeHook
 }
 
-func NewConnector(dsn *libdsn.DsnInfo) (*Connector, error) {
+func NewConnector(dsn *libdsn.Info) (*Connector, error) {
 	return NewConnectorWithHooks(dsn, nil)
 }
 
-func NewConnectorWithHooks(dsn *libdsn.DsnInfo, hooks ...tds.EnvChangeHook) (*Connector, error) {
+func NewConnectorWithHooks(dsn *libdsn.Info, hooks ...tds.EnvChangeHook) (*Connector, error) {
 	connector := &Connector{
 		DSN:            dsn,
 		EnvChangeHooks: hooks,

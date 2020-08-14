@@ -21,7 +21,7 @@ import (
 type Conn struct {
 	conn io.ReadWriteCloser
 	caps *CapabilityPackage
-	dsn  *libdsn.DsnInfo
+	dsn  *libdsn.Info
 
 	odce odceCipher
 
@@ -34,7 +34,7 @@ type Conn struct {
 }
 
 // Dial returns a prepared and dialed Conn.
-func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 	network := "tcp"
 	if prop := dsn.Prop("network"); prop != "" {
 		network = prop

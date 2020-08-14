@@ -11,11 +11,11 @@ import (
 func TestParseDsnUri(t *testing.T) {
 	cases := map[string]struct {
 		dsn     string
-		dsnInfo *DsnInfo
+		info *Info
 	}{
 		"URI DSN": {
 			dsn: "ase://user:password@fully.qualified.domain.name:4901?",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "fully.qualified.domain.name",
 				Port:         "4901",
 				Username:     "user",
@@ -25,7 +25,7 @@ func TestParseDsnUri(t *testing.T) {
 		},
 		"URI DSN Hostname": {
 			dsn: "ase://user:password@hostname:4901?",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "hostname",
 				Port:         "4901",
 				Username:     "user",
@@ -35,7 +35,7 @@ func TestParseDsnUri(t *testing.T) {
 		},
 		"URI DSN Properties": {
 			dsn: "ase://user:password@hostname:4901?foo=bar&bar=baz&bar=baf",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:     "hostname",
 				Port:     "4901",
 				Username: "user",
@@ -58,9 +58,9 @@ func TestParseDsnUri(t *testing.T) {
 					return
 				}
 
-				if !reflect.DeepEqual(res, cas.dsnInfo) {
-					t.Errorf("Received invalid parsed DsnInfo")
-					t.Errorf("Expected: %+v", cas.dsnInfo)
+				if !reflect.DeepEqual(res, cas.info) {
+					t.Errorf("Received invalid parsed Info")
+					t.Errorf("Expected: %+v", cas.info)
 					t.Errorf("Received: %+v", res)
 				}
 			},
@@ -96,7 +96,7 @@ func TestParseDsnUriFail(t *testing.T) {
 				}
 
 				if res != nil {
-					t.Errorf("Received parsed DsnInfo %v, expected error: %s", res, cas.errorMsg)
+					t.Errorf("Received parsed Info %v, expected error: %s", res, cas.errorMsg)
 				}
 			},
 		)
@@ -106,11 +106,11 @@ func TestParseDsnUriFail(t *testing.T) {
 func TestParseDsnSimple(t *testing.T) {
 	cases := map[string]struct {
 		dsn     string
-		dsnInfo *DsnInfo
+		info *Info
 	}{
 		"Simple DSN": {
 			dsn: "username=user password=\"password\" host=fully.qualified.domain.name port=4901",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "fully.qualified.domain.name",
 				Port:         "4901",
 				Username:     "user",
@@ -120,7 +120,7 @@ func TestParseDsnSimple(t *testing.T) {
 		},
 		"Simple DSN Hostname": {
 			dsn: "username='user' password=password host=hostname port=4901",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "hostname",
 				Port:         "4901",
 				Username:     "user",
@@ -130,7 +130,7 @@ func TestParseDsnSimple(t *testing.T) {
 		},
 		"Simple DSN Properties": {
 			dsn: "username=user password=password host=hostname port=4901 foo=bar bar=baz bar=baf",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:     "hostname",
 				Port:     "4901",
 				Username: "user",
@@ -143,7 +143,7 @@ func TestParseDsnSimple(t *testing.T) {
 		},
 		"Simple DSN with empty value": {
 			dsn: "username=user password=password host=hostname port=4901 database=\"\" foo=bar bar= bar=baf",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:     "hostname",
 				Port:     "4901",
 				Username: "user",
@@ -167,9 +167,9 @@ func TestParseDsnSimple(t *testing.T) {
 					return
 				}
 
-				if !reflect.DeepEqual(res, cas.dsnInfo) {
-					t.Errorf("Received invalid parsed DsnInfo")
-					t.Errorf("Expected: %+v", cas.dsnInfo)
+				if !reflect.DeepEqual(res, cas.info) {
+					t.Errorf("Received invalid parsed Info")
+					t.Errorf("Expected: %+v", cas.info)
 					t.Errorf("Received: %+v", res)
 				}
 			},
@@ -180,11 +180,11 @@ func TestParseDsnSimple(t *testing.T) {
 func TestParseDSN(t *testing.T) {
 	cases := map[string]struct {
 		dsn     string
-		dsnInfo *DsnInfo
+		info *Info
 	}{
 		"URI DSN": {
 			dsn: "ase://user:password@fully.qualified.domain.name:4901?",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "fully.qualified.domain.name",
 				Port:         "4901",
 				Username:     "user",
@@ -194,7 +194,7 @@ func TestParseDSN(t *testing.T) {
 		},
 		"Simple DSN": {
 			dsn: "username=user password=\"password\" host=fully.qualified.domain.name port=4901",
-			dsnInfo: &DsnInfo{
+			info: &Info{
 				Host:         "fully.qualified.domain.name",
 				Port:         "4901",
 				Username:     "user",
@@ -214,9 +214,9 @@ func TestParseDSN(t *testing.T) {
 					return
 				}
 
-				if !reflect.DeepEqual(res, cas.dsnInfo) {
-					t.Errorf("Received invalid parsed DsnInfo")
-					t.Errorf("Expected: %+v", cas.dsnInfo)
+				if !reflect.DeepEqual(res, cas.info) {
+					t.Errorf("Received invalid parsed Info")
+					t.Errorf("Expected: %+v", cas.info)
 					t.Errorf("Received: %+v", res)
 				}
 			},
@@ -237,15 +237,15 @@ func TestParseDSNFail(t *testing.T) {
 			uriDsn:    "ase://user:pass@:4901?",
 			simpleDsn: "username=user password=pass port=4901",
 			failedFields: []failedField{
-				{namespace: "DsnInfo.Host", tag: "required"},
+				{namespace: "Info.Host", tag: "required"},
 			},
 		},
 		"DSN Simple Missing host and user": {
 			uriDsn:    "ase://:pass@:4901?",
 			simpleDsn: "password=pass port=4901",
 			failedFields: []failedField{
-				{namespace: "DsnInfo.Host", tag: "required"},
-				{namespace: "DsnInfo.Username", tag: "required"},
+				{namespace: "Info.Host", tag: "required"},
+				{namespace: "Info.Username", tag: "required"},
 			},
 		},
 	}
@@ -275,7 +275,7 @@ func TestParseDSNFail(t *testing.T) {
 					}
 
 					if res != nil {
-						t.Errorf("Expected error, received parsed DsnInfo: %v", res)
+						t.Errorf("Expected error, received parsed Info: %v", res)
 					}
 				}
 			},

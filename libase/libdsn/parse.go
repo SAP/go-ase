@@ -8,7 +8,7 @@ import (
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
-// ParseDSN parses a DSN into a DsnInfo struct.
+// ParseDSN parses a DSN into a Info struct.
 //
 // Accepted DSNs are either in URI or simple form:
 // URI: ase://user:pass@host:port?key=val
@@ -24,67 +24,67 @@ import (
 // The DSN is validated using the struct tags and validator.
 // Validation errors from validator are returned as-is for further
 // processing.
-func ParseDSN(dsn string) (*DsnInfo, error) {
-	var dsnInfo *DsnInfo
+func ParseDSN(dsn string) (*Info, error) {
+	var info *Info
 	var err error
 
 	// Parse DSN
 	if strings.HasPrefix(dsn, "ase:/") {
-		dsnInfo, err = parseDsnUri(dsn)
+		info, err = parseDsnUri(dsn)
 	} else {
-		dsnInfo, err = parseDsnSimple(dsn)
+		info, err = parseDsnSimple(dsn)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	var filterFn validator.FilterFunc = filterNoUserStoreKey
-	if dsnInfo.Userstorekey != "" {
+	if info.Userstorekey != "" {
 		filterFn = filterUserStoreKey
 	}
 
 	v := validator.New()
-	err = v.StructFiltered(dsnInfo, filterFn)
+	err = v.StructFiltered(info, filterFn)
 	if err != nil {
 		return nil, err
 	}
 
-	return dsnInfo, nil
+	return info, nil
 }
 
-// filterUserStoreKey is the validator.FilterFunc for a DsnInfo struct
+// filterUserStoreKey is the validator.FilterFunc for a Info struct
 // with Userstorekey set.
 func filterUserStoreKey(ns []byte) bool {
 	switch string(ns) {
-	case "DsnInfo.Username":
+	case "Info.Username":
 		return true
-	case "DsnInfo.Password":
+	case "Info.Password":
 		return true
-	case "DsnInfo.Database":
+	case "Info.Database":
 		return true
-	case "DsnInfo.Host":
+	case "Info.Host":
 		return true
-	case "DsnInfo.Port":
+	case "Info.Port":
 		return true
 	}
 	return false
 }
 
-// filterNoUserStoreKey is the validator.FilterFunc for a DsnInfo struct
+// filterNoUserStoreKey is the validator.FilterFunc for a Info struct
 // with Userstorekey unset.
 func filterNoUserStoreKey(ns []byte) bool {
-	return string(ns) == "DsnInfo.Userstorekey"
+	return string(ns) == "Info.Userstorekey"
 }
 
 // parseDsnUri parses a DSN in URI form and returns the resulting
-// DsnInfo.
-func parseDsnUri(dsn string) (*DsnInfo, error) {
+// Info.
+func parseDsnUri(dsn string) (*Info, error) {
 	url, err := url.Parse(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse DSN using url.Parse: %v", err)
 	}
 
-	dsni := &DsnInfo{
+	dsni := &Info{
 		Host:         url.Hostname(),
 		Port:         url.Port(),
 		ConnectProps: url.Query(),
@@ -110,9 +110,9 @@ func parseDsnUri(dsn string) (*DsnInfo, error) {
 }
 
 // parseDsnSimple parses a DSN in the simple form and returns the
-// resulting DsnInfo without checking for missing values.
-func parseDsnSimple(dsn string) (*DsnInfo, error) {
-	dsni := &DsnInfo{
+// resulting Info without checking for missing values.
+func parseDsnSimple(dsn string) (*Info, error) {
+	dsni := &Info{
 		ConnectProps: url.Values{},
 	}
 

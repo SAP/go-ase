@@ -24,8 +24,8 @@ func init() {
 	flag.Parse()
 }
 
-func Dsn() *libdsn.DsnInfo {
-	dsn := libdsn.NewDsnInfoFromEnv("")
+func Dsn() *libdsn.Info {
+	dsn := libdsn.NewInfoFromEnv("")
 
 	if *fHost != "" {
 		dsn.Host = *fHost

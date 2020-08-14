@@ -14,7 +14,7 @@ import (
 // and deallocated after the last connection was closed.
 type csContext struct {
 	ctx *C.CS_CONTEXT
-	dsn libdsn.DsnInfo
+	dsn libdsn.Info
 
 	// connections is a counter that keeps track of the number of
 	// connections using the context to communicate with an ASE
@@ -24,7 +24,7 @@ type csContext struct {
 	lock        sync.Mutex
 }
 
-func newCsContext(dsn libdsn.DsnInfo) (*csContext, error) {
+func newCsContext(dsn libdsn.Info) (*csContext, error) {
 	ctx := &csContext{}
 	ctx.dsn = dsn
 
@@ -114,7 +114,7 @@ func (context *csContext) drop() error {
 
 // applyDSN applies the relevant connection properties of a DSN to the
 // context.
-func (context *csContext) applyDSN(dsn libdsn.DsnInfo) error {
+func (context *csContext) applyDSN(dsn libdsn.Info) error {
 	retval := C.ct_callback(context.ctx, nil, C.CS_SET, C.CS_CLIENTMSG_CB, C.ct_callback_client_message)
 	if retval != C.CS_SUCCEED {
 		return makeError(retval, "C.ct_callback failed for client messages")
