@@ -223,5 +223,5 @@ func (pkg EEDPackage) WriteTo(ch BytesChannel) error {
 }
 
 func (pkg EEDPackage) String() string {
-	return fmt.Sprintf("%T(%d: %s)", pkg, pkg.MsgNumber, pkg.Msg)
+	return fmt.Sprintf("%T(%s - %d: %s)", pkg, pkg.Status, pkg.MsgNumber, pkg.Msg)
 }
