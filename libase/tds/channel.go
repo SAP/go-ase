@@ -222,12 +222,11 @@ func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 	if eed, ok := pkg.(*EEDPackage); ok {
 		// TDS_EED_INFO packages are not supposed to leave the client
 		// library.
-		if eed.Status|TDS_EED_INFO == TDS_EED_INFO {
+		if eed.Status&TDS_EED_INFO == TDS_EED_INFO {
 			return false, nil
 		}
 
-		// TODO handle TDS_EED_INFO
-		return false, nil
+		return true, nil
 	}
 
 	return true, nil
