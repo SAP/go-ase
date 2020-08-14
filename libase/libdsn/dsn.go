@@ -10,11 +10,11 @@ import (
 	"strings"
 )
 
-// DsnInfo represents all required information to open a connection to
+// Info represents all required information to open a connection to
 // an ASE server.
 //
 // The json tag is the expected string in a simple URI.
-type DsnInfo struct {
+type Info struct {
 	Host         string     `json:"host" multiref:"hostname" validate:"required"`
 	Port         string     `json:"port" validate:"required"`
 	Username     string     `json:"username" multiref:"user" validate:"required"`
@@ -24,14 +24,14 @@ type DsnInfo struct {
 	ConnectProps url.Values `json:"connectprops"`
 }
 
-// NewDsnInfo returns an initialized DsnInfo.
-func NewDsnInfo() *DsnInfo {
-	dsn := &DsnInfo{}
+// NewInfo returns an initialized Info.
+func NewInfo() *Info {
+	dsn := &Info{}
 	dsn.ConnectProps = url.Values{}
 	return dsn
 }
 
-// NewDsnInfoFromEnv returns a new DsnInfo and fills it with data from
+// NewInfoFromEnv returns a new Info and fills it with data from
 // the environment.
 //
 // If prefix is empty it is set as `ASE`.
@@ -44,8 +44,8 @@ func NewDsnInfo() *DsnInfo {
 // instead.
 // E.g. the property `cgo-callback-client` can be passed as
 // `CGO__CALLBACK__CLIENT`.
-func NewDsnInfoFromEnv(prefix string) *DsnInfo {
-	dsn := NewDsnInfo()
+func NewInfoFromEnv(prefix string) *Info {
+	dsn := NewInfo()
 
 	if prefix == "" {
 		prefix = "ASE"
@@ -79,10 +79,10 @@ func NewDsnInfoFromEnv(prefix string) *DsnInfo {
 // mapped to their field.Value.
 // If multiref is false only the json tag will be mapped.
 // multiref = true:
-//   map[string]reflect.Value{"host": dsnInfo.Host, "hostname": dsnInfo.Host}
+//   map[string]reflect.Value{"host": info.Host, "hostname": info.Host}
 // multiref = false:
-//   map[string]reflect.Value{"host": dsnInfo.Host}
-func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
+//   map[string]reflect.Value{"host": info.Host}
+func (info *Info) tagToField(multiref bool) map[string]reflect.Value {
 	tTF := map[string]reflect.Value{}
 	// The accepted type of ValueOf is interface, which still allows
 	// accessing the metadata but not the fields, since an interface
@@ -90,7 +90,7 @@ func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
 	// By passing a pointer it is possible to call .Elem(), which
 	// returns a reflect.Value representation of the passed struct
 	// - which allows to access its fields.
-	v := reflect.ValueOf(dsnInfo).Elem()
+	v := reflect.ValueOf(info).Elem()
 	t := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
@@ -117,12 +117,12 @@ func (dsnInfo *DsnInfo) tagToField(multiref bool) map[string]reflect.Value {
 	return tTF
 }
 
-// AsSimple returns all information of a DsnInfo struct as a simple
+// AsSimple returns all information of a Info struct as a simple
 // key/value string.
-func (dsnInfo DsnInfo) AsSimple() string {
+func (info Info) AsSimple() string {
 	ret := []string{}
 
-	for key, field := range dsnInfo.tagToField(false) {
+	for key, field := range info.tagToField(false) {
 		if field.String() != "" {
 			ret = append(ret, fmt.Sprintf("%s='%s'", key, field.String()))
 		}
@@ -134,7 +134,7 @@ func (dsnInfo DsnInfo) AsSimple() string {
 	// Handle and sort properties separately, since they are
 	// position-dependant.
 	props := []string{}
-	for key, valueL := range dsnInfo.ConnectProps {
+	for key, valueL := range info.ConnectProps {
 		if len(valueL) == 0 {
 			props = append(props, key+"=''")
 		} else {
@@ -149,12 +149,12 @@ func (dsnInfo DsnInfo) AsSimple() string {
 
 // Prop returns the last value for a property or empty string.
 // To access other values use ConnectProps directly.
-func (dsnInfo DsnInfo) Prop(property string) string {
-	if dsnInfo.ConnectProps == nil {
+func (info Info) Prop(property string) string {
+	if info.ConnectProps == nil {
 		return ""
 	}
 
-	vals, ok := dsnInfo.ConnectProps[property]
+	vals, ok := info.ConnectProps[property]
 	if !ok {
 		return ""
 	}
@@ -168,8 +168,8 @@ func (dsnInfo DsnInfo) Prop(property string) string {
 
 // PropDefault calls .Prop with property and returns the result if it is
 // not empty and defaultValue otherwise.
-func (dsnInfo DsnInfo) PropDefault(property, defaultValue string) string {
-	if val := dsnInfo.Prop(property); val != "" {
+func (info Info) PropDefault(property, defaultValue string) string {
+	if val := info.Prop(property); val != "" {
 		return val
 	}
 

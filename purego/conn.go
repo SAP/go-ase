@@ -24,14 +24,14 @@ var (
 type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
-	DSN     *libdsn.DsnInfo
+	DSN     *libdsn.Info
 }
 
-func NewConn(ctx context.Context, dsn *libdsn.DsnInfo) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 	return NewConnWithHooks(ctx, dsn, nil)
 }
 
-func NewConnWithHooks(ctx context.Context, dsn *libdsn.DsnInfo, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
+func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
 	conn := &Conn{}
 
 	var err error

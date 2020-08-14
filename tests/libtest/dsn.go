@@ -34,10 +34,10 @@ func doCallbacks() bool {
 	return val == "yes"
 }
 
-// DSNFromEnv initializes a libdsn.DsnInfo and fills it with information
+// DSNFromEnv initializes a libdsn.Info and fills it with information
 // from the environment.
-func DSNFromEnv() (*libdsn.DsnInfo, error) {
-	dsnInfo := libdsn.NewDsnInfo()
+func DSNFromEnv() (*libdsn.Info, error) {
+	dsnInfo := libdsn.NewInfo()
 
 	var err error
 	dsnInfo.Host, err = fromEnv("ASE_HOST")
@@ -68,10 +68,10 @@ func DSNFromEnv() (*libdsn.DsnInfo, error) {
 	return dsnInfo, nil
 }
 
-// DSNUserstoreFromEnv initializes a dsn.DsnInfo and retrieves the
+// DSNUserstoreFromEnv initializes a dsn.Info and retrieves the
 // userstorekey from the environment.
-func DSNUserstoreFromEnv() (*libdsn.DsnInfo, error) {
-	dsnInfo := libdsn.NewDsnInfo()
+func DSNUserstoreFromEnv() (*libdsn.Info, error) {
+	dsnInfo := libdsn.NewInfo()
 
 	var err error
 
@@ -88,10 +88,10 @@ func DSNUserstoreFromEnv() (*libdsn.DsnInfo, error) {
 	return dsnInfo, nil
 }
 
-// DSN creates a new dsn.DsnInfo, sets up a new database and returns the
-// DsnInfo and a function to tear down the database.
-func DSN(userstore bool) (*libdsn.DsnInfo, func(), error) {
-	var dsn *libdsn.DsnInfo
+// DSN creates a new dsn.Info, sets up a new database and returns the
+// Info and a function to tear down the database.
+func DSN(userstore bool) (*libdsn.Info, func(), error) {
+	var dsn *libdsn.Info
 	var err error
 	if !userstore {
 		dsn, err = DSNFromEnv()
@@ -129,13 +129,13 @@ var sqlDBMap = make(genSQLDBMap)
 
 // ConnectorCreator is the interface for function expected by InitDBs to
 // initialize driver.Connectors.
-type ConnectorCreator func(libdsn.DsnInfo) (driver.Connector, error)
+type ConnectorCreator func(libdsn.Info) (driver.Connector, error)
 
 // RegisterDSN registers at least one new genSQLDBFn in genSQLDBMap
 // based on sql.Open.
 // If connectorFn is non-nil a second genSQLDBFn is stored with the
 // suffix `connector`.
-func RegisterDSN(name string, info libdsn.DsnInfo, connectorFn ConnectorCreator) error {
+func RegisterDSN(name string, info libdsn.Info, connectorFn ConnectorCreator) error {
 	sqlDBMap[name] = func() (*sql.DB, error) {
 		db, err := sql.Open("ase", info.AsSimple())
 		if err != nil {

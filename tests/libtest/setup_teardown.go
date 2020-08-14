@@ -9,7 +9,7 @@ import (
 )
 
 // SetupDB creates a database and sets .Database on the passed testDsn
-func SetupDB(testDsn *libdsn.DsnInfo) error {
+func SetupDB(testDsn *libdsn.Info) error {
 	db, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
 		return fmt.Errorf("Failed to open database: %v", err)
@@ -45,7 +45,7 @@ func SetupDB(testDsn *libdsn.DsnInfo) error {
 
 // TeardownDB deletes the database indicated by .Database of the passed
 // testDsn and unsets the member.
-func TeardownDB(testDsn *libdsn.DsnInfo) error {
+func TeardownDB(testDsn *libdsn.Info) error {
 	db, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
 		return fmt.Errorf("Failed to open database: %v", err)

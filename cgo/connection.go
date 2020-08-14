@@ -38,7 +38,7 @@ var (
 // options in the dsn.
 //
 // If driverCtx is nil a new csContext will be initialized.
-func NewConnection(driverCtx *csContext, dsn libdsn.DsnInfo) (*Connection, error) {
+func NewConnection(driverCtx *csContext, dsn libdsn.Info) (*Connection, error) {
 	if driverCtx == nil {
 		var err error
 		driverCtx, err = newCsContext(dsn)

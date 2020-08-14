@@ -19,7 +19,7 @@ func main() {
 }
 
 func DoMain() error {
-	dsn := libdsn.NewDsnInfoFromEnv("")
+	dsn := libdsn.NewInfoFromEnv("")
 
 	fmt.Println("Opening database")
 	db, err := sql.Open("ase", dsn.AsSimple())

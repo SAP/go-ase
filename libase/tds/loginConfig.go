@@ -14,7 +14,7 @@ type LoginConfigRemoteServer struct {
 }
 
 type LoginConfig struct {
-	DSN      *libdsn.DsnInfo
+	DSN      *libdsn.Info
 	Hostname string
 
 	// TODO name
@@ -32,7 +32,7 @@ type LoginConfig struct {
 	Encrypt TDSMsgId
 }
 
-func NewLoginConfig(dsn *libdsn.DsnInfo) (*LoginConfig, error) {
+func NewLoginConfig(dsn *libdsn.Info) (*LoginConfig, error) {
 	conf := &LoginConfig{}
 
 	conf.DSN = dsn
