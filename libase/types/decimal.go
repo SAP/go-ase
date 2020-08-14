@@ -14,8 +14,8 @@ const (
 	ASEMoneyPrecision = 20
 	ASEMoneyScale     = 4
 
-	ASESmallMoneyPrecision = 10
-	ASESmallMoneyScale     = 4
+	ASEShortMoneyPrecision = 10
+	ASEShortMoneyScale     = 4
 
 	aseMaxDecimalDigits = 38
 )

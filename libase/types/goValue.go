@@ -128,7 +128,7 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 
 		return dec, nil
 	case SHORTMONEY:
-		dec, err := NewDecimal(ASESmallMoneyPrecision, ASESmallMoneyScale)
+		dec, err := NewDecimal(ASEShortMoneyPrecision, ASEShortMoneyScale)
 		if err != nil {
 			return nil, fmt.Errorf("error creating decimal: %w", err)
 		}
