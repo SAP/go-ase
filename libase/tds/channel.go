@@ -274,13 +274,13 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
 		err := acceptor.LastPkg(tdsChan.lastPkg)
 		if err != nil {
-			return fmt.Errorf("error calling LastPkg: %w", err)
+			return fmt.Errorf("error calling LastPkg on %s: %w", pkg, err)
 		}
 	}
 
 	err := pkg.WriteTo(tdsChan.queueTx)
 	if err != nil {
-		return fmt.Errorf("error queueing packets from package: %w", err)
+		return fmt.Errorf("error queueing packets from package %s: %w", pkg, err)
 	}
 	tdsChan.lastPkg = pkg
 
@@ -336,7 +336,7 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 
 			err := tdsChan.sendPacket(packet)
 			if err != nil {
-				return fmt.Errorf("error sending packet: %w", err)
+				return fmt.Errorf("error sending packet %s: %w", packet, err)
 			}
 		}
 	}
