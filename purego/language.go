@@ -28,16 +28,18 @@ func (c Conn) language(ctx context.Context, query string) (driver.Rows, driver.R
 		return nil, nil, fmt.Errorf("error sending language command: %w", err)
 	}
 
-	// Block until the first package of the response is available, then
-	// read until an error occurs or all information has been read.
-	var pkg tds.Package
-	for pkg, err = c.Channel.NextPackage(ctx, true); err == nil; pkg, err = c.Channel.NextPackage(ctx, false) {
+	for {
+		pkg, err := c.nextPackage(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		switch typed := pkg.(type) {
 		case *tds.RowFmtPackage:
 			return &Rows{Conn: &c, RowFmt: typed}, nil, nil
 		case *tds.DonePackage:
 			if typed.Status&tds.TDS_DONE_ERRROR == tds.TDS_DONE_ERRROR {
-				return nil, nil, errors.New("Received Done with error, transaction aborted")
+				return nil, nil, errors.New("received Done with error, transaction aborted")
 			}
 
 			result := &Result{}
@@ -49,10 +51,4 @@ func (c Conn) language(ctx context.Context, query string) (driver.Rows, driver.R
 			return nil, nil, fmt.Errorf("unhandled package type %T for language: %v", pkg, pkg)
 		}
 	}
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("error reading package: %w", err)
-	}
-
-	return nil, nil, errors.New("no response from server")
 }

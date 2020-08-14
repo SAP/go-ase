@@ -119,7 +119,7 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 		return err
 	}
 
-	pkg, err := stmt.nextPackage(ctx)
+	pkg, err := stmt.conn.nextPackage(ctx)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 		return err
 	}
 
-	pkg, err = stmt.nextPackage(ctx)
+	pkg, err = stmt.conn.nextPackage(ctx)
 	if err != nil {
 		return err
 	}
@@ -276,7 +276,7 @@ func (stmt Stmt) exec(ctx context.Context, args []driver.NamedValue) (driver.Row
 		return nil, nil, err
 	}
 
-	pkg, err := stmt.nextPackage(ctx)
+	pkg, err := stmt.conn.nextPackage(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

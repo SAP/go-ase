@@ -11,31 +11,8 @@ import (
 	"github.com/SAP/go-ase/libase/tds"
 )
 
-// nextPackage handles the fact that a TDS server may return an EED at
-// any time.
-func (stmt Stmt) nextPackage(ctx context.Context) (tds.Package, error) {
-	pkg, err := stmt.conn.Channel.NextPackage(ctx, true)
-	if err != nil {
-		return nil, fmt.Errorf("error receiving response: %w", err)
-	}
-
-	if eed, ok := pkg.(*tds.EEDPackage); ok {
-		// Received an EEDPackage, dynamic statement allocation failed
-
-		// Consume any remaining packages in queue until DonePackage
-		stmt.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) bool {
-			_, ok := pkg.(*tds.DonePackage)
-			return ok
-		})
-
-		return nil, fmt.Errorf("server reported error during dynamic statement creation: %s", eed)
-	}
-
-	return pkg, nil
-}
-
 func (stmt Stmt) recvDynAck(ctx context.Context) error {
-	pkg, err := stmt.nextPackage(ctx)
+	pkg, err := stmt.conn.nextPackage(ctx)
 	if err != nil {
 		return err
 	}
@@ -53,7 +30,7 @@ func (stmt Stmt) recvDynAck(ctx context.Context) error {
 }
 
 func (stmt Stmt) recvDoneFinal(ctx context.Context) error {
-	pkg, err := stmt.nextPackage(ctx)
+	pkg, err := stmt.conn.nextPackage(ctx)
 	if err != nil {
 		return err
 	}
