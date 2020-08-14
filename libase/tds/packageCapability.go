@@ -317,7 +317,7 @@ func (pkg CapabilityPackage) WriteTo(ch BytesChannel) error {
 	}
 
 	// write length
-	length := 0
+	bytesToWrite := 0
 	for _, vm := range pkg.Capabilities {
 		// If no capabilities are set the capability type will be
 		// skipped
@@ -326,14 +326,15 @@ func (pkg CapabilityPackage) WriteTo(ch BytesChannel) error {
 		}
 
 		// Capability type byte and the type's value mask
-		length += 2 + len(vm.Bytes())
+		bytesToWrite += 2 + len(vm.Bytes())
 	}
 
-	err = ch.WriteUint16(uint16(length))
+	err = ch.WriteUint16(uint16(bytesToWrite))
 	if err != nil {
 		return fmt.Errorf("failed to write length: %w", err)
 	}
 
+	writtenBytes := 0
 	for typ, vm := range pkg.Capabilities {
 		if vm.isEmpty() {
 			continue
@@ -344,6 +345,7 @@ func (pkg CapabilityPackage) WriteTo(ch BytesChannel) error {
 		if err != nil {
 			return fmt.Errorf("error writing capability type %s: %w", typ, err)
 		}
+		writtenBytes++
 
 		bs := vm.Bytes()
 
@@ -352,12 +354,19 @@ func (pkg CapabilityPackage) WriteTo(ch BytesChannel) error {
 		if err != nil {
 			return fmt.Errorf("error writing value mask length: %w", err)
 		}
+		writtenBytes++
 
 		// Write value mask
-		err = ch.WriteBytes(bs)
+		err := ch.WriteBytes(bs)
 		if err != nil {
 			return fmt.Errorf("error writing value mask: %w", err)
 		}
+		writtenBytes += len(bs)
+	}
+
+	if writtenBytes != bytesToWrite {
+		return fmt.Errorf("expected to write %d bytes, wrote %d bytes instead",
+			bytesToWrite, writtenBytes)
 	}
 
 	return nil

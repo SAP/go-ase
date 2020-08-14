@@ -52,8 +52,7 @@ func (pkg EnvChangePackage) WriteTo(ch BytesChannel) error {
 		totalLength += member.ByteLength()
 	}
 
-	err = ch.WriteUint16(uint16(totalLength))
-	if err != nil {
+	if err := ch.WriteUint16(uint16(totalLength)); err != nil {
 		return fmt.Errorf("error writing length: %w", err)
 	}
 
@@ -131,39 +130,35 @@ func (field *EnvChangePackageField) ReadFrom(ch BytesChannel) (int, error) {
 }
 
 func (field EnvChangePackageField) WriteTo(ch BytesChannel) (int, error) {
-	n := 1
 	err := ch.WriteUint8(uint8(field.Type))
 	if err != nil {
-		return n, fmt.Errorf("error writing type: %w", err)
+		return 0, fmt.Errorf("error writing type: %w", err)
 	}
+	n := 1
 
-	n += 1
 	err = ch.WriteUint8(uint8(len(field.NewValue)))
 	if err != nil {
 		return n, fmt.Errorf("error writing new value length: %w", err)
 	}
+	n++
 
-	if field.NewValue != "" {
-		n += len(field.NewValue)
-		err = ch.WriteString(field.NewValue)
-		if err != nil {
-			return n, fmt.Errorf("error writing new value: %w", err)
-		}
+	err = ch.WriteString(field.NewValue)
+	if err != nil {
+		return n, fmt.Errorf("error writing new value: %w", err)
 	}
+	n += len(field.NewValue)
 
-	n += 1
 	err = ch.WriteUint8(uint8(len(field.OldValue)))
 	if err != nil {
 		return n, fmt.Errorf("error writing old value length: %w", err)
 	}
+	n++
 
-	if field.OldValue != "" {
-		n += len(field.OldValue)
-		err = ch.WriteString(field.OldValue)
-		if err != nil {
-			return n, fmt.Errorf("error writing old value: %w", err)
-		}
+	err = ch.WriteString(field.OldValue)
+	if err != nil {
+		return n, fmt.Errorf("error writing old value: %w", err)
 	}
+	n += len(field.OldValue)
 
 	return n, nil
 }

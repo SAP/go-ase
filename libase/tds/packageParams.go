@@ -93,8 +93,7 @@ func (pkg ParamsPackage) WriteTo(ch BytesChannel) error {
 		return fmt.Errorf("both paramFmt and rowFmt are nil")
 	}
 
-	err := ch.WriteByte(byte(token))
-	if err != nil {
+	if err := ch.WriteByte(byte(token)); err != nil {
 		return fmt.Errorf("error ocurred writing TDS token %s: %w", token, err)
 	}
 

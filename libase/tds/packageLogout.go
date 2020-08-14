@@ -28,12 +28,7 @@ func (pkg LogoutPackage) WriteTo(ch BytesChannel) error {
 		return err
 	}
 
-	err = ch.WriteUint8(pkg.Options)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ch.WriteUint8(pkg.Options)
 }
 
 func (pkg LogoutPackage) String() string {

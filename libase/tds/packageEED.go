@@ -12,7 +12,6 @@ const (
 )
 
 type EEDPackage struct {
-	Length     uint16
 	MsgNumber  uint32
 	State      uint8
 	Class      uint8
@@ -26,8 +25,7 @@ type EEDPackage struct {
 }
 
 func (pkg *EEDPackage) ReadFrom(ch BytesChannel) error {
-	var err error
-	pkg.Length, err = ch.Uint16()
+	length, err := ch.Uint16()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
@@ -36,76 +34,89 @@ func (pkg *EEDPackage) ReadFrom(ch BytesChannel) error {
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n := 4
 
 	pkg.State, err = ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n++
 
 	pkg.Class, err = ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n++
 
-	var sqlStateLen uint8
-	sqlStateLen, err = ch.Uint8()
+	sqlStateLen, err := ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n++
 
 	pkg.SQLState, err = ch.Bytes(int(sqlStateLen))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += int(sqlStateLen)
 
-	var status uint8
-	status, err = ch.Uint8()
+	status, err := ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
 	pkg.Status = EEDStatus(status)
+	n++
 
 	pkg.TranState, err = ch.Uint16()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += 2
 
-	var msgLength uint16
-	msgLength, err = ch.Uint16()
+	msgLength, err := ch.Uint16()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += 2
 
 	pkg.Msg, err = ch.String(int(msgLength))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += int(msgLength)
 
-	var serverLength uint8
-	serverLength, err = ch.Uint8()
+	serverLength, err := ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n++
 
 	pkg.ServerName, err = ch.String(int(serverLength))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += int(serverLength)
 
-	var procLength uint8
-	procLength, err = ch.Uint8()
+	procLength, err := ch.Uint8()
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n++
 
 	pkg.ProcName, err = ch.String(int(procLength))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	n += int(procLength)
 
 	pkg.LineNr, err = ch.Uint16()
 	if err != nil {
 		return ErrNotEnoughBytes
+	}
+	n += 2
+
+	if n != int(length) {
+		return fmt.Errorf("expected to read %d bytes, read %d bytes instead", length, n)
 	}
 
 	return nil
@@ -117,7 +128,19 @@ func (pkg EEDPackage) WriteTo(ch BytesChannel) error {
 		return fmt.Errorf("failed to write TDS Token %s: %w", TDS_EED, err)
 	}
 
-	err = ch.WriteUint16(pkg.Length)
+	// 4 msgnumber
+	// 1 state
+	// 1 class
+	// x sqlstate
+	// 1 status
+	// 2 transtate
+	// x msg
+	// x servername
+	// x procname
+	// 2 linenr
+	length := 11 + len(pkg.SQLState) + len(pkg.Msg) + len(pkg.ServerName) + len(pkg.ProcName)
+
+	err = ch.WriteUint16(uint16(length))
 	if err != nil {
 		return fmt.Errorf("failed to write length: %w", err)
 	}
