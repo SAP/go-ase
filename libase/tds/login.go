@@ -177,7 +177,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 	// Prepare response
 	err = tdsChan.QueuePackage(ctx, NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_LOGPWD3))
 	if err != nil {
-		return fmt.Errorf("error adding message package for password transmission: %w", err)
+		return fmt.Errorf("error queueing message package for password transmission: %w", err)
 	}
 
 	passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
@@ -188,20 +188,20 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 	// TDS does not support TDS_WIDETABLES in login negotiation
 	err = tdsChan.QueuePackage(ctx, NewParamFmtPackage(false, passFmt))
 	if err != nil {
-		return fmt.Errorf("error adding ParamFmt password package: %w", err)
+		return fmt.Errorf("error queueing ParamFmt password package: %w", err)
 	}
 
 	passData.SetData(encryptedPass)
 	err = tdsChan.QueuePackage(ctx, NewParamsPackage(passData))
 	if err != nil {
-		return fmt.Errorf("error adding Params password package: %w", err)
+		return fmt.Errorf("error queueing Params password package: %w", err)
 	}
 
 	if len(config.RemoteServers) > 0 {
 		// encrypted remote password
 		err = tdsChan.QueuePackage(ctx, NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_REMPWD3))
 		if err != nil {
-			return fmt.Errorf("error adding message package for remote servers: %w", err)
+			return fmt.Errorf("error queueing message package for remote servers: %w", err)
 		}
 
 		paramFmts := make([]FieldFmt, len(config.RemoteServers)*2)
@@ -236,12 +236,12 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 
 		err = tdsChan.QueuePackage(ctx, NewParamFmtPackage(false, paramFmts...))
 		if err != nil {
-			return fmt.Errorf("error adding package ParamFmt for remote servers: %w", err)
+			return fmt.Errorf("error queueing package ParamFmt for remote servers: %w", err)
 		}
 
 		err = tdsChan.QueuePackage(ctx, NewParamsPackage(params...))
 		if err != nil {
-			return fmt.Errorf("error adding package Params for remote servers: %w", err)
+			return fmt.Errorf("error queueing package Params for remote servers: %w", err)
 		}
 	}
 
@@ -258,7 +258,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 
 	err = tdsChan.QueuePackage(ctx, NewMsgPackage(TDS_MSG_HASARGS, TDS_MSG_SEC_SYMKEY))
 	if err != nil {
-		return fmt.Errorf("error adding package Msg for symmetric key: %w", err)
+		return fmt.Errorf("error queueing package Msg for symmetric key: %w", err)
 	}
 
 	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
@@ -269,12 +269,12 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 
 	err = tdsChan.QueuePackage(ctx, NewParamFmtPackage(false, symkeyFmt))
 	if err != nil {
-		return fmt.Errorf("error adding package ParamFmt for symmetric key: %w", err)
+		return fmt.Errorf("error queueing package ParamFmt for symmetric key: %w", err)
 	}
 
 	err = tdsChan.QueuePackage(ctx, NewParamsPackage(symkeyData))
 	if err != nil {
-		return fmt.Errorf("error adding package Params for symmetric key: %w", err)
+		return fmt.Errorf("error queueing package Params for symmetric key: %w", err)
 	}
 
 	err = tdsChan.SendRemainingPackets(ctx)
