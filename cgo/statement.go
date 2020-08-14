@@ -12,12 +12,9 @@ import (
 	"math"
 	"strings"
 	"sync"
-	"time"
-	"unicode/utf16"
 	"unsafe"
 
 	"github.com/SAP/go-ase/libase"
-	"github.com/SAP/go-ase/libase/asetime"
 	"github.com/SAP/go-ase/libase/types"
 )
 
@@ -25,7 +22,7 @@ type statement struct {
 	name        string
 	argCount    int
 	cmd         *Command
-	columnTypes []types.ASEType
+	columnTypes []ASEType
 }
 
 // Interface satisfaction checks
@@ -159,8 +156,8 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		datafmt.namelen = C.CS_NULLTERM
 
 		switch stmt.columnTypes[i] {
-		case types.IMAGE:
-			datafmt.datatype = (C.CS_INT)(types.BINARY)
+		case IMAGE:
+			datafmt.datatype = (C.CS_INT)(BINARY)
 		default:
 			datafmt.datatype = (C.CS_INT)(stmt.columnTypes[i])
 		}
@@ -168,41 +165,43 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		// datalen is the length of the data in bytes.
 		datalen := 0
 
+		dataType := stmt.columnTypes[i].ToDataType()
+
 		var ptr unsafe.Pointer
 		// TODO: This entire case could be moved into a function, since
 		// the values set here are always the same - the expected values
 		// for ct_param.
 		// This function could also check for null values early.
 		switch stmt.columnTypes[i] {
-		case types.BIGINT:
+		case BIGINT:
 			i := (C.CS_BIGINT)(arg.Value.(int64))
 			ptr = unsafe.Pointer(&i)
-		case types.INT:
+		case INT:
 			i := (C.CS_INT)(arg.Value.(int32))
 			ptr = unsafe.Pointer(&i)
-		case types.SMALLINT:
+		case SMALLINT:
 			i := (C.CS_SMALLINT)(arg.Value.(int16))
 			ptr = unsafe.Pointer(&i)
-		case types.TINYINT:
-			i := (C.CS_TINYINT)(arg.Value.(uint8))
+		case TINYINT:
+			i := (C.CS_TINYINT)(arg.Value.(int8))
 			ptr = unsafe.Pointer(&i)
-		case types.UBIGINT:
+		case UBIGINT:
 			ci := (C.CS_UBIGINT)(arg.Value.(uint64))
 			ptr = unsafe.Pointer(&ci)
-		case types.UINT:
+		case UINT:
 			i := (C.CS_UINT)(arg.Value.(uint32))
 			ptr = unsafe.Pointer(&i)
-		case types.USMALLINT, types.USHORT:
+		case USMALLINT, USHORT:
 			i := (C.CS_USMALLINT)(arg.Value.(uint16))
 			ptr = unsafe.Pointer(&i)
-		case types.DECIMAL, types.NUMERIC:
+		case DECIMAL, NUMERIC:
 			csDec := (*C.CS_DECIMAL)(C.calloc(1, C.sizeof_CS_DECIMAL))
 			defer C.free(unsafe.Pointer(csDec))
 
 			dec := arg.Value.(*types.Decimal)
 
-			csDec.precision = (C.CS_BYTE)(dec.Precision())
-			csDec.scale = (C.CS_BYTE)(dec.Scale())
+			csDec.precision = (C.CS_BYTE)(dec.Precision)
+			csDec.scale = (C.CS_BYTE)(dec.Scale)
 
 			offset := dec.ByteSize() - len(dec.Bytes())
 			for i, b := range dec.Bytes() {
@@ -214,109 +213,35 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(csDec)
-		case types.FLOAT:
+		case FLOAT:
 			i := (C.CS_FLOAT)(arg.Value.(float64))
 			ptr = unsafe.Pointer(&i)
-		case types.REAL:
+		case REAL:
 			i := (C.CS_REAL)(arg.Value.(float64))
 			ptr = unsafe.Pointer(&i)
-		case types.MONEY, types.MONEY4:
-			var b []byte
-			if stmt.columnTypes[i] == types.MONEY {
-				b = make([]byte, 8)
-			} else {
-				b = make([]byte, 4)
-			}
-			dec := arg.Value.(*types.Decimal)
-			deci := dec.Int()
-
-			if stmt.columnTypes[i] == types.MONEY {
-				binary.LittleEndian.PutUint32(b[:4], uint32(deci.Int64()>>32))
-				binary.LittleEndian.PutUint32(b[4:], uint32(deci.Int64()))
-			} else {
-				binary.LittleEndian.PutUint32(b, uint32(deci.Int64()))
+		case MONEY, MONEY4, DATE, TIME, DATETIME4, DATETIME, BIGDATETIME, BIGTIME:
+			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
+			if err != nil {
+				return err
 			}
 
-			ptr = C.CBytes(b)
-			defer C.free(ptr)
-		case types.DATE:
-			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
-			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
-
-			bs := make([]byte, 4)
-			binary.LittleEndian.PutUint32(bs, uint32(t.Days()))
-
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
-		case types.TIME:
-			dur := asetime.DurationFromTime(arg.Value.(time.Time))
-
-			fract := asetime.MillisecondToFractionalSecond(dur.Microseconds())
-
-			bs := make([]byte, 4)
-			binary.LittleEndian.PutUint32(bs, uint32(fract))
-
-			ptr = C.CBytes(bs)
-			defer C.free(ptr)
-		case types.DATETIME4:
-			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
-			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
-
-			days := t.Days()
-			s := asetime.ASEDuration(t.Microseconds() - days*int(asetime.Day))
-
-			bs := make([]byte, 4)
-			binary.LittleEndian.PutUint16(bs[:2], uint16(days))
-			binary.LittleEndian.PutUint16(bs[2:], uint16(s.Minutes()))
-
-			ptr = C.CBytes(bs)
-			defer C.free(ptr)
-		case types.DATETIME:
-			t := asetime.DurationFromDateTime(arg.Value.(time.Time))
-			t -= asetime.DurationFromDateTime(asetime.Epoch1900())
-
-			days := t.Days()
-			s := t.Microseconds() - days*int(asetime.Day)
-			s = asetime.MillisecondToFractionalSecond(s)
-
-			bs := make([]byte, 8)
-
-			binary.LittleEndian.PutUint32(bs[:4], uint32(days))
-			binary.LittleEndian.PutUint32(bs[4:], uint32(s))
-
-			ptr = C.CBytes(bs)
-			defer C.free(ptr)
-		case types.BIGDATETIME:
-			dur := asetime.DurationFromDateTime(arg.Value.(time.Time))
-
-			bs := make([]byte, 8)
-			binary.LittleEndian.PutUint64(bs, uint64(dur))
-
-			ptr = C.CBytes(bs)
-			defer C.free(ptr)
-		case types.BIGTIME:
-			dur := asetime.DurationFromTime(arg.Value.(time.Time))
-
-			bs := make([]byte, 8)
-			binary.LittleEndian.PutUint64(bs, uint64(dur))
-
-			ptr = C.CBytes(bs)
-			defer C.free(ptr)
-		case types.CHAR:
+		case CHAR:
 			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
 			defer C.free(ptr)
 
 			datalen = len(arg.Value.(string))
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = C.CS_MAX_CHAR
-		case types.TEXT, types.LONGCHAR:
+		case TEXT, LONGCHAR:
 			ptr = unsafe.Pointer(C.CString(arg.Value.(string)))
 			defer C.free(ptr)
 
 			datalen = len(arg.Value.(string))
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = (C.CS_INT)(datalen)
-		case types.VARCHAR:
+		case VARCHAR:
 			varchar := (*C.CS_VARCHAR)(C.calloc(1, C.sizeof_CS_VARCHAR))
 			defer C.free(unsafe.Pointer(varchar))
 			varchar.len = (C.CS_SMALLINT)(len(arg.Value.(string)))
@@ -326,13 +251,13 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(varchar)
-		case types.BINARY, types.IMAGE:
+		case BINARY, IMAGE:
 			ptr = C.CBytes(arg.Value.([]byte))
 			defer C.free(ptr)
 			datalen = len(arg.Value.([]byte))
 
 			// IMAGE does not support null padding
-			if stmt.columnTypes[i] == types.BINARY {
+			if stmt.columnTypes[i] == BINARY {
 				datafmt.format = C.CS_FMT_PADNULL
 			}
 
@@ -340,7 +265,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			// ability to address elements by integers - hence the
 			// maximum length we can retrieve is MaxInt64.
 			datafmt.maxlength = (C.CS_INT)(math.MaxInt32)
-		case types.VARBINARY:
+		case VARBINARY:
 			varbin := (*C.CS_VARBINARY)(C.calloc(1, C.sizeof_CS_VARBINARY))
 			defer C.free(unsafe.Pointer(varbin))
 			varbin.len = (C.CS_SMALLINT)(len(arg.Value.([]byte)))
@@ -350,29 +275,23 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(varbin)
-		case types.BIT:
+		case BIT:
 			b := (C.CS_BOOL)(0)
 			if arg.Value.(bool) {
 				b = (C.CS_BOOL)(1)
 			}
 			ptr = unsafe.Pointer(&b)
 			datalen = 1
-		case types.UNICHAR, types.UNITEXT:
-			// convert go string to utf16 code points
-			runes := []rune(arg.Value.(string))
-			utf16bytes := utf16.Encode(runes)
-
-			// convert utf16 code points to bytes
-			passBytes := make([]byte, len(utf16bytes)*2)
-			for i := 0; i < len(utf16bytes); i++ {
-				binary.LittleEndian.PutUint16(passBytes[i:], utf16bytes[i])
+		case UNICHAR, UNITEXT:
+			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
+			if err != nil {
+				return err
 			}
 
-			ptr = unsafe.Pointer(C.CBytes(passBytes))
-
+			ptr = unsafe.Pointer(C.CBytes(bs))
 			defer C.free(ptr)
 
-			datalen = len(passBytes)
+			datalen = len(bs)
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = (C.CS_INT)(datalen)
 		default:
@@ -556,7 +475,7 @@ func (stmt *statement) fillColumnTypes() error {
 		}
 
 		stmt.argCount = int(paramCount)
-		stmt.columnTypes = make([]types.ASEType, stmt.argCount)
+		stmt.columnTypes = make([]ASEType, stmt.argCount)
 
 		for i := 0; i < stmt.argCount; i++ {
 			datafmt := (*C.CS_DATAFMT)(C.calloc(1, C.sizeof_CS_DATAFMT))
@@ -566,7 +485,7 @@ func (stmt *statement) fillColumnTypes() error {
 				return makeError(retval, "Failed to retrieve description of parameter %d", i)
 			}
 
-			stmt.columnTypes[i] = types.ASEType(datafmt.datatype)
+			stmt.columnTypes[i] = ASEType(datafmt.datatype)
 		}
 
 	}

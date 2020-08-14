@@ -2,6 +2,8 @@ package tds
 
 import (
 	"fmt"
+
+	"github.com/SAP/go-ase/libase/types"
 )
 
 var _ Package = (*ParamFmtPackage)(nil)
@@ -124,9 +126,9 @@ func (pkg *ParamFmtPackage) ReadFromField(ch BytesChannel) (FieldFmt, int, error
 	}
 	n++
 
-	fieldFmt, err := LookupFieldFmt(DataType(token))
+	fieldFmt, err := LookupFieldFmt(types.DataType(token))
 	if err != nil {
-		return nil, n, fmt.Errorf("error preparing field format %s: %w", DataType(token), err)
+		return nil, n, fmt.Errorf("error preparing field format %s: %w", types.DataType(token), err)
 	}
 
 	// Set stored information on FieldData

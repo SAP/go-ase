@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/SAP/go-ase/libase/types"
 )
 
 func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
@@ -150,9 +152,14 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 	if !ok {
 		return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.DataFields[0])
 	}
-	asymmetricType := uint16(endian.Uint32(paramAsymmetricType.Data()))
 
-	if asymmetricType != 0x0001 {
+	asymmetricType, ok := paramAsymmetricType.Value().(uint16)
+	if !ok {
+		return fmt.Errorf("param field for asymmetric type contains value of type %T instead of []byte",
+			paramAsymmetricType.Value())
+	}
+
+	if asymmetricType != 1 {
 		return fmt.Errorf("unhandled asymmetric encryption: %b", asymmetricType)
 	}
 
@@ -169,7 +176,19 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 	}
 
 	// encrypt password
-	encryptedPass, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(), []byte(config.DSN.Password))
+	paramPubKeyData, ok := paramPubKey.Value().([]byte)
+	if !ok {
+		return fmt.Errorf("param field for public key contains value of type %T instead of []byte",
+			paramPubKey.Value())
+	}
+
+	paramNonceData, ok := paramNonce.Value().([]byte)
+	if !ok {
+		return fmt.Errorf("param field for nonce contains value of type %T instead of []byte",
+			paramNonce.Value())
+	}
+
+	encryptedPass, err := rsaEncrypt(paramPubKeyData, paramNonceData, []byte(config.DSN.Password))
 	if err != nil {
 		return fmt.Errorf("error encrypting password: %w", err)
 	}
@@ -180,9 +199,9 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error queueing message package for password transmission: %w", err)
 	}
 
-	passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
+	passFmt, passData, err := LookupFieldFmtData(types.LONGBINARY)
 	if err != nil {
-		return fmt.Errorf("failed to look up fields for TDS_LONGBINARY: %w", err)
+		return fmt.Errorf("failed to look up fields for LONGBINARY: %w", err)
 	}
 
 	// TDS does not support TDS_WIDETABLES in login negotiation
@@ -191,7 +210,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error queueing ParamFmt password package: %w", err)
 	}
 
-	passData.SetData(encryptedPass)
+	passData.SetValue(encryptedPass)
 	err = tdsChan.QueuePackage(ctx, NewParamsPackage(passData))
 	if err != nil {
 		return fmt.Errorf("error queueing Params password package: %w", err)
@@ -209,28 +228,28 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		for i := 0; i < len(paramFmts); i += 2 {
 			remoteServer := config.RemoteServers[i/2]
 
-			remnameFmt, remnameData, err := LookupFieldFmtData(TDS_VARCHAR)
+			remnameFmt, remnameData, err := LookupFieldFmtData(types.VARCHAR)
 			if err != nil {
-				return fmt.Errorf("failed to look up fields for TDS_VARCHAR: %w", err)
+				return fmt.Errorf("failed to look up fields for VARCHAR: %w", err)
 			}
 
 			paramFmts[i] = remnameFmt
-			remnameData.SetData([]byte(remoteServer.Name))
+			remnameData.SetValue([]byte(remoteServer.Name))
 			params[i] = remnameData
 
-			encryptedServerPass, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(),
+			encryptedServerPass, err := rsaEncrypt(paramPubKeyData, paramNonceData,
 				[]byte(remoteServer.Password))
 			if err != nil {
 				return fmt.Errorf("error encryption remote server password: %w", err)
 			}
 
-			passFmt, passData, err := LookupFieldFmtData(TDS_LONGBINARY)
+			passFmt, passData, err := LookupFieldFmtData(types.LONGBINARY)
 			if err != nil {
-				return fmt.Errorf("failed to look up fields for TDS_LONGBINARY")
+				return fmt.Errorf("failed to look up fields for LONGBINARY")
 			}
 
 			paramFmts[i+1] = passFmt
-			passData.SetData(encryptedServerPass)
+			passData.SetValue(encryptedServerPass)
 			params[i+1] = passData
 		}
 
@@ -250,8 +269,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error generating session key: %w", err)
 	}
 
-	encryptedSymKey, err := rsaEncrypt(paramPubKey.Data(), paramNonce.Data(),
-		symmetricKey)
+	encryptedSymKey, err := rsaEncrypt(paramPubKeyData, paramNonceData, symmetricKey)
 	if err != nil {
 		return fmt.Errorf("error encrypting session key: %w", err)
 	}
@@ -261,11 +279,11 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error queueing package Msg for symmetric key: %w", err)
 	}
 
-	symkeyFmt, symkeyData, err := LookupFieldFmtData(TDS_LONGBINARY)
+	symkeyFmt, symkeyData, err := LookupFieldFmtData(types.LONGBINARY)
 	if err != nil {
-		return fmt.Errorf("failed to look up fields for TDS_LONGBINARY: %w", err)
+		return fmt.Errorf("failed to look up fields for LONGBINARY: %w", err)
 	}
-	symkeyData.SetData(encryptedSymKey)
+	symkeyData.SetValue(encryptedSymKey)
 
 	err = tdsChan.QueuePackage(ctx, NewParamFmtPackage(false, symkeyFmt))
 	if err != nil {

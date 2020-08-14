@@ -112,7 +112,7 @@ var samplesMoney = []string{
 }
 
 func convertSmallMoney(sample string) (*types.Decimal, error) {
-	return types.NewDecimalString(types.ASESmallMoneyPrecision, types.ASESmallMoneyScale, sample)
+	return types.NewDecimalString(types.ASEShortMoneyPrecision, types.ASEShortMoneyScale, sample)
 }
 
 //go:generate go run ./gen_type.go Money4 github.com/SAP/go-ase/libase/*types.Decimal -columndef smallmoney -convert convertSmallMoney -compare compareDecimal

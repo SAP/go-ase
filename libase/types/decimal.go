@@ -14,8 +14,8 @@ const (
 	ASEMoneyPrecision = 20
 	ASEMoneyScale     = 4
 
-	ASESmallMoneyPrecision = 10
-	ASESmallMoneyScale     = 4
+	ASEShortMoneyPrecision = 10
+	ASEShortMoneyScale     = 4
 
 	aseMaxDecimalDigits = 38
 )
@@ -62,7 +62,7 @@ func DecimalByteSize(length int) int {
 // ASE datatypes. This is only sufficient for displaying, not
 // calculations.
 type Decimal struct {
-	precision, scale int
+	Precision, Scale int
 	i                *big.Int
 }
 
@@ -71,8 +71,8 @@ type Decimal struct {
 // An error is returned if the precision/scale combination is not valid.
 func NewDecimal(precision, scale int) (*Decimal, error) {
 	dec := &Decimal{
-		precision: precision,
-		scale:     scale,
+		Precision: precision,
+		Scale:     scale,
 	}
 
 	if err := dec.sanity(); err != nil {
@@ -100,19 +100,19 @@ func NewDecimalString(precision, scale int, s string) (*Decimal, error) {
 }
 
 func (dec Decimal) sanity() error {
-	if dec.precision > aseMaxDecimalDigits {
+	if dec.Precision > aseMaxDecimalDigits {
 		return ErrDecimalPrecisionTooHigh
 	}
 
-	if dec.precision < 0 {
+	if dec.Precision < 0 {
 		return ErrDecimalPrecisionTooLow
 	}
 
-	if dec.scale > aseMaxDecimalDigits {
+	if dec.Scale > aseMaxDecimalDigits {
 		return ErrDecimalScaleTooHigh
 	}
 
-	if dec.scale > dec.precision {
+	if dec.Scale > dec.Precision {
 		return ErrDecimalScaleBiggerThanPrecision
 	}
 
@@ -120,23 +120,15 @@ func (dec Decimal) sanity() error {
 }
 
 func (dec Decimal) Cmp(other Decimal) bool {
-	if dec.precision != other.precision {
+	if dec.Precision != other.Precision {
 		return false
 	}
 
-	if dec.scale != other.scale {
+	if dec.Scale != other.Scale {
 		return false
 	}
 
 	return dec.i.Cmp(other.i) == 0
-}
-
-func (dec Decimal) Precision() int {
-	return dec.precision
-}
-
-func (dec Decimal) Scale() int {
-	return dec.scale
 }
 
 func (dec Decimal) IsNegative() bool {
@@ -152,7 +144,7 @@ func (dec Decimal) Bytes() []byte {
 }
 
 func (dec Decimal) ByteSize() int {
-	return DecimalByteSize(dec.precision)
+	return DecimalByteSize(dec.Precision)
 }
 
 func (dec *Decimal) SetInt64(i int64) {
@@ -179,19 +171,19 @@ func (dec *Decimal) SetBytes(b []byte) {
 }
 
 func (dec *Decimal) String() string {
-	s := fmt.Sprintf("%0"+strconv.Itoa(dec.precision)+"s", big.NewInt(0).Abs(dec.i))
+	s := fmt.Sprintf("%0"+strconv.Itoa(dec.Precision)+"s", big.NewInt(0).Abs(dec.i))
 
 	neg := ""
 	if dec.IsNegative() {
 		neg = "-"
 	}
 
-	right := strings.TrimRight(s[dec.precision-dec.scale:], "0")
+	right := strings.TrimRight(s[dec.Precision-dec.Scale:], "0")
 	if len(right) == 0 {
 		right = "0"
 	}
 
-	left := strings.TrimLeft(s[:dec.precision-dec.scale], "0")
+	left := strings.TrimLeft(s[:dec.Precision-dec.Scale], "0")
 	if len(left) == 0 {
 		left = "0"
 	}
@@ -223,9 +215,9 @@ func (dec *Decimal) SetString(s string) error {
 	}
 
 	// Multiply underlying big.Int to fit to the scale of the decimal
-	if dec.scale-len(right) > 0 {
+	if dec.Scale-len(right) > 0 {
 		mul := big.NewInt(10)
-		mul.Exp(mul, big.NewInt(int64(dec.scale-len(right))), nil)
+		mul.Exp(mul, big.NewInt(int64(dec.Scale-len(right))), nil)
 		i.Mul(i, mul)
 	}
 
