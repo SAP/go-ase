@@ -157,9 +157,9 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("expected cipher suite as first parameter, got: %#v", params.DataFields[0])
 	}
 
-	asymmetricType, ok := paramAsymmetricType.Value().(uint16)
+	asymmetricType, ok := paramAsymmetricType.Value().(int32)
 	if !ok {
-		return fmt.Errorf("param field for asymmetric type contains value of type %T instead of []byte",
+		return fmt.Errorf("param field for asymmetric type contains value of type %T instead of int32",
 			paramAsymmetricType.Value())
 	}
 
