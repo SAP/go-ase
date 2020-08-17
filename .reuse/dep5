@@ -1,0 +1,6 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: go-ase
+Upstream-Contact: Christian Burkert <christian.burkert@sap.com>
+Source: https://github.com/SAP/go-ase
+License: Apache-2.0
+Copyright: SAP SE
