@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 SAP SE
+#
+# SPDX-License-Identifier: Apache-2.0
+
 BINS ?= $(patsubst cmd/%,%,$(wildcard cmd/*))
 
 REUSE_ARGS = --skip-unrecognised --copyright='SAP SE' --license='Apache-2.0'

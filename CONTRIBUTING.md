@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2020 SAP SE
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Contributing to go-ase
 
 - [Report an Issue](#report-an-issue)

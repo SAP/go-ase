@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*
 Package libase contains shared code for the go and cgo implementations
 of go-ase as well as general purpose libraries.

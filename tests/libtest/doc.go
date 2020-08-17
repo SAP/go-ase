@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*
 
 The package libtest contains helpers to setup and teardown database for

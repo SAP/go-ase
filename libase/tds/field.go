@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // The types in this file are format fields for TDS_PARAMFMT,
 // TDS_PARAMFMT2, TDS_ROWFMT, TDS_ROWFMT2 and data fields for
 // TDS_PARAMS and TDS_ROW.

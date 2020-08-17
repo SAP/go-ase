@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package types
 
 // ByteSizes maps a DataType to the length of their byte
