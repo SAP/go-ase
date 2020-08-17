@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*
 Package capability provides abstract structures to keep a history of
 capabilities and features.

@@ -1,7 +1,7 @@
-/*
-**	SAP Open Client/Server 
-**	Copyright (c) 2013 SAP AG or an SAP affiliate company.  All rights reserved.
-*/
+// Copyright (c) 2013 SAP AG or an SAP affiliate company.  All rights reserved.
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
 
 #ifndef __CSCONFIG_H__
 #define __CSCONFIG_H__

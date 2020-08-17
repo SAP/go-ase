@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // The recorder example shows how the MessageRecorder can be used to
 // record non-sql server responses.
 package main

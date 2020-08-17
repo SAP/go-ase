@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include <stdio.h>
 #include "ctlib.h"
 #include "bridge.h"

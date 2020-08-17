@@ -1,7 +1,7 @@
-/*
-**	SAP OC-LIBRARY
-**	Copyright (c) 2013 SAP AG or an SAP affiliate company.  All rights reserved.
-*/
+// Copyright (c) 2013 SAP AG or an SAP affiliate company.  All rights reserved.
+// SPDX-FileCopyrightText: 2020 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
 
 /*
 ** sqlca.h - This is the header file for the sqlca structure for precompilers
