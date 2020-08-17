@@ -54,7 +54,7 @@ jobs:
       - run: go get -v golang.org/x/tools/cmd/stringer
 
       # Setup python and reuse
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v2.1.2
       - uses: BSFishy/pip-action@v1
         with:
           packages: reuse
