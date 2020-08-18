@@ -21,7 +21,7 @@ import (
 func fromEnv(name string) (string, error) {
 	target, ok := os.LookupEnv(name)
 	if !ok {
-		return "", fmt.Errorf("Missing environment variable: %s", name)
+		return "", fmt.Errorf("missing environment variable: %s", name)
 	}
 
 	return target, nil
@@ -104,18 +104,18 @@ func DSN(userstore bool) (*libdsn.Info, func(), error) {
 	}
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to create DSN from environment: %v", err)
+		return nil, nil, fmt.Errorf("failed to create DSN from environment: %v", err)
 	}
 
 	err = SetupDB(dsn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to setup database: %v", err)
+		return nil, nil, fmt.Errorf("failed to setup database: %v", err)
 	}
 
 	fn := func() {
 		err := TeardownDB(dsn)
 		if err != nil {
-			log.Printf("Failed to drop database: %s", dsn.Database)
+			log.Printf("failed to drop database: %s", dsn.Database)
 		}
 	}
 
