@@ -7,7 +7,6 @@ package tds
 import (
 	"errors"
 	"fmt"
-	"strconv"
 )
 
 //go:generate stringer -type=DynamicOperationType
@@ -39,7 +38,7 @@ const (
 type DynamicPackage struct {
 	Type   DynamicOperationType
 	Status DynamicStatusType
-	ID     int
+	ID     string
 	Stmt   string
 
 	wide bool
@@ -81,16 +80,11 @@ func (pkg *DynamicPackage) ReadFrom(ch BytesChannel) error {
 	}
 	n++
 
-	id, err := ch.String(int(idLen))
+	pkg.ID, err = ch.String(int(idLen))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
 	n += int(idLen)
-
-	pkg.ID, err = strconv.Atoi(id)
-	if err != nil {
-		return fmt.Errorf("error parsing dynamic statement ID '%s': %w", id, err)
-	}
 
 	if pkg.Type&TDS_DYN_PREPARE == TDS_DYN_PREPARE || pkg.Type&TDS_DYN_EXEC_IMMED == TDS_DYN_EXEC_IMMED {
 		var stmtLen int
@@ -137,19 +131,20 @@ func (pkg *DynamicPackage) WriteTo(ch BytesChannel) error {
 		return err
 	}
 
-	strId := strconv.FormatInt(int64(pkg.ID), 10)
-
 	// 1  dynamicType
 	// 1  dynamicStatus
 	// 1  id length
 	// x  id
-	// 2  stmt length if !pkg.wide
-	// 4 stmt length if pkg.wide
-	// x  stmt
-	totalLength := 5 + len(strId) + len(pkg.Stmt)
-	if pkg.wide {
-		// add two more bytes for TDS_DYNAMIC2
-		totalLength += 2
+	totalLength := 3 + len(pkg.ID)
+	if pkg.Type&TDS_DYN_PREPARE == TDS_DYN_PREPARE || pkg.Type&TDS_DYN_EXEC_IMMED == TDS_DYN_EXEC_IMMED {
+		// 2  stmt length if !pkg.wide
+		// 4 stmt length if pkg.wide
+		// x  stmt
+		totalLength += 2 + len(pkg.Stmt)
+		if pkg.wide {
+			// add two more bytes for TDS_DYNAMIC2
+			totalLength += 2
+		}
 	}
 
 	if err := ch.WriteUint16(uint16(totalLength)); err != nil {
@@ -166,15 +161,15 @@ func (pkg *DynamicPackage) WriteTo(ch BytesChannel) error {
 	}
 	n++
 
-	if err := ch.WriteUint8(uint8(len(strId))); err != nil {
+	if err := ch.WriteUint8(uint8(len(pkg.ID))); err != nil {
 		return err
 	}
 	n++
 
-	if err := ch.WriteString(strId); err != nil {
+	if err := ch.WriteString(pkg.ID); err != nil {
 		return err
 	}
-	n += len(strId)
+	n += len(pkg.ID)
 
 	if pkg.Type&TDS_DYN_PREPARE == TDS_DYN_PREPARE || pkg.Type&TDS_DYN_EXEC_IMMED == TDS_DYN_EXEC_IMMED {
 		if pkg.wide {
@@ -229,5 +224,5 @@ func (pkg DynamicPackage) String() string {
 		}
 	}
 
-	return fmt.Sprintf("%T(%s, %s - %d: %s)", pkg, strTypes, strStati, pkg.ID, pkg.Stmt)
+	return fmt.Sprintf("%T(%s, %s - %s: %s)", pkg, strTypes, strStati, pkg.ID, pkg.Stmt)
 }
