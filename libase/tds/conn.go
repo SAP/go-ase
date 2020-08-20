@@ -85,8 +85,6 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 //
 // If an error is returned it is a *multierror.Error with all errors.
 func (tds *Conn) Close() error {
-	tds.ctxCancel()
-
 	var me error
 
 	for _, channel := range tds.tdsChannels {
@@ -95,6 +93,8 @@ func (tds *Conn) Close() error {
 			me = multierror.Append(me, fmt.Errorf("error closing channel: %w", err))
 		}
 	}
+
+	tds.ctxCancel()
 
 	err := tds.conn.Close()
 	if err != nil {
