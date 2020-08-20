@@ -22,7 +22,7 @@ type Info struct {
 	Host         string     `json:"host" multiref:"hostname" validate:"required"`
 	Port         string     `json:"port" validate:"required"`
 	Username     string     `json:"username" multiref:"user" validate:"required"`
-	Password     string     `json:"password" multiref:"passwd,pass" validate:"required"`
+	Password     string     `json:"password" multiref:"passwd,pass"`
 	Userstorekey string     `json:"userstorekey" multiref:"key" validate:"required"`
 	Database     string     `json:"database" multiref:"db"`
 	ConnectProps url.Values `json:"connectprops"`
