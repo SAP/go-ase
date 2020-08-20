@@ -24,7 +24,7 @@ import (
 // Channel.
 type Conn struct {
 	conn io.ReadWriteCloser
-	caps *CapabilityPackage
+	Caps *CapabilityPackage
 	dsn  *libdsn.Info
 
 	odce odceCipher
@@ -285,6 +285,6 @@ func (tds *Conn) setCapabilities() error {
 		return fmt.Errorf("error creating capability package: %w", err)
 	}
 
-	tds.caps = caps
+	tds.Caps = caps
 	return nil
 }

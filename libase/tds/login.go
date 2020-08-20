@@ -49,7 +49,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error adding login payload package: %w", err)
 	}
 
-	err = tdsChan.QueuePackage(ctx, tdsChan.tdsConn.caps)
+	err = tdsChan.QueuePackage(ctx, tdsChan.tdsConn.Caps)
 	if err != nil {
 		return fmt.Errorf("error adding login capabilities package: %w", err)
 	}
@@ -328,12 +328,33 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error reading Capability package: %w", err)
 	}
 
-	_, ok = pkg.(*CapabilityPackage)
+	capsResponse, ok := pkg.(*CapabilityPackage)
 	if !ok {
 		return fmt.Errorf("expected capability package, received %T instead: %v", pkg, pkg)
 	}
 
-	// TODO handle caps response
+	for capType, capTypeCaps := range capsResponse.Capabilities {
+		// Skip over capability types that aren't requested
+		if len(capTypeCaps.capabilities) == 1 {
+			continue
+		}
+
+		// Check if all caps have been zeroed - this means the server
+		// didn't understand the capability requests at all
+		allZeroed := true
+		for _, bit := range capTypeCaps.capabilities {
+			if bit {
+				allZeroed = false
+			}
+		}
+
+		if allZeroed {
+			return fmt.Errorf("server did not understand capability requests for %s, aborting", capType)
+		}
+	}
+
+	// Override requested capabilities with server response
+	tdsChan.tdsConn.Caps = capsResponse
 
 	pkg, err = tdsChan.NextPackage(ctx, true)
 	if err != nil {
