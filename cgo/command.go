@@ -10,6 +10,7 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -26,8 +27,26 @@ func (conn *Connection) GenericExec(ctx context.Context, query string) (driver.R
 		return nil, nil, err
 	}
 
-	rows, result, _, err := cmd.Response()
-	return rows, result, err
+	var resResult driver.Result
+	for {
+		rows, result, _, err := cmd.Response()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, nil, fmt.Errorf("Received error reading results: %v", err)
+		}
+
+		if result != nil {
+			resResult = result
+		}
+
+		if rows != nil {
+			return rows, result, nil
+		}
+	}
+
+	return nil, resResult, nil
 }
 
 func (conn *Connection) NewCommand(ctx context.Context, query string) (*Command, error) {

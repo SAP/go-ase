@@ -10,6 +10,7 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -223,9 +224,13 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 	}
 	defer cmd.Drop()
 
-	var result, resResult driver.Result
-	for _, result, _, err = cmd.Response(); err != io.EOF; _, result, _, err = cmd.Response() {
+	var resResult driver.Result
+	for {
+		_, result, _, err := cmd.Response()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, fmt.Errorf("Received error reading results: %v", err)
 		}
 
