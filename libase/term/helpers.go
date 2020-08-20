@@ -50,7 +50,7 @@ func rawProcess(driverConn interface{}, query string) error {
 		return fmt.Errorf("GenericExec failed: %w", err)
 	}
 
-	if !reflect.ValueOf(rows).IsNil() {
+	if rows != nil && !reflect.ValueOf(rows).IsNil() {
 		defer rows.Close()
 
 		err = processRows(rows)
@@ -59,7 +59,7 @@ func rawProcess(driverConn interface{}, query string) error {
 		}
 	}
 
-	if !reflect.ValueOf(result).IsNil() {
+	if result != nil && !reflect.ValueOf(result).IsNil() {
 		err = processResult(result)
 		if err != nil {
 			return fmt.Errorf("error processing result: %w", err)
