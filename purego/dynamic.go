@@ -101,65 +101,27 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 		return err
 	}
 
-	err = stmt.recvDoneFinal(ctx)
+	_, err = stmt.conn.Channel.NextPackageUntil(ctx, true,
+		func(pkg tds.Package) (bool, error) {
+			switch typed := pkg.(type) {
+			case *tds.ParamFmtPackage:
+				stmt.paramFmt = typed
+				return false, nil
+			case *tds.RowFmtPackage:
+				stmt.rowFmt = typed
+				return false, nil
+			case *tds.DonePackage:
+				if typed.Status != tds.TDS_DONE_FINAL {
+					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL set: %s", typed)
+				}
+				return true, nil
+			default:
+				return false, fmt.Errorf("unexpected package received: %#v", typed)
+			}
+		},
+	)
 	if err != nil {
-		return err
-	}
-
-	// descin
-	stmt.pkg.Type = tds.TDS_DYN_DESCIN
-	err = stmt.conn.Channel.SendPackage(ctx, stmt.pkg)
-	if err != nil {
-		return fmt.Errorf("error sending descin package to server: %w", err)
-	}
-	stmt.Reset()
-
-	err = stmt.recvDynAck(ctx)
-	if err != nil {
-		return err
-	}
-
-	pkg, err := stmt.conn.nextPackage(ctx)
-	if err != nil {
-		return err
-	}
-
-	var ok bool
-	stmt.paramFmt, ok = pkg.(*tds.ParamFmtPackage)
-	if !ok {
-		return fmt.Errorf("expected ParamFmt Package, got: %v", pkg)
-	}
-
-	err = stmt.recvDoneFinal(ctx)
-	if err != nil {
-		return err
-	}
-
-	// descout
-	stmt.pkg.Type = tds.TDS_DYN_DESCOUT
-	err = stmt.conn.Channel.SendPackage(ctx, stmt.pkg)
-	if err != nil {
-		return fmt.Errorf("error sending descout package to server: %w", err)
-	}
-	stmt.Reset()
-
-	err = stmt.recvDynAck(ctx)
-	if err != nil {
-		return err
-	}
-
-	pkg, err = stmt.conn.nextPackage(ctx)
-	if err != nil {
-		return err
-	}
-
-	stmt.rowFmt, ok = pkg.(*tds.RowFmtPackage)
-	if !ok {
-		return fmt.Errorf("expected RowFmt Package, got: %v", pkg)
-	}
-
-	err = stmt.recvDoneFinal(ctx)
-	if err != nil {
+		stmt.close(ctx)
 		return err
 	}
 
@@ -276,20 +238,30 @@ func (stmt Stmt) exec(ctx context.Context, args []driver.NamedValue) (driver.Row
 		return nil, nil, err
 	}
 
-	pkg, err := stmt.conn.nextPackage(ctx)
+	rows := &Rows{Conn: stmt.conn}
+	result := &Result{}
+
+	_, err = stmt.conn.Channel.NextPackageUntil(ctx, true,
+		func(pkg tds.Package) (bool, error) {
+			switch typed := pkg.(type) {
+			case *tds.RowFmtPackage:
+				rows.RowFmt = typed
+				return false, nil
+			case *tds.DonePackage:
+				if typed.Status == tds.TDS_DONE_COUNT || typed.Status == tds.TDS_DONE_FINAL {
+					result.rowsAffected = int64(typed.Count)
+					return true, nil
+				}
+
+				return false, fmt.Errorf("DonePackage does not have status TDS_DONE_COUNT or TDS_DONE_FINAL set: %s", typed)
+			default:
+				return false, fmt.Errorf("unhandled package type %T for dynamic statements", typed)
+			}
+		},
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	rowFmt, ok := pkg.(*tds.RowFmtPackage)
-	if !ok {
-		return nil, nil, fmt.Errorf("expected RowFmt Package, got: %v", pkg)
-	}
-
-	rows := &Rows{
-		Conn:   stmt.conn,
-		RowFmt: rowFmt,
-	}
-
-	return rows, &Result{}, nil
+	return rows, result, nil
 }

@@ -304,7 +304,7 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 		return fmt.Errorf("error sending login payload: %w", err)
 	}
 
-	pkg, err = tdsChan.NextPackageUntil(ctx, true,
+	_, err = tdsChan.NextPackageUntil(ctx, true,
 		func(pkg Package) (bool, error) {
 			loginAck, ok := pkg.(*LoginAckPackage)
 			if !ok {
