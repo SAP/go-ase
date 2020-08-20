@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 
 	"github.com/SAP/go-ase/libase/types"
@@ -49,7 +50,7 @@ func rawProcess(driverConn interface{}, query string) error {
 		return fmt.Errorf("GenericExec failed: %w", err)
 	}
 
-	if rows != nil {
+	if !reflect.ValueOf(rows).IsNil() {
 		defer rows.Close()
 
 		err = processRows(rows)
@@ -58,7 +59,7 @@ func rawProcess(driverConn interface{}, query string) error {
 		}
 	}
 
-	if result != nil {
+	if !reflect.ValueOf(result).IsNil() {
 		err = processResult(result)
 		if err != nil {
 			return fmt.Errorf("error processing result: %w", err)

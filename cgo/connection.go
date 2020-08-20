@@ -10,6 +10,7 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -47,13 +48,13 @@ func NewConnection(driverCtx *csContext, dsn libdsn.Info) (*Connection, error) {
 		var err error
 		driverCtx, err = newCsContext(dsn)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize context for conn: %v", err)
+			return nil, fmt.Errorf("Failed to initialize context for conn: %w", err)
 		}
 	}
 
 	err := driverCtx.newConn()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to ensure context: %v", err)
+		return nil, fmt.Errorf("Failed to ensure context: %w", err)
 	}
 
 	conn := &Connection{
@@ -135,7 +136,7 @@ func NewConnection(driverCtx *csContext, dsn libdsn.Info) (*Connection, error) {
 		_, err := conn.Exec("use "+dsn.Database, nil)
 		if err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("Failed to connect to database %s: %v", dsn.Database, err)
+			return nil, fmt.Errorf("Failed to connect to database %s: %w", dsn.Database, err)
 		}
 	}
 
@@ -178,7 +179,7 @@ func (conn *Connection) ping() error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("Error occurred while exhausting result set: %v", err)
+			return fmt.Errorf("Error occurred while exhausting result set: %w", err)
 		}
 	}
 
@@ -219,14 +220,18 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 
 	cmd, err := conn.NewCommand(ctx, q)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %v", err)
+		return nil, fmt.Errorf("Failed to send command: %w", err)
 	}
 	defer cmd.Drop()
 
-	var result, resResult driver.Result
-	for _, result, _, err = cmd.Response(); err != io.EOF; _, result, _, err = cmd.Response() {
+	var resResult driver.Result
+	for {
+		_, result, _, err := cmd.Response()
 		if err != nil {
-			return nil, fmt.Errorf("Received error reading results: %v", err)
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, fmt.Errorf("Received error reading results: %w", err)
 		}
 
 		if result != nil {
@@ -254,12 +259,12 @@ func (conn *Connection) QueryContext(ctx context.Context, query string, args []d
 
 	cmd, err := conn.NewCommand(ctx, q)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %v", err)
+		return nil, fmt.Errorf("Failed to send command: %w", err)
 	}
 
 	rows, _, _, err := cmd.Response()
 	if err != nil {
-		return nil, fmt.Errorf("Received error while retrieving results: %v", err)
+		return nil, fmt.Errorf("Received error while retrieving results: %w", err)
 	}
 
 	return rows, nil

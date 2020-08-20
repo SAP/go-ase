@@ -102,7 +102,7 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 	err = stmt.fillColumnTypes()
 	if err != nil {
 		stmt.Close()
-		return nil, fmt.Errorf("Failed to retrieve argument types: %v", err)
+		return nil, fmt.Errorf("Failed to retrieve argument types: %w", err)
 	}
 
 	return stmt, nil
@@ -311,7 +311,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 		retval = C.ct_param(stmt.cmd.cmd, datafmt, ptr, csDatalen, 0)
 		if retval != C.CS_SUCCEED {
-			return makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
+			return makeError(retval, "C.ct_param on parameter %d failed with argument '%w'", i, arg)
 		}
 	}
 
@@ -464,7 +464,7 @@ func (stmt *statement) fillColumnTypes() error {
 			if err == io.EOF {
 				break
 			}
-			return fmt.Errorf("Received error while receiving input description: %v", err)
+			return fmt.Errorf("Received error while receiving input description: %w", err)
 		}
 
 		if resultType != C.CS_DESCRIBE_RESULT {

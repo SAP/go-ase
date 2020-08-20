@@ -10,6 +10,7 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -26,8 +27,26 @@ func (conn *Connection) GenericExec(ctx context.Context, query string) (driver.R
 		return nil, nil, err
 	}
 
-	rows, result, _, err := cmd.Response()
-	return rows, result, err
+	var resResult driver.Result
+	for {
+		rows, result, _, err := cmd.Response()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, nil, fmt.Errorf("Received error reading results: %w", err)
+		}
+
+		if result != nil {
+			resResult = result
+		}
+
+		if rows != nil {
+			return rows, result, nil
+		}
+	}
+
+	return nil, resResult, nil
 }
 
 func (conn *Connection) NewCommand(ctx context.Context, query string) (*Command, error) {
@@ -142,7 +161,7 @@ func (conn *Connection) Dynamic(name string, query string) (*Command, error) {
 // The third return value is a CS_INT, which may be the CS_RETCODE of
 // ct_results when the command failed or finished or the result type if
 // the result set requires further processing.
-func (cmd *Command) Response() (*Rows, Result, C.CS_INT, error) {
+func (cmd *Command) Response() (*Rows, *Result, C.CS_INT, error) {
 	var resultType C.CS_INT
 	retval := C.ct_results(cmd.cmd, &resultType)
 
@@ -151,13 +170,13 @@ func (cmd *Command) Response() (*Rows, Result, C.CS_INT, error) {
 		// handle result type
 		break
 	case C.CS_END_RESULTS:
-		return nil, Result{}, retval, io.EOF // no more responses available, quit
+		return nil, nil, retval, io.EOF // no more responses available, quit
 	case C.CS_FAIL:
 		cmd.Cancel()
-		return nil, Result{}, retval, makeError(retval, "Command failed")
+		return nil, nil, retval, makeError(retval, "Command failed")
 	default:
 		cmd.Cancel()
-		return nil, Result{}, retval, makeError(retval, "Invalid return code")
+		return nil, nil, retval, makeError(retval, "Invalid return code")
 	}
 
 	switch resultType {
@@ -168,34 +187,34 @@ func (cmd *Command) Response() (*Rows, Result, C.CS_INT, error) {
 		rows, err := newRows(cmd)
 		if err != nil {
 			cmd.Cancel()
-			return nil, Result{}, C.CS_UNUSED, err
+			return nil, nil, C.CS_UNUSED, err
 		}
 
-		return rows, Result{}, C.CS_UNUSED, nil
+		return rows, nil, C.CS_UNUSED, nil
 
 	// non-fetchable results
 	case C.CS_COMPUTEFMT_RESULT, C.CS_MSG_RESULT, C.CS_ROWFMT_RESULT, C.CS_DESCRIBE_RESULT:
-		return nil, Result{}, resultType, nil
+		return nil, nil, resultType, nil
 
 	// other result types
 	case C.CS_CMD_FAIL:
 		cmd.Cancel()
-		return nil, Result{}, C.CS_UNUSED, makeError(retval, "Command failed, cancelled")
+		return nil, nil, C.CS_UNUSED, makeError(retval, "Command failed, cancelled")
 	case C.CS_CMD_DONE:
 		var rowsAffected C.CS_INT
 		retval := C.ct_res_info(cmd.cmd, C.CS_ROW_COUNT, unsafe.Pointer(&rowsAffected),
 			C.CS_UNUSED, nil)
 		if retval != C.CS_SUCCEED {
 			cmd.Cancel()
-			return nil, Result{}, C.CS_UNUSED, makeError(retval, "Failed to read affected rows")
+			return nil, nil, C.CS_UNUSED, makeError(retval, "Failed to read affected rows")
 		}
 
-		return nil, Result{int64(rowsAffected)}, C.CS_UNUSED, nil
+		return nil, &Result{int64(rowsAffected)}, C.CS_UNUSED, nil
 	case C.CS_CMD_SUCCEED:
-		return nil, Result{}, C.CS_UNUSED, nil
+		return nil, nil, C.CS_UNUSED, nil
 
 	default:
 		cmd.Cancel()
-		return nil, Result{}, resultType, fmt.Errorf("Unknown result type: %d", resultType)
+		return nil, nil, resultType, fmt.Errorf("Unknown result type: %d", resultType)
 	}
 }

@@ -82,7 +82,7 @@ func newRows(cmd *Command) (*Rows, error) {
 		asetype := (ASEType)(r.dataFmts[i].datatype)
 		if asetype.String() == "" {
 			r.Close()
-			return nil, fmt.Errorf("Invalid ASEType: %v", r.dataFmts[i].datatype)
+			return nil, fmt.Errorf("Invalid ASEType: %w", r.dataFmts[i].datatype)
 		}
 
 		r.colASEType[i] = asetype
@@ -124,18 +124,18 @@ func (rows *Rows) Close() error {
 
 	for r, _, _, err := rows.cmd.Response(); err != io.EOF; r, _, _, err = rows.cmd.Response() {
 		if err != nil {
-			return fmt.Errorf("Received error reading results: %v", err)
+			return fmt.Errorf("Received error reading results: %w", err)
 		}
 
 		if r != nil {
-			return fmt.Errorf("Received rows reading results, exiting: %v", r)
+			return fmt.Errorf("Received rows reading results, exiting: %w", r)
 		}
 	}
 
 	if !rows.cmd.isDynamic {
 		err := rows.cmd.Drop()
 		if err != nil {
-			return fmt.Errorf("Error dropping command: %v", err)
+			return fmt.Errorf("Error dropping command: %w", err)
 		}
 	}
 	rows.cmd = nil
