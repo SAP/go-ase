@@ -94,7 +94,7 @@ func (context *csContext) init() error {
 
 	err := context.applyDSN(context.dsn)
 	if err != nil {
-		return fmt.Errorf("Failed to apply DSN: %v", err)
+		return fmt.Errorf("Failed to apply DSN: %w", err)
 	}
 
 	return nil

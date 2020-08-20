@@ -34,7 +34,7 @@ func (conn *Connection) GenericExec(ctx context.Context, query string) (driver.R
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, nil, fmt.Errorf("Received error reading results: %v", err)
+			return nil, nil, fmt.Errorf("Received error reading results: %w", err)
 		}
 
 		if result != nil {
