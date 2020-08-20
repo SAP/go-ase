@@ -127,9 +127,6 @@ func (tdsChan *Channel) Reset() {
 //
 // If an error is returned it is a *multierror.Error with all errors.
 func (tdsChan *Channel) Close() error {
-	// Remove channel from connection
-	delete(tdsChan.tdsConn.tdsChannels, tdsChan.channelId)
-
 	var me error
 
 	if tdsChan.channelId == 0 {
@@ -155,6 +152,9 @@ func (tdsChan *Channel) Close() error {
 					tdsChan.channelId, err))
 		}
 	}
+
+	// Channel closing has been communicated, remove channel from conn
+	delete(tdsChan.tdsConn.tdsChannels, tdsChan.channelId)
 
 	close(tdsChan.packageCh)
 	for {
