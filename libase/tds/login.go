@@ -305,20 +305,22 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 	}
 
 	pkg, err = tdsChan.NextPackageUntil(ctx, true,
-		func(pkg Package) bool { _, ok := pkg.(*LoginAckPackage); return ok },
+		func(pkg Package) (bool, error) {
+			loginAck, ok := pkg.(*LoginAckPackage)
+			if !ok {
+				return false, nil
+			}
+
+			if loginAck.Status != TDS_LOG_SUCCEED {
+				return false, fmt.Errorf("expected login ack with status TDS_LOG_SUCCEED, received %s",
+					loginAck.Status)
+			}
+
+			return true, nil
+		},
 	)
 	if err != nil {
 		return fmt.Errorf("error reading LoginAck package: %w", err)
-	}
-
-	loginAck, ok := pkg.(*LoginAckPackage)
-	if !ok {
-		return fmt.Errorf("expected login ack package, received %T instead: %v", pkg, pkg)
-	}
-
-	if loginAck.Status != TDS_LOG_SUCCEED {
-		return fmt.Errorf("expected login ack with status TDS_LOG_SUCCEED, received %s",
-			loginAck.Status)
 	}
 
 	pkg, err = tdsChan.NextPackage(ctx, true)
