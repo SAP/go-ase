@@ -33,7 +33,7 @@ type Driver struct {
 func (d Driver) Open(name string) (driver.Conn, error) {
 	connector, err := d.OpenConnector(name)
 	if err != nil {
-		return nil, fmt.Errorf("error opening connector: %w", err)
+		return nil, fmt.Errorf("go-ase: error opening connector: %w", err)
 	}
 
 	return connector.Connect(context.Background())
@@ -42,7 +42,7 @@ func (d Driver) Open(name string) (driver.Conn, error) {
 func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 	dsnInfo, err := libdsn.ParseDSN(name)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing DSN: %w", err)
+		return nil, fmt.Errorf("go-ase: error parsing DSN: %w", err)
 	}
 
 	return NewConnector(dsnInfo)
