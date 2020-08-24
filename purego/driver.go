@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/SAP/go-ase/libase/libdsn"
+	"github.com/SAP/go-ase/libase/tds"
 )
 
 var (
@@ -26,6 +27,7 @@ func init() {
 }
 
 type Driver struct {
+	envChangeHooks []tds.EnvChangeHook
 }
 
 func (d Driver) Open(name string) (driver.Conn, error) {
@@ -44,4 +46,15 @@ func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 	}
 
 	return NewConnector(dsnInfo)
+}
+
+func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
+	for _, fn := range fns {
+		if fn == nil {
+			return fmt.Errorf("go-ase: Received nil EnvChangeHook: %#v", fns)
+		}
+	}
+
+	drv.envChangeHooks = append(drv.envChangeHooks, fns...)
+	return nil
 }

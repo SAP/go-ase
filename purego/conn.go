@@ -59,10 +59,17 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 		return nil, fmt.Errorf("go-ase: error opening logical channel: %w", err)
 	}
 
+	if drv.envChangeHooks != nil {
+		err := conn.Channel.RegisterEnvChangeHooks(drv.envChangeHooks...)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error registering driver EnvChangeHooks: %w", err)
+		}
+	}
+
 	if envChangeHooks != nil {
 		err := conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
 		if err != nil {
-			return nil, fmt.Errorf("go-ase: error registering hooks: %w", err)
+			return nil, fmt.Errorf("go-ase: error registering argument EnvChangeHooks: %w", err)
 		}
 	}
 
