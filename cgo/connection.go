@@ -10,7 +10,6 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -211,21 +210,22 @@ func (conn *Connection) Ping(ctx context.Context) error {
 }
 
 func (conn *Connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	q, err := libase.QueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn.ExecContext(context.Background(), q, nil)
+	return conn.ExecContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
 func (conn *Connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	q, err := libase.NamedQueryFormat(query, args...)
-	if err != nil {
-		return nil, err
+	if len(args) > 0 {
+		stmt, err := conn.PrepareContext(ctx, query)
+		if err != nil {
+			// TODO
+			return nil, err
+		}
+		defer stmt.Close()
+
+		return stmt.(*statement).ExecContext(ctx, args)
 	}
 
-	cmd, err := conn.NewCommand(ctx, q)
+	cmd, err := conn.NewCommand(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %w", err)
 	}
@@ -250,18 +250,19 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 }
 
 func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	q, err := libase.QueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn.QueryContext(context.Background(), q, nil)
+	return conn.QueryContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
 func (conn *Connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	q, err := libase.NamedQueryFormat(query, args...)
-	if err != nil {
-		return nil, err
+	if len(args) > 0 {
+		stmt, err := conn.PrepareContext(ctx, query)
+		if err != nil {
+			// TODO
+			return nil, err
+		}
+		defer stmt.Close()
+
+		return stmt.(*statement).QueryContext(ctx, args)
 	}
 
 	cmd, err := conn.NewCommand(ctx, q)

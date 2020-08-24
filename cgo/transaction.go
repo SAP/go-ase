@@ -79,7 +79,7 @@ func (conn *Connection) beginTx(opts driver.TxOptions) (driver.Tx, error) {
 		return nil, fmt.Errorf("Failed to start transaction: %w", err)
 	}
 
-	_, err = tx.conn.Exec("SET TRANSACTION ISOLATION LEVEL ?", []driver.Value{int(isolationLevel)})
+	_, err = tx.conn.Exec(fmt.Sprintf("SET TRANSACTION ISOLATION LEVEL %d", isolationLevel), nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set isolation level for transaction: %w", err)
 	}

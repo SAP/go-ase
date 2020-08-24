@@ -33,14 +33,19 @@ func SetupDB(testDsn *libdsn.Info) error {
 
 	testDatabase := "test" + RandomNumber()
 
-	_, err = conn.ExecContext(context.Background(), "if db_id('?') is not null drop database ?", testDatabase, testDatabase)
+	_, err = conn.ExecContext(context.Background(), fmt.Sprintf("if db_id('%s') is not null drop database %s", testDatabase, testDatabase))
 	if err != nil {
 		return fmt.Errorf("error on conditional drop of database: %v", err)
 	}
 
-	_, err = conn.ExecContext(context.Background(), "create database ?", testDatabase)
+	_, err = conn.ExecContext(context.Background(), "create database "+testDatabase)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %v", err)
+	}
+
+	_, err = conn.ExecContext(context.Background(), "use "+testDatabase)
+	if err != nil {
+		return fmt.Errorf("failed to switch context to %s: %v", testDatabase, err)
 	}
 
 	testDsn.Database = testDatabase
@@ -67,7 +72,7 @@ func TeardownDB(testDsn *libdsn.Info) error {
 		return fmt.Errorf("failed to switch context to master: %v", err)
 	}
 
-	_, err = conn.ExecContext(context.Background(), "drop database ?", testDsn.Database)
+	_, err = conn.ExecContext(context.Background(), "drop database "+testDsn.Database)
 	if err != nil {
 		return fmt.Errorf("failed to drop database: %v", err)
 	}
@@ -79,12 +84,12 @@ func TeardownDB(testDsn *libdsn.Info) error {
 // SetupTableInsert creates a table with the passed type and inserts all
 // passed samples as rows.
 func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, func() error, error) {
-	_, err := db.Exec("create table ? (a ?)", tableName, aseType)
+	_, err := db.Exec(fmt.Sprintf("create table %s (a %s)", tableName, aseType))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create table: %v", err)
 	}
 
-	stmt, err := db.Prepare(fmt.Sprintf("insert into %s values (?)", tableName))
+	stmt, err := db.Prepare(fmt.Sprintf("insert into %s (a) values (?)", tableName))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error preparing statement: %v", err)
 	}
@@ -97,13 +102,13 @@ func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interfac
 		}
 	}
 
-	rows, err := db.Query("select * from ?", tableName)
+	rows, err := db.Query("select * from " + tableName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error selecting from %s: %v", tableName, err)
 	}
 
 	teardownFn := func() error {
-		_, err := db.Exec("drop table ?", tableName)
+		_, err := db.Exec("drop table " + tableName)
 		return err
 	}
 

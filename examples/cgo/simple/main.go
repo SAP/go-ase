@@ -45,7 +45,7 @@ func DoMain() error {
 	}
 
 	fmt.Printf("Writing a=%d, b='a string' to table\n", math.MaxInt32)
-	_, err = db.Exec("insert into simple values (?, \"?\")", math.MaxInt32, "a string")
+	_, err = db.Exec("insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string")
 	if err != nil {
 		return fmt.Errorf("Failed to insert values: %v", err)
 	}
