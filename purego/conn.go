@@ -87,6 +87,14 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 		return nil, fmt.Errorf("go-ase: error logging in: %w", err)
 	}
 
+	// TODO can this be passed another way?
+	if dsn.Database != "" {
+		_, err = conn.ExecContext(ctx, "use "+dsn.Database, nil)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error switching to database %s: %w", dsn.Database, err)
+		}
+	}
+
 	return conn, nil
 }
 
