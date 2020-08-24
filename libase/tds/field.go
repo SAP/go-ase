@@ -1080,15 +1080,15 @@ func readLengthBytes(ch BytesChannel, n int) (int, error) {
 	case 4:
 		var tmp uint32
 		tmp, err = ch.Uint32()
-		length = int(int32(tmp))
+		length = int(tmp)
 	case 2:
 		var tmp uint16
 		tmp, err = ch.Uint16()
-		length = int(int16(tmp))
+		length = int(tmp)
 	default:
 		var tmp uint8
 		tmp, err = ch.Uint8()
-		length = int(int8(tmp))
+		length = int(tmp)
 	}
 
 	if err != nil {
