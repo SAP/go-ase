@@ -122,14 +122,13 @@ func (rows *Rows) Close() error {
 		}
 	}
 
-	for r, _, _, err := rows.cmd.Response(); err != io.EOF; r, _, _, err = rows.cmd.Response() {
-		if err != nil {
-			return fmt.Errorf("Received error reading results: %w", err)
-		}
+	newRows, _, err := rows.cmd.ConsumeResponse()
+	if err != nil {
+		return err
+	}
 
-		if r != nil {
-			return fmt.Errorf("Received rows reading results, exiting: %v", r)
-		}
+	if newRows != nil {
+		newRows.Close()
 	}
 
 	if !rows.cmd.isDynamic {

@@ -27,26 +27,17 @@ func (conn *Connection) GenericExec(ctx context.Context, query string) (driver.R
 		return nil, nil, err
 	}
 
-	var resResult driver.Result
-	for {
-		rows, result, _, err := cmd.Response()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, nil, fmt.Errorf("Received error reading results: %w", err)
-		}
-
-		if result != nil {
-			resResult = result
-		}
-
-		if rows != nil {
-			return rows, result, nil
-		}
+	rows, result, err := cmd.ConsumeResponse()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return nil, resResult, nil
+	if rows != nil {
+		return rows, result, nil
+	}
+
+	cmd.Drop()
+	return nil, result, nil
 }
 
 func (conn *Connection) NewCommand(ctx context.Context, query string) (*Command, error) {
@@ -217,4 +208,29 @@ func (cmd *Command) Response() (*Rows, *Result, C.CS_INT, error) {
 		cmd.Cancel()
 		return nil, nil, resultType, fmt.Errorf("Unknown result type: %d", resultType)
 	}
+}
+
+// ConsumeResponse is a wrapper around .Response that guarantees that
+// all results have been read.
+func (cmd *Command) ConsumeResponse() (*Rows, *Result, error) {
+	var resResult *Result
+	for {
+		rows, result, _, err := cmd.Response()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, nil, fmt.Errorf("go-ase: received error reading results: %w", err)
+		}
+
+		if result != nil {
+			resResult = result
+		}
+
+		if rows != nil {
+			return rows, result, nil
+		}
+	}
+
+	return nil, resResult, nil
 }

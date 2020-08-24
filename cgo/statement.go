@@ -89,12 +89,16 @@ func (conn *Connection) prepare(query string) (driver.Stmt, error) {
 		return nil, err
 	}
 
-	for err = nil; err != io.EOF; _, _, _, err = cmd.Response() {
-		if err != nil {
-			stmt.Close()
-			cmd.Cancel()
-			return nil, err
-		}
+	rows, _, err := cmd.ConsumeResponse()
+	if err != nil {
+		stmt.Close()
+		cmd.Cancel()
+		return nil, fmt.Errorf("error reading response: %w", err)
+	}
+
+	if rows != nil {
+		rows.Close()
+		return nil, fmt.Errorf("received rows when creating prepared statement")
 	}
 
 	stmt.cmd = cmd
@@ -340,24 +344,20 @@ func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue
 }
 
 func (stmt *statement) execResults() (driver.Result, error) {
-	var resResult driver.Result
-
-	for {
-		_, result, _, err := stmt.cmd.Response()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if result.rowsAffected != 0 {
-			resResult = result
-		}
+	rows, result, err := stmt.cmd.ConsumeResponse()
+	if err != nil {
+		return nil, err
 	}
 
-	return resResult, nil
+	if rows != nil {
+		rows.Close()
+	}
+
+	if result != nil {
+		return result, nil
+	}
+
+	return nil, nil
 }
 
 func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {

@@ -231,22 +231,16 @@ func (conn *Connection) ExecContext(ctx context.Context, query string, args []dr
 	}
 	defer cmd.Drop()
 
-	var resResult driver.Result
-	for {
-		_, result, _, err := cmd.Response()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, fmt.Errorf("Received error reading results: %w", err)
-		}
-
-		if result != nil {
-			resResult = result
-		}
+	rows, result, err := cmd.ConsumeResponse()
+	if err != nil {
+		return nil, fmt.Errorf("cgo-ase: received error reading results: %w", err)
 	}
 
-	return resResult, nil
+	if rows != nil {
+		rows.Close()
+	}
+
+	return result, nil
 }
 
 func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
@@ -265,12 +259,12 @@ func (conn *Connection) QueryContext(ctx context.Context, query string, args []d
 		return stmt.(*statement).QueryContext(ctx, args)
 	}
 
-	cmd, err := conn.NewCommand(ctx, q)
+	cmd, err := conn.NewCommand(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to send command: %w", err)
 	}
 
-	rows, _, _, err := cmd.Response()
+	rows, _, err := cmd.ConsumeResponse()
 	if err != nil {
 		return nil, fmt.Errorf("Received error while retrieving results: %w", err)
 	}
