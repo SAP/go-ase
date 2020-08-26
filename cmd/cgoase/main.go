@@ -47,5 +47,5 @@ func handleMessage(msg cgo.Message) {
 		return
 	}
 
-	log.Println(msg.Content())
+	log.Printf("Msg %d: %s", msg.MessageNumber(), msg.Content())
 }
