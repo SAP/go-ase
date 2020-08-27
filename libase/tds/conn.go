@@ -87,7 +87,13 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 func (tds *Conn) Close() error {
 	var me error
 
+	var tdsChannels []*Channel
+	// tdsChannels := make([]*Channel, len(tds.tdsChannels))
 	for _, channel := range tds.tdsChannels {
+		tdsChannels = append(tdsChannels, channel)
+	}
+
+	for _, channel := range tdsChannels {
 		err := channel.Close()
 		if err != nil {
 			me = multierror.Append(me, fmt.Errorf("error closing channel: %w", err))
