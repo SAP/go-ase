@@ -22,7 +22,7 @@ var ReflectTypes = map[DataType]reflect.Type{
 	DATETIME:     reflect.TypeOf(time.Time{}),
 	DATETIMEN:    reflect.TypeOf(time.Time{}),
 	DECN:         reflect.TypeOf(&Decimal{}),
-	FLT4:         reflect.TypeOf(float64(0)),
+	FLT4:         reflect.TypeOf(float32(0)),
 	FLT8:         reflect.TypeOf(float64(0)),
 	FLTN:         reflect.TypeOf(float64(0)),
 	IMAGE:        reflect.SliceOf(reflect.TypeOf(byte(0))),
