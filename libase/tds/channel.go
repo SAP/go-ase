@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"sync"
 
@@ -21,6 +20,14 @@ var ErrNoPackageReady = errors.New("no package ready")
 // server.
 type Channel struct {
 	tdsConn *Conn
+
+	// The RWMutex isn't used in it intended from of reader/writer locks
+	// but rather allows multiple goroutines to acquire a read-lock to
+	// use the channel for sending/receiving packages.
+	// The exclusive write lock is used to stop other goroutines from
+	// using the channel when closing it.
+	sync.RWMutex
+	closed bool
 
 	channelId          int
 	envChangeHooks     []EnvChangeHook
@@ -114,6 +121,12 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 
 // Reset resets the Channel after a communication has been completed.
 func (tdsChan *Channel) Reset() {
+	tdsChan.RLock()
+	defer tdsChan.RUnlock()
+	if tdsChan.closed {
+		return
+	}
+
 	tdsChan.CurrentHeaderType = TDS_BUF_NORMAL
 	tdsChan.queueTx.Reset()
 	tdsChan.lastPkgTx = nil
@@ -151,10 +164,19 @@ func (tdsChan *Channel) Close() error {
 				fmt.Errorf("error sending teardown for channel %d: %w",
 					tdsChan.channelId, err))
 		}
+
+		// TODO process ack packet
 	}
 
+	// Lock the channel and store the closed indicator.
+	tdsChan.Lock()
+	defer tdsChan.Unlock()
+	tdsChan.closed = true
+
 	// Channel closing has been communicated, remove channel from conn
+	tdsChan.tdsConn.tdsChannelsLock.Lock()
 	delete(tdsChan.tdsConn.tdsChannels, tdsChan.channelId)
+	tdsChan.tdsConn.tdsChannelsLock.Unlock()
 
 	close(tdsChan.packageCh)
 	for {
@@ -164,6 +186,7 @@ func (tdsChan *Channel) Close() error {
 			break
 		}
 	}
+	tdsChan.packageCh = nil
 
 	close(tdsChan.errCh)
 	for {
@@ -173,12 +196,13 @@ func (tdsChan *Channel) Close() error {
 			break
 		}
 	}
+	tdsChan.errCh = nil
 
 	return me
 }
 
 // Logout implements the logout sequence.
-func (tdsChan Channel) Logout() error {
+func (tdsChan *Channel) Logout() error {
 	err := tdsChan.SendPackage(context.Background(), &LogoutPackage{})
 	if err != nil {
 		return fmt.Errorf("error sending logout package: %w", err)
@@ -243,6 +267,14 @@ func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 // If multiple errors and a package are ready a random error or package
 // will be returned, as stated in the spec for select.
 func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, error) {
+	tdsChan.RLock()
+	defer tdsChan.RUnlock()
+
+	// TODO return a proper error
+	if tdsChan.closed {
+		return nil, nil
+	}
+
 	ch := make(chan error, 1)
 
 	// Write an error into the channel if the caller does not want to
@@ -314,8 +346,15 @@ type LastPkgAcceptor interface {
 // QueuePackage utilizes PacketQueue to convert a Package into packets.
 // Packets that have their Data exhausted are sent to the server.
 func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
+	tdsChan.RLock()
+	defer tdsChan.RUnlock()
+	// TODO return proper erro
+	if tdsChan.closed {
+		return nil
+	}
+
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
-		err := acceptor.LastPkg(tdsChan.lastPkg)
+		err := acceptor.LastPkg(tdsChan.lastPkgTx)
 		if err != nil {
 			return fmt.Errorf("error calling LastPkg on %s: %w", pkg, err)
 		}
@@ -325,7 +364,7 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 	if err != nil {
 		return fmt.Errorf("error queueing packets from package %s: %w", pkg, err)
 	}
-	tdsChan.lastPkg = pkg
+	tdsChan.lastPkgTx = pkg
 
 	return tdsChan.sendPackets(ctx, true)
 }
@@ -333,6 +372,13 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 // Send all remaining Packets in queue to the server.
 // This includes Packets whose Data isn't exhausted.
 func (tdsChan *Channel) SendRemainingPackets(ctx context.Context) error {
+	tdsChan.RLock()
+	defer tdsChan.RUnlock()
+	// TODO return proper erro
+	if tdsChan.closed {
+		return nil
+	}
+
 	// SendRemainingPackets is only called when completing sending
 	// packets to the server and preparing to receive the answer.
 	defer tdsChan.Reset()
@@ -343,8 +389,7 @@ func (tdsChan *Channel) SendRemainingPackets(ctx context.Context) error {
 // and can be used if e.g. the last package or only a single package
 // must be sent.
 func (tdsChan *Channel) SendPackage(ctx context.Context, pkg Package) error {
-	err := tdsChan.QueuePackage(ctx, pkg)
-	if err != nil {
+	if err := tdsChan.QueuePackage(ctx, pkg); err != nil {
 		return err
 	}
 
@@ -419,6 +464,12 @@ func (tdsChan *Channel) sendPacket(packet *Packet) error {
 // WritePacket received packets from the associated Conn and attempts
 // to produce Packages from the existing data.
 func (tdsChan *Channel) WritePacket(packet *Packet) {
+	tdsChan.RLock()
+	defer tdsChan.RUnlock()
+	if tdsChan.closed {
+		return
+	}
+
 	// The packet is header-only - pass it directly into the package
 	// channel.
 	if packet.Header.Length == MsgHeaderLength {
@@ -453,9 +504,6 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	// Attempt to process data from channel into a Package.
 	tokenByte, err := tdsChan.queueRx.Byte()
 	if err != nil {
-		if !errors.Is(err, io.EOF) {
-			tdsChan.errCh <- fmt.Errorf("error reading token byte: %w", err)
-		}
 		return false
 	}
 
