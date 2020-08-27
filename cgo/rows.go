@@ -171,33 +171,17 @@ func (rows *Rows) Next(dest []driver.Value) error {
 		dataType := rows.colASEType[i].ToDataType()
 
 		switch rows.colASEType[i] {
-		case BIGINT:
-			dest[i] = int64(*((*C.CS_BIGINT)(rows.colData[i])))
-		case INT:
-			dest[i] = int32(*((*C.CS_INT)(rows.colData[i])))
-		case SMALLINT:
-			dest[i] = int16(*((*C.CS_SMALLINT)(rows.colData[i])))
-		case TINYINT:
-			dest[i] = uint8(*((*C.CS_TINYINT)(rows.colData[i])))
-		case UBIGINT:
-			dest[i] = uint64(*((*C.CS_UBIGINT)(rows.colData[i])))
-		case UINT:
-			dest[i] = uint32(*((*C.CS_UBIGINT)(rows.colData[i])))
-		case USMALLINT, USHORT:
-			dest[i] = uint16(*((*C.CS_USMALLINT)(rows.colData[i])))
-		case FLOAT:
-			dest[i] = float64(*((*C.CS_FLOAT)(rows.colData[i])))
-		case REAL:
-			dest[i] = float64(*((*C.CS_REAL)(rows.colData[i])))
+		case BIGINT, INT, SMALLINT, TINYINT, UBIGINT, UINT, USMALLINT, USHORT, FLOAT, REAL, BIT, MONEY, MONEY4, DATE, TIME, DATETIME, DATETIME4:
+			bs := C.GoBytes(rows.colData[i], C.int(dataType.ByteSize()))
+			val, err := dataType.GoValue(binary.LittleEndian, bs)
+			if err != nil {
+				return err
+			}
+			dest[i] = val
 		case CHAR, VARCHAR, TEXT, LONGCHAR:
 			dest[i] = C.GoString((*C.char)(rows.colData[i]))
 		case BINARY, IMAGE:
 			dest[i] = C.GoBytes(rows.colData[i], rows.dataFmts[i].maxlength)
-		case BIT:
-			dest[i] = false
-			if int(*(*C.CS_BIT)(rows.colData[i])) == 1 {
-				dest[i] = true
-			}
 		case DECIMAL, NUMERIC:
 			csDec := (*C.CS_DECIMAL)(rows.colData[i])
 			bs := C.GoBytes(
@@ -214,13 +198,6 @@ func (rows *Rows) Next(dest []driver.Value) error {
 			dec.Precision = int(csDec.precision)
 			dec.Scale = int(csDec.scale)
 			dest[i] = dec
-		case MONEY, MONEY4, DATE, TIME, DATETIME, DATETIME4:
-			bs := C.GoBytes(rows.colData[i], C.int(dataType.ByteSize()))
-			resp, err := dataType.GoValue(binary.LittleEndian, bs)
-			if err != nil {
-				return err
-			}
-			dest[i] = resp
 		case BIGDATETIME, BIGTIME:
 			bs := C.GoBytes(rows.colData[i], 8)
 			resp, err := dataType.GoValue(binary.LittleEndian, bs)

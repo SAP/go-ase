@@ -181,27 +181,14 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		// for ct_param.
 		// This function could also check for null values early.
 		switch stmt.columnTypes[i] {
-		case BIGINT:
-			i := (C.CS_BIGINT)(arg.Value.(int64))
-			ptr = unsafe.Pointer(&i)
-		case INT:
-			i := (C.CS_INT)(arg.Value.(int32))
-			ptr = unsafe.Pointer(&i)
-		case SMALLINT:
-			i := (C.CS_SMALLINT)(arg.Value.(int16))
-			ptr = unsafe.Pointer(&i)
-		case TINYINT:
-			i := (C.CS_TINYINT)(arg.Value.(int8))
-			ptr = unsafe.Pointer(&i)
-		case UBIGINT:
-			ci := (C.CS_UBIGINT)(arg.Value.(uint64))
-			ptr = unsafe.Pointer(&ci)
-		case UINT:
-			i := (C.CS_UINT)(arg.Value.(uint32))
-			ptr = unsafe.Pointer(&i)
-		case USMALLINT, USHORT:
-			i := (C.CS_USMALLINT)(arg.Value.(uint16))
-			ptr = unsafe.Pointer(&i)
+		case BIGINT, INT, SMALLINT, TINYINT, UBIGINT, UINT, USMALLINT, USHORT, FLOAT, REAL:
+			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
+			if err != nil {
+				// TODO context
+				return err
+			}
+			ptr = C.CBytes(bs)
+			defer C.free(ptr)
 		case DECIMAL, NUMERIC:
 			csDec := (*C.CS_DECIMAL)(C.calloc(1, C.sizeof_CS_DECIMAL))
 			defer C.free(unsafe.Pointer(csDec))
@@ -221,12 +208,6 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			}
 
 			ptr = unsafe.Pointer(csDec)
-		case FLOAT:
-			i := (C.CS_FLOAT)(arg.Value.(float64))
-			ptr = unsafe.Pointer(&i)
-		case REAL:
-			i := (C.CS_REAL)(arg.Value.(float64))
-			ptr = unsafe.Pointer(&i)
 		case MONEY, MONEY4, DATE, TIME, DATETIME4, DATETIME, BIGDATETIME, BIGTIME:
 			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
 			if err != nil {
