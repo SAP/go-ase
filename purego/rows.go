@@ -59,10 +59,12 @@ func (rows *Rows) Next(dst []driver.Value) error {
 		return fmt.Errorf("go-ase: error reading next row package: %w", err)
 	}
 
-	var row *tds.RowPackage
 	switch typed := pkg.(type) {
 	case *tds.RowPackage:
-		row = typed
+		for i := range dst {
+			dst[i] = typed.DataFields[i].Value()
+		}
+		return nil
 	case *tds.RowFmtPackage:
 		// TODO: should next return io.EOF if the result set is
 		// finished?
@@ -73,19 +75,6 @@ func (rows *Rows) Next(dst []driver.Value) error {
 	default:
 		return fmt.Errorf("go-ase: unhandled package type %T: %v", pkg, pkg)
 	}
-
-	// TODO handle hidden columns
-	if len(dst) != len(row.DataFields) {
-		return fmt.Errorf("go-ase: received %d destinations for %d data fields",
-			len(dst), len(row.DataFields))
-	}
-
-	for i := range dst {
-		// TODO correctly transform data
-		dst[i] = row.DataFields[i].Value()
-	}
-
-	return nil
 }
 
 func (rows *Rows) HasNextResultSet() bool {
