@@ -95,11 +95,10 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 			return nil, fmt.Errorf("invalid length for FLTN: %d", len(bs))
 		}
 	case BIT:
-		bit := false
 		if bs[0] == 0x1 {
-			bit = true
+			return true, nil
 		}
-		return bit, nil
+		return false, nil
 	case LONGBINARY, BINARY, IMAGE:
 		// Noop
 		return bs, nil
