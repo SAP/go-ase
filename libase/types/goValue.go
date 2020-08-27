@@ -33,7 +33,7 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 
 	switch t {
 	case INT1:
-		var x int8
+		var x uint8
 		err := binary.Read(buffer, endian, &x)
 		return x, err
 	case INT2:

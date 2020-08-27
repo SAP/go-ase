@@ -26,7 +26,7 @@ var ReflectTypes = map[DataType]reflect.Type{
 	FLT8:         reflect.TypeOf(float64(0)),
 	FLTN:         reflect.TypeOf(float64(0)),
 	IMAGE:        reflect.SliceOf(reflect.TypeOf(byte(0))),
-	INT1:         reflect.TypeOf(int8(0)),
+	INT1:         reflect.TypeOf(uint8(0)),
 	INT2:         reflect.TypeOf(int16(0)),
 	INT4:         reflect.TypeOf(int32(0)),
 	INT8:         reflect.TypeOf(int64(0)),
