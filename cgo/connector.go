@@ -16,12 +16,12 @@ var _ driver.Connector = (*connector)(nil)
 
 type connector struct {
 	driverCtx *csContext
-	dsn       libdsn.Info
+	dsn       *libdsn.Info
 }
 
 // NewConnector returns a driver.Connector which can be passed to
 // sql.OpenDB.
-func NewConnector(dsn libdsn.Info) (driver.Connector, error) {
+func NewConnector(dsn *libdsn.Info) (driver.Connector, error) {
 	driverCtx, err := newCsContext(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize context: %w", err)
