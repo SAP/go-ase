@@ -38,7 +38,7 @@ var ReflectTypes = map[DataType]reflect.Type{
 	NUMN:         reflect.TypeOf(&Decimal{}),
 	SENSITIVITY:  nil,
 	SHORTDATE:    reflect.TypeOf(time.Time{}),
-	SHORTMONEY:   reflect.TypeOf(time.Time{}),
+	SHORTMONEY:   reflect.TypeOf(&Decimal{}),
 	TEXT:         reflect.TypeOf(string("")),
 	TIME:         reflect.TypeOf(time.Time{}),
 	TIMEN:        reflect.TypeOf(time.Time{}),
