@@ -31,9 +31,10 @@ type statement struct {
 
 // Interface satisfaction checks
 var (
-	_ driver.Stmt             = (*statement)(nil)
-	_ driver.StmtExecContext  = (*statement)(nil)
-	_ driver.StmtQueryContext = (*statement)(nil)
+	_ driver.Stmt              = (*statement)(nil)
+	_ driver.StmtExecContext   = (*statement)(nil)
+	_ driver.StmtQueryContext  = (*statement)(nil)
+	_ driver.NamedValueChecker = (*statement)(nil)
 )
 
 var (
@@ -475,5 +476,21 @@ func (stmt *statement) fillColumnTypes() error {
 
 	}
 
+	return nil
+}
+
+func (stmt statement) CheckNamedValue(named *driver.NamedValue) error {
+	index := named.Ordinal - 1
+	if index > len(stmt.columnTypes) {
+		return fmt.Errorf("cgo-ase: ordinal %d is larger than the number of columns %d",
+			named.Ordinal, len(stmt.columnTypes))
+	}
+
+	val, err := stmt.columnTypes[index].ToDataType().ConvertValue(named.Value)
+	if err != nil {
+		return fmt.Errorf("cgo-ase: error converting value: %w", err)
+	}
+
+	named.Value = val
 	return nil
 }

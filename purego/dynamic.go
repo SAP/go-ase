@@ -18,9 +18,10 @@ import (
 )
 
 var (
-	_ driver.Stmt             = (*Stmt)(nil)
-	_ driver.StmtExecContext  = (*Stmt)(nil)
-	_ driver.StmtQueryContext = (*Stmt)(nil)
+	_ driver.Stmt              = (*Stmt)(nil)
+	_ driver.StmtExecContext   = (*Stmt)(nil)
+	_ driver.StmtQueryContext  = (*Stmt)(nil)
+	_ driver.NamedValueChecker = (*Stmt)(nil)
 
 	stmtIdCounter uint64 = 0
 	stmtIdPool           = &sync.Pool{
@@ -264,4 +265,39 @@ func (stmt Stmt) exec(ctx context.Context, args []driver.NamedValue) (driver.Row
 	}
 
 	return rows, result, nil
+}
+
+func (stmt Stmt) CheckNamedValues(namedValues []*driver.NamedValue) error {
+	for _, nv := range namedValues {
+		err := stmt.CheckNamedValue(nv)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
+	var fieldFmts []tds.FieldFmt
+	if stmt.paramFmt != nil {
+		fieldFmts = stmt.paramFmt.Fmts
+	} else if stmt.rowFmt != nil {
+		fieldFmts = stmt.rowFmt.Fmts
+	} else {
+		return fmt.Errorf("go-ase: both row and paramFmt are unset")
+	}
+
+	index := named.Ordinal - 1
+	if index > len(fieldFmts) {
+		return fmt.Errorf("go-ase: ordinal %d is larger than the number of columns %d",
+			named.Ordinal, len(fieldFmts))
+	}
+
+	val, err := fieldFmts[index].DataType().ConvertValue(named.Value)
+	if err != nil {
+		return fmt.Errorf("go-ase: error converting value: %w", err)
+	}
+
+	named.Value = val
+	return nil
 }

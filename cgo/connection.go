@@ -42,7 +42,7 @@ var (
 // options in the dsn.
 //
 // If driverCtx is nil a new csContext will be initialized.
-func NewConnection(driverCtx *csContext, dsn libdsn.Info) (*Connection, error) {
+func NewConnection(driverCtx *csContext, dsn *libdsn.Info) (*Connection, error) {
 	if driverCtx == nil {
 		var err error
 		driverCtx, err = newCsContext(dsn)
@@ -215,14 +215,21 @@ func (conn *Connection) Exec(query string, args []driver.Value) (driver.Result, 
 
 func (conn *Connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	if len(args) > 0 {
-		stmt, err := conn.PrepareContext(ctx, query)
+		stmt, err := conn.prepare(query)
 		if err != nil {
 			// TODO
 			return nil, err
 		}
 		defer stmt.Close()
 
-		return stmt.(*statement).ExecContext(ctx, args)
+		for i := range args {
+			err := stmt.CheckNamedValue(&args[i])
+			if err != nil {
+				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+			}
+		}
+
+		return stmt.ExecContext(ctx, args)
 	}
 
 	cmd, err := conn.NewCommand(ctx, query)
@@ -249,14 +256,21 @@ func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, e
 
 func (conn *Connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	if len(args) > 0 {
-		stmt, err := conn.PrepareContext(ctx, query)
+		stmt, err := conn.prepare(query)
 		if err != nil {
 			// TODO
 			return nil, err
 		}
 		defer stmt.Close()
 
-		return stmt.(*statement).QueryContext(ctx, args)
+		for i := range args {
+			err := stmt.CheckNamedValue(&args[i])
+			if err != nil {
+				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+			}
+		}
+
+		return stmt.QueryContext(ctx, args)
 	}
 
 	cmd, err := conn.NewCommand(ctx, query)
