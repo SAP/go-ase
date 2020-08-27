@@ -73,7 +73,7 @@ func (conn *Connection) PrepareContext(ctx context.Context, query string) (drive
 	}
 }
 
-func (conn *Connection) prepare(query string) (driver.Stmt, error) {
+func (conn *Connection) prepare(query string) (*statement, error) {
 	stmt := &statement{}
 
 	stmt.argCount = strings.Count(query, "?")
