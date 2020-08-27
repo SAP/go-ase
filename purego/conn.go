@@ -130,6 +130,13 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
 		}
 
+		for i := range args {
+			err := stmt.CheckNamedValue(&args[i])
+			if err != nil {
+				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+			}
+		}
+
 		result, err := stmt.ExecContext(ctx, args)
 		if err != nil {
 			return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
@@ -150,6 +157,13 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		stmt, err := c.NewStmt(ctx, "", query, true)
 		if err != nil {
 			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
+		}
+
+		for i := range args {
+			err := stmt.CheckNamedValue(&args[i])
+			if err != nil {
+				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+			}
 		}
 
 		rows, err := stmt.QueryContext(ctx, args)
