@@ -36,11 +36,11 @@ type Channel struct {
 
 	// queues store unconsumed Packets
 	queueRx, queueTx *PacketQueue
+	// lastPkgRx/Tx are the last packages sent to/received from the TDS
+	// server
+	lastPkgRx, lastPkgTx Package
 	// packageCh stores Packages as they are parsed from Packets
 	packageCh chan Package
-	// lastPkg is the last package sent by the TDS server and added to
-	// the channel.
-	lastPkg Package
 
 	errCh chan error
 }
@@ -116,7 +116,7 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 func (tdsChan *Channel) Reset() {
 	tdsChan.CurrentHeaderType = TDS_BUF_NORMAL
 	tdsChan.queueTx.Reset()
-	tdsChan.lastPkg = nil
+	tdsChan.lastPkgTx = nil
 }
 
 // Close communicates the closing of the channel with the TDS server.
@@ -472,7 +472,7 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	}
 
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
-		err := acceptor.LastPkg(tdsChan.lastPkg)
+		err := acceptor.LastPkg(tdsChan.lastPkgRx)
 		if err != nil {
 			tdsChan.errCh <- fmt.Errorf("error in LastPkg: %w", err)
 			return false
@@ -506,6 +506,6 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	}
 
 	tdsChan.packageCh <- pkg
-	tdsChan.lastPkg = pkg
+	tdsChan.lastPkgRx = pkg
 	return true
 }
