@@ -12,7 +12,7 @@ import (
 
 type ValueConverter struct{}
 
-var DefaultValueConverter = ValueConverter{}
+var DefaultValueConverter ValueConverter
 
 func (conv ValueConverter) ConvertValue(v interface{}) (driver.Value, error) {
 	// Check the default value converter
@@ -26,8 +26,6 @@ func (conv ValueConverter) ConvertValue(v interface{}) (driver.Value, error) {
 		return int64(value), nil
 	case uint:
 		return uint64(value), nil
-	case uint8:
-		return int8(value), nil
 	}
 
 	// Check the reflect types if the value is handled.
