@@ -83,6 +83,17 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 		var x float64
 		err := binary.Read(buffer, endian, &x)
 		return x, err
+	case FLTN:
+		switch len(bs) {
+		case 0:
+			return 0, nil
+		case 4:
+			return FLT4.GoValue(endian, bs)
+		case 8:
+			return FLT8.GoValue(endian, bs)
+		default:
+			return nil, fmt.Errorf("invalid length for FLTN: %d", len(bs))
+		}
 	case BIT:
 		bit := false
 		if bs[0] == 0x1 {
