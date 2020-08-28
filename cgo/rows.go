@@ -82,7 +82,7 @@ func newRows(cmd *Command) (*Rows, error) {
 		asetype := (ASEType)(r.dataFmts[i].datatype)
 		if asetype.String() == "" {
 			r.Close()
-			return nil, fmt.Errorf("Invalid ASEType: %w", r.dataFmts[i].datatype)
+			return nil, fmt.Errorf("Invalid ASEType: %v", r.dataFmts[i].datatype)
 		}
 
 		r.colASEType[i] = asetype
@@ -128,7 +128,7 @@ func (rows *Rows) Close() error {
 		}
 
 		if r != nil {
-			return fmt.Errorf("Received rows reading results, exiting: %w", r)
+			return fmt.Errorf("Received rows reading results, exiting: %v", r)
 		}
 	}
 
@@ -262,7 +262,7 @@ func (rows *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 
 func (rows *Rows) ColumnTypeLength(index int) (int64, bool) {
 	switch rows.colASEType[index] {
-	case BINARY:
+	case BINARY, IMAGE:
 		return int64(rows.dataFmts[index].maxlength), true
 	case CHAR:
 		return int64(C.CS_MAX_CHAR), true
