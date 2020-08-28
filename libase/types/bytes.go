@@ -101,5 +101,12 @@ func (t DataType) Bytes(endian binary.ByteOrder, value interface{}) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("error writing value: %w", err)
 	}
-	return buf.Bytes(), nil
+
+	bs := buf.Bytes()
+	if t.ByteSize() != -1 && t.ByteSize() != len(bs) {
+		return nil, fmt.Errorf("binary.Write returned a byteslice of length %d, expected %d for datatype %s",
+			len(bs), t.ByteSize(), t)
+	}
+
+	return bs, nil
 }
