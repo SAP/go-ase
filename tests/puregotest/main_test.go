@@ -39,3 +39,19 @@ func testMain(m *testing.M) error {
 
 	return nil
 }
+
+// Exact numeric integer
+func TestInt8(t *testing.T)  { libtest.DoTestBigInt(t) }
+func TestInt4(t *testing.T)  { libtest.DoTestInt(t) }
+func TestInt2(t *testing.T)  { libtest.DoTestSmallInt(t) }
+func TestInt1(t *testing.T)  { libtest.DoTestTinyInt(t) }
+func TestUint8(t *testing.T) { libtest.DoTestUnsignedBigInt(t) }
+func TestUint4(t *testing.T) { libtest.DoTestUnsignedInt(t) }
+func TestUint2(t *testing.T) { libtest.DoTestUnsignedSmallInt(t) }
+
+// Approximate numeric
+func TestFlt8(t *testing.T) { libtest.DoTestFloat(t) }
+func TestFlt4(t *testing.T) { libtest.DoTestReal(t) }
+
+// Bit
+func TestBit(t *testing.T) { libtest.DoTestBit(t) }
