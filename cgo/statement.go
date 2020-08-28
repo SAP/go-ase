@@ -311,7 +311,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 		retval = C.ct_param(stmt.cmd.cmd, datafmt, ptr, csDatalen, 0)
 		if retval != C.CS_SUCCEED {
-			return makeError(retval, "C.ct_param on parameter %d failed with argument '%w'", i, arg)
+			return makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
 		}
 	}
 
