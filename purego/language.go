@@ -13,10 +13,6 @@ import (
 	"github.com/SAP/go-ase/libase/tds"
 )
 
-func (c Conn) GenericExec(ctx context.Context, query string) (driver.Rows, driver.Result, error) {
-	return c.language(ctx, query)
-}
-
 func (c Conn) language(ctx context.Context, query string) (driver.Rows, driver.Result, error) {
 	langPkg := &tds.LanguagePackage{
 		Status: tds.TDS_LANGUAGE_NOARGS,

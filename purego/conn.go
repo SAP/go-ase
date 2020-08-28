@@ -124,61 +124,13 @@ func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, e
 }
 
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	if len(args) > 0 {
-		stmt, err := c.NewStmt(ctx, "", query, true)
-		if err != nil {
-			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
-		}
-
-		for i := range args {
-			err := stmt.CheckNamedValue(&args[i])
-			if err != nil {
-				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-			}
-		}
-
-		result, err := stmt.ExecContext(ctx, args)
-		if err != nil {
-			return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
-		}
-
-		return result, nil
-	}
-
-	_, result, err := c.language(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
-	}
-	return result, nil
+	_, result, err := c.GenericExec(ctx, query, args)
+	return result, err
 }
 
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if len(args) > 0 {
-		stmt, err := c.NewStmt(ctx, "", query, true)
-		if err != nil {
-			return nil, fmt.Errorf("go-ase: error preparing statement: %w", err)
-		}
-
-		for i := range args {
-			err := stmt.CheckNamedValue(&args[i])
-			if err != nil {
-				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-			}
-		}
-
-		rows, err := stmt.QueryContext(ctx, args)
-		if err != nil {
-			return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
-		}
-
-		return rows, nil
-	}
-
-	rows, _, err := c.language(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("go-ase: error executing statement: %w", err)
-	}
-	return rows, nil
+	rows, _, err := c.GenericExec(ctx, query, args)
+	return rows, err
 }
 
 func (c Conn) Ping(ctx context.Context) error {

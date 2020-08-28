@@ -74,7 +74,7 @@ func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool
 	if create_proc {
 		stmt.pkg.Stmt = fmt.Sprintf("create proc %s as %s", name, query)
 	} else {
-		stmt.pkg.Stmt = fmt.Sprintf("prepare %s from %s", name, query)
+		stmt.pkg.Stmt = query
 	}
 
 	// Reset statement to default before proceeding
