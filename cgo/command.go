@@ -21,45 +21,45 @@ type Command struct {
 	isDynamic bool
 }
 
-func (conn *Connection) GenericExec(ctx context.Context, query string) (driver.Rows, driver.Result, error) {
-	cmd, err := conn.NewCommand(ctx, query)
+func (conn *Connection) GenericExec(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+	if len(args) == 0 {
+		cmd, err := conn.NewCommand(ctx, query)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		rows, result, err := cmd.ConsumeResponse(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if rows != nil {
+			return rows, result, nil
+		}
+
+		cmd.Drop()
+		return nil, result, nil
+	}
+
+	stmt, err := conn.prepare(ctx, query)
 	if err != nil {
+		// TODO
 		return nil, nil, err
 	}
+	defer stmt.Close()
 
-	rows, result, err := cmd.ConsumeResponse()
-	if err != nil {
-		return nil, nil, err
+	for i := range args {
+		err := stmt.CheckNamedValue(&args[i])
+		if err != nil {
+			return nil, nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+		}
 	}
 
-	if rows != nil {
-		return rows, result, nil
-	}
-
-	cmd.Drop()
-	return nil, result, nil
+	return stmt.exec(ctx, args)
 }
 
 func (conn *Connection) NewCommand(ctx context.Context, query string) (*Command, error) {
-	recvCmd := make(chan *Command, 1)
-	recvErr := make(chan error, 1)
-	go func() {
-		cmd, err := conn.exec(query)
-		recvCmd <- cmd
-		close(recvCmd)
-		recvErr <- err
-		close(recvErr)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case err := <-recvErr:
-			cmd := <-recvCmd
-			return cmd, err
-		}
-	}
+	return conn.exec(ctx, query)
 }
 
 // cancel cancels the current result set.
@@ -86,7 +86,7 @@ func (cmd *Command) Drop() error {
 //
 // The return values are the command structure, a function to deallocate
 // the command structure and an error, if any occurred.
-func (conn *Connection) exec(query string) (*Command, error) {
+func (conn *Connection) exec(ctx context.Context, query string) (*Command, error) {
 	cmd := &Command{}
 	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
 	if retval != C.CS_SUCCEED {
@@ -114,7 +114,7 @@ func (conn *Connection) exec(query string) (*Command, error) {
 }
 
 // dynamic initializes a Command as a prepared statement.
-func (conn *Connection) Dynamic(name string, query string) (*Command, error) {
+func (conn *Connection) dynamic(name string, query string) (*Command, error) {
 	cmd := &Command{}
 	cmd.isDynamic = true
 	retval := C.ct_cmd_alloc(conn.conn, &cmd.cmd)
@@ -212,23 +212,29 @@ func (cmd *Command) Response() (*Rows, *Result, C.CS_INT, error) {
 
 // ConsumeResponse is a wrapper around .Response that guarantees that
 // all results have been read.
-func (cmd *Command) ConsumeResponse() (*Rows, *Result, error) {
+func (cmd *Command) ConsumeResponse(ctx context.Context) (*Rows, *Result, error) {
 	var resResult *Result
+outer:
 	for {
-		rows, result, _, err := cmd.Response()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
+		select {
+		case <-ctx.Done():
+			break outer
+		default:
+			rows, result, _, err := cmd.Response()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break outer
+				}
+				return nil, nil, fmt.Errorf("go-ase: received error reading results: %w", err)
 			}
-			return nil, nil, fmt.Errorf("go-ase: received error reading results: %w", err)
-		}
 
-		if result != nil {
-			resResult = result
-		}
+			if result != nil {
+				resResult = result
+			}
 
-		if rows != nil {
-			return rows, result, nil
+			if rows != nil {
+				return rows, result, nil
+			}
 		}
 	}
 

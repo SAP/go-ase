@@ -43,38 +43,14 @@ var (
 )
 
 func (conn *Connection) Prepare(query string) (driver.Stmt, error) {
-	return conn.prepare(query)
+	return conn.PrepareContext(context.Background(), query)
 }
 
 func (conn *Connection) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	recvStmt := make(chan driver.Stmt, 1)
-	recvErr := make(chan error, 1)
-	go func() {
-		stmt, err := conn.prepare(query)
-		recvStmt <- stmt
-		close(recvStmt)
-		recvErr <- err
-		close(recvErr)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			go func() {
-				stmt := <-recvStmt
-				if stmt != nil {
-					stmt.Close()
-				}
-			}()
-			return nil, ctx.Err()
-		case err := <-recvErr:
-			stmt := <-recvStmt
-			return stmt, err
-		}
-	}
+	return conn.prepare(ctx, query)
 }
 
-func (conn *Connection) prepare(query string) (*statement, error) {
+func (conn *Connection) prepare(ctx context.Context, query string) (*statement, error) {
 	stmt := &statement{}
 
 	stmt.argCount = strings.Count(query, "?")
@@ -84,13 +60,13 @@ func (conn *Connection) prepare(query string) (*statement, error) {
 	stmt.name = fmt.Sprintf("stmt%d", statementCounter)
 	statementCounterM.Unlock()
 
-	cmd, err := conn.Dynamic(stmt.name, query)
+	cmd, err := conn.dynamic(stmt.name, query)
 	if err != nil {
 		stmt.Close()
 		return nil, err
 	}
 
-	rows, _, err := cmd.ConsumeResponse()
+	rows, _, err := cmd.ConsumeResponse(ctx)
 	if err != nil {
 		stmt.Close()
 		cmd.Cancel()
@@ -143,9 +119,9 @@ func (stmt *statement) NumInput() int {
 	return stmt.argCount
 }
 
-func (stmt *statement) exec(args []driver.NamedValue) error {
+func (stmt *statement) exec(ctx context.Context, args []driver.NamedValue) (*Rows, *Result, error) {
 	if len(args) != stmt.argCount {
-		return fmt.Errorf("Mismatched argument count - expected %d, got %d",
+		return nil, nil, fmt.Errorf("Mismatched argument count - expected %d, got %d",
 			stmt.argCount, len(args))
 	}
 
@@ -154,7 +130,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 	retval := C.ct_dynamic(stmt.cmd.cmd, C.CS_EXECUTE, name, C.CS_NULLTERM, nil, C.CS_UNUSED)
 	if retval != C.CS_SUCCEED {
-		return makeError(retval, "C.ct_dynamic with CS_EXECUTE failed")
+		return nil, nil, makeError(retval, "C.ct_dynamic with CS_EXECUTE failed")
 	}
 
 	for i, arg := range args {
@@ -186,7 +162,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
 			if err != nil {
 				// TODO context
-				return err
+				return nil, nil, err
 			}
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
@@ -212,7 +188,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		case MONEY, MONEY4, DATE, TIME, DATETIME4, DATETIME, BIGDATETIME, BIGTIME:
 			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 
 			ptr = C.CBytes(bs)
@@ -275,7 +251,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 		case UNICHAR, UNITEXT:
 			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 
 			ptr = unsafe.Pointer(C.CBytes(bs))
@@ -285,7 +261,7 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 			datafmt.format = C.CS_FMT_NULLTERM
 			datafmt.maxlength = (C.CS_INT)(datalen)
 		default:
-			return fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
+			return nil, nil, fmt.Errorf("Unhandled column type: %s", stmt.columnTypes[i])
 		}
 
 		var csDatalen C.CS_INT
@@ -297,131 +273,34 @@ func (stmt *statement) exec(args []driver.NamedValue) error {
 
 		retval = C.ct_param(stmt.cmd.cmd, datafmt, ptr, csDatalen, 0)
 		if retval != C.CS_SUCCEED {
-			return makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
+			return nil, nil, makeError(retval, "C.ct_param on parameter %d failed with argument '%v'", i, arg)
 		}
 	}
 
 	retval = C.ct_send(stmt.cmd.cmd)
 	if retval != C.CS_SUCCEED {
-		return makeError(retval, "C.ct_send failed")
+		return nil, nil, makeError(retval, "C.ct_send failed")
 	}
 
-	return nil
-}
-
-func (stmt *statement) execContext(ctx context.Context, args []driver.NamedValue) error {
-	recvErr := make(chan error, 1)
-	go func() {
-		recvErr <- stmt.exec(args)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-recvErr:
-			return err
-		}
-	}
-}
-
-func (stmt *statement) execResults() (driver.Result, error) {
-	rows, result, err := stmt.cmd.ConsumeResponse()
-	if err != nil {
-		return nil, err
-	}
-
-	if rows != nil {
-		rows.Close()
-	}
-
-	if result != nil {
-		return result, nil
-	}
-
-	return nil, nil
+	return stmt.cmd.ConsumeResponse(ctx)
 }
 
 func (stmt *statement) Exec(args []driver.Value) (driver.Result, error) {
-	err := stmt.exec(libase.ValuesToNamedValues(args))
-	if err != nil {
-		return nil, err
-	}
-
-	return stmt.execResults()
+	return stmt.ExecContext(context.Background(), libase.ValuesToNamedValues(args))
 }
 
 func (stmt *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	err := stmt.execContext(ctx, args)
-	if err != nil {
-		return nil, err
-	}
-
-	recvResult := make(chan driver.Result, 1)
-	recvErr := make(chan error, 1)
-	go func() {
-		res, err := stmt.execResults()
-		recvResult <- res
-		close(recvResult)
-		recvErr <- err
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case err := <-recvErr:
-			res := <-recvResult
-			return res, err
-		}
-	}
+	_, result, err := stmt.exec(ctx, args)
+	return result, err
 }
 
 func (stmt *statement) Query(args []driver.Value) (driver.Rows, error) {
-	err := stmt.exec(libase.ValuesToNamedValues(args))
-	if err != nil {
-		return nil, err
-	}
-
-	rows, _, _, err := stmt.cmd.Response()
-	if err != nil {
-		return nil, err
-	}
-
-	return rows, nil
+	return stmt.QueryContext(context.Background(), libase.ValuesToNamedValues(args))
 }
 
 func (stmt *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	err := stmt.execContext(ctx, args)
-	if err != nil {
-		return nil, err
-	}
-
-	recvRows := make(chan driver.Rows, 1)
-	recvErr := make(chan error, 1)
-	go func() {
-		rows, _, _, err := stmt.cmd.Response()
-		recvRows <- rows
-		close(recvRows)
-		recvErr <- err
-		close(recvErr)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			go func() {
-				rows := <-recvRows
-				if rows != nil {
-					rows.Close()
-				}
-			}()
-			return nil, ctx.Err()
-		case err := <-recvErr:
-			rows := <-recvRows
-			return rows, err
-		}
-	}
+	rows, _, err := stmt.exec(ctx, args)
+	return rows, err
 }
 
 func (stmt *statement) fillColumnTypes() error {

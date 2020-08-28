@@ -169,8 +169,8 @@ func (conn *Connection) Close() error {
 	return nil
 }
 
-func (conn *Connection) ping() error {
-	rows, err := conn.Query("SELECT 'PING'", nil)
+func (conn *Connection) Ping(ctx context.Context) error {
+	rows, err := conn.QueryContext(ctx, "SELECT 'PING'", nil)
 	if err != nil {
 		return driver.ErrBadConn
 	}
@@ -192,62 +192,13 @@ func (conn *Connection) ping() error {
 	return nil
 }
 
-func (conn *Connection) Ping(ctx context.Context) error {
-	recvErr := make(chan error, 1)
-	go func() {
-		recvErr <- conn.ping()
-		close(recvErr)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-recvErr:
-			return err
-		}
-	}
-}
-
 func (conn *Connection) Exec(query string, args []driver.Value) (driver.Result, error) {
 	return conn.ExecContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
 func (conn *Connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	if len(args) > 0 {
-		stmt, err := conn.prepare(query)
-		if err != nil {
-			// TODO
-			return nil, err
-		}
-		defer stmt.Close()
-
-		for i := range args {
-			err := stmt.CheckNamedValue(&args[i])
-			if err != nil {
-				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-			}
-		}
-
-		return stmt.ExecContext(ctx, args)
-	}
-
-	cmd, err := conn.NewCommand(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %w", err)
-	}
-	defer cmd.Drop()
-
-	rows, result, err := cmd.ConsumeResponse()
-	if err != nil {
-		return nil, fmt.Errorf("cgo-ase: received error reading results: %w", err)
-	}
-
-	if rows != nil {
-		rows.Close()
-	}
-
-	return result, nil
+	_, result, err := conn.GenericExec(ctx, query, args)
+	return result, err
 }
 
 func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
@@ -255,35 +206,8 @@ func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, e
 }
 
 func (conn *Connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if len(args) > 0 {
-		stmt, err := conn.prepare(query)
-		if err != nil {
-			// TODO
-			return nil, err
-		}
-		defer stmt.Close()
-
-		for i := range args {
-			err := stmt.CheckNamedValue(&args[i])
-			if err != nil {
-				return nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-			}
-		}
-
-		return stmt.QueryContext(ctx, args)
-	}
-
-	cmd, err := conn.NewCommand(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %w", err)
-	}
-
-	rows, _, err := cmd.ConsumeResponse()
-	if err != nil {
-		return nil, fmt.Errorf("Received error while retrieving results: %w", err)
-	}
-
-	return rows, nil
+	rows, _, err := conn.GenericExec(ctx, query, args)
+	return rows, err
 }
 
 func (conn *Connection) CheckNamedValue(nv *driver.NamedValue) error {

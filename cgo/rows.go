@@ -9,13 +9,15 @@ package cgo
 //#include "bridge.h"
 import "C"
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
-	"github.com/SAP/go-ase/libase/types"
 	"io"
 	"reflect"
 	"unsafe"
+
+	"github.com/SAP/go-ase/libase/types"
 )
 
 // Rows is the struct which represents a database result set
@@ -122,7 +124,7 @@ func (rows *Rows) Close() error {
 		}
 	}
 
-	newRows, _, err := rows.cmd.ConsumeResponse()
+	newRows, _, err := rows.cmd.ConsumeResponse(context.Background())
 	if err != nil {
 		return err
 	}
