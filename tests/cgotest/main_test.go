@@ -23,6 +23,9 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) error {
+	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
+	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
+
 	simpleDSN, simpleTeardown, err := libtest.DSN(false)
 	if err != nil {
 		return fmt.Errorf("error setting up simple DSN: %w", err)
@@ -44,9 +47,6 @@ func testMain(m *testing.M) error {
 	if err != nil {
 		return fmt.Errorf("error setting up userstore database: %w", err)
 	}
-
-	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
-	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
 
 	rc := m.Run()
 	if rc != 0 {
