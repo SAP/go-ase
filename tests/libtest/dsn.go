@@ -104,12 +104,12 @@ func DSN(userstore bool) (*libdsn.Info, func(), error) {
 	}
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create DSN from environment: %v", err)
+		return nil, nil, fmt.Errorf("failed to create DSN from environment: %w", err)
 	}
 
 	err = SetupDB(dsn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to setup database: %v", err)
+		return nil, nil, fmt.Errorf("failed to setup database: %w", err)
 	}
 
 	fn := func() {
