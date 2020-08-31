@@ -9,7 +9,7 @@ import "log"
 func ExampleDoMain() {
 	err := DoMain()
 	if err != nil {
-		log.Printf("Failed to execute example: %v", err)
+		log.Fatalf("Failed to execute example: %v", err)
 	}
 	// Output:
 	// Opening database
