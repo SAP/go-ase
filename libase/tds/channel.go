@@ -348,7 +348,7 @@ type LastPkgAcceptor interface {
 func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 	tdsChan.RLock()
 	defer tdsChan.RUnlock()
-	// TODO return proper erro
+	// TODO return proper error
 	if tdsChan.closed {
 		return nil
 	}
@@ -374,7 +374,7 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 func (tdsChan *Channel) SendRemainingPackets(ctx context.Context) error {
 	tdsChan.RLock()
 	defer tdsChan.RUnlock()
-	// TODO return proper erro
+	// TODO return proper error
 	if tdsChan.closed {
 		return nil
 	}
