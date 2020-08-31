@@ -39,7 +39,7 @@ func testMain(m *testing.M) error {
 
 	userstoreDSN, userstoreTeardown, err := libtest.DSN(true)
 	if err != nil {
-		return fmt.Errorf("error setting up userstore DSN: %v", err)
+		return fmt.Errorf("error setting up userstore DSN: %w", err)
 	}
 	defer userstoreTeardown()
 
@@ -50,7 +50,7 @@ func testMain(m *testing.M) error {
 
 	rc := m.Run()
 	if rc != 0 {
-		return fmt.Errorf("Tests failed with %d", rc)
+		return fmt.Errorf("tests failed with %d", rc)
 	}
 
 	return nil
