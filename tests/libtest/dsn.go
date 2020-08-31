@@ -21,7 +21,7 @@ import (
 func fromEnv(name string) (string, error) {
 	target, ok := os.LookupEnv(name)
 	if !ok {
-		return "", fmt.Errorf("Missing environment variable: %s", name)
+		return "", fmt.Errorf("missing environment variable: %s", name)
 	}
 
 	return target, nil
@@ -104,18 +104,18 @@ func DSN(userstore bool) (*libdsn.Info, func(), error) {
 	}
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to create DSN from environment: %v", err)
+		return nil, nil, fmt.Errorf("failed to create DSN from environment: %w", err)
 	}
 
 	err = SetupDB(dsn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to setup database: %v", err)
+		return nil, nil, fmt.Errorf("failed to setup database: %w", err)
 	}
 
 	fn := func() {
 		err := TeardownDB(dsn)
 		if err != nil {
-			log.Printf("Failed to drop database: %s", dsn.Database)
+			log.Printf("failed to drop database: %s", dsn.Database)
 		}
 	}
 
@@ -133,13 +133,13 @@ var sqlDBMap = make(genSQLDBMap)
 
 // ConnectorCreator is the interface for function expected by InitDBs to
 // initialize driver.Connectors.
-type ConnectorCreator func(libdsn.Info) (driver.Connector, error)
+type ConnectorCreator func(*libdsn.Info) (driver.Connector, error)
 
 // RegisterDSN registers at least one new genSQLDBFn in genSQLDBMap
 // based on sql.Open.
 // If connectorFn is non-nil a second genSQLDBFn is stored with the
 // suffix `connector`.
-func RegisterDSN(name string, info libdsn.Info, connectorFn ConnectorCreator) error {
+func RegisterDSN(name string, info *libdsn.Info, connectorFn ConnectorCreator) error {
 	sqlDBMap[name] = func() (*sql.DB, error) {
 		db, err := sql.Open("ase", info.AsSimple())
 		if err != nil {

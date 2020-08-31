@@ -20,40 +20,40 @@ func fakePacket(bs ...byte) *Packet {
 
 func TestPacketQueue_DiscardUntilCurrentPosition(t *testing.T) {
 	cases := map[string]struct {
-		queue, expectPacketQueue PacketQueue
+		queue, expectPacketQueue *PacketQueue
 	}{
 		"no action": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{},
 			},
-			expectPacketQueue: PacketQueue{
+			expectPacketQueue: &PacketQueue{
 				queue: []*Packet{},
 			},
 		},
 		"shift by one by indexPacket": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{},
 				},
 				indexPacket: 1,
 			},
-			expectPacketQueue: PacketQueue{
+			expectPacketQueue: &PacketQueue{
 				queue: []*Packet{},
 			},
 		},
 		"shift by one by indexData": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{Data: make([]byte, 35)},
 				},
 				indexData: 35,
 			},
-			expectPacketQueue: PacketQueue{
+			expectPacketQueue: &PacketQueue{
 				queue: []*Packet{},
 			},
 		},
 		"shift multiple by both": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{Data: make([]byte, 35)},
 					&Packet{Data: make([]byte, 35)},
@@ -65,7 +65,7 @@ func TestPacketQueue_DiscardUntilCurrentPosition(t *testing.T) {
 				indexPacket: 3,
 				indexData:   14,
 			},
-			expectPacketQueue: PacketQueue{
+			expectPacketQueue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{Data: make([]byte, 35)},
 					&Packet{Data: make([]byte, 35)},
@@ -77,15 +77,15 @@ func TestPacketQueue_DiscardUntilCurrentPosition(t *testing.T) {
 		},
 	}
 
-	for title, cas := range cases {
+	for title := range cases {
 		t.Run(title,
 			func(t *testing.T) {
-				cas.queue.DiscardUntilCurrentPosition()
+				cases[title].queue.DiscardUntilCurrentPosition()
 
-				if !reflect.DeepEqual(cas.expectPacketQueue, cas.queue) {
+				if !reflect.DeepEqual(cases[title].expectPacketQueue, cases[title].queue) {
 					t.Errorf("Invalid result:")
-					t.Errorf("Expected: %#v", cas.expectPacketQueue)
-					t.Errorf("Received: %#v", cas.queue)
+					t.Errorf("Expected: %#v", cases[title].expectPacketQueue)
+					t.Errorf("Received: %#v", cases[title].queue)
 				}
 			},
 		)
@@ -94,19 +94,19 @@ func TestPacketQueue_DiscardUntilCurrentPosition(t *testing.T) {
 
 func TestPacketQueue_Bytes(t *testing.T) {
 	cases := map[string]struct {
-		queue, expectPacketQueue PacketQueue
+		queue, expectPacketQueue *PacketQueue
 		readBytes                int
 		expectBytes              []byte
 		expectErr                error
 	}{
 		"no action": {
-			queue:       PacketQueue{},
+			queue:       &PacketQueue{},
 			readBytes:   0,
 			expectBytes: []byte{},
 			expectErr:   nil,
 		},
 		"read byte": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{Data: []byte{0x1}},
 				},
@@ -116,7 +116,7 @@ func TestPacketQueue_Bytes(t *testing.T) {
 			expectErr:   nil,
 		},
 		"read over multiple queue": {
-			queue: PacketQueue{
+			queue: &PacketQueue{
 				queue: []*Packet{
 					&Packet{Data: []byte{0x1, 0x2}},
 					&Packet{Data: []byte{0x3}},
@@ -129,20 +129,20 @@ func TestPacketQueue_Bytes(t *testing.T) {
 		},
 	}
 
-	for title, cas := range cases {
+	for title := range cases {
 		t.Run(title,
 			func(t *testing.T) {
-				recvBytes, recvErr := cas.queue.Bytes(cas.readBytes)
+				recvBytes, recvErr := cases[title].queue.Bytes(cases[title].readBytes)
 
-				if cas.expectErr != nil {
+				if cases[title].expectErr != nil {
 					if recvErr != nil {
-						t.Errorf("Did not receive expected error: %v", cas.expectErr)
+						t.Errorf("Did not receive expected error: %v", cases[title].expectErr)
 						return
 					}
 
-					if cas.expectErr != recvErr {
+					if cases[title].expectErr != recvErr {
 						t.Errorf("Received unexpected error:")
-						t.Errorf("Expected: %v", cas.expectErr)
+						t.Errorf("Expected: %v", cases[title].expectErr)
 						t.Errorf("Received: %v", recvErr)
 						return
 					}
@@ -150,9 +150,9 @@ func TestPacketQueue_Bytes(t *testing.T) {
 					return
 				}
 
-				if !bytes.Equal(cas.expectBytes, recvBytes) {
+				if !bytes.Equal(cases[title].expectBytes, recvBytes) {
 					t.Errorf("Received unexpected bytes:")
-					t.Errorf("Expected: %#v", cas.expectBytes)
+					t.Errorf("Expected: %#v", cases[title].expectBytes)
 					t.Errorf("Received: %#v", recvBytes)
 					return
 				}
@@ -163,17 +163,17 @@ func TestPacketQueue_Bytes(t *testing.T) {
 
 func TestPacketQueue_WriteBytes(t *testing.T) {
 	cases := map[string]struct {
-		queue, expectPacketQueue PacketQueue
+		queue, expectPacketQueue *PacketQueue
 		writeBytes               [][]byte
 	}{
 		"no action": {
-			queue:             PacketQueue{},
-			expectPacketQueue: PacketQueue{},
+			queue:             &PacketQueue{},
+			expectPacketQueue: &PacketQueue{},
 			writeBytes:        [][]byte{[]byte{}},
 		},
 		"write byte": {
-			queue: PacketQueue{},
-			expectPacketQueue: PacketQueue{
+			queue: &PacketQueue{},
+			expectPacketQueue: &PacketQueue{
 				queue: []*Packet{
 					fakePacket(0x1),
 				},
@@ -185,21 +185,21 @@ func TestPacketQueue_WriteBytes(t *testing.T) {
 		},
 	}
 
-	for title, cas := range cases {
+	for title := range cases {
 		t.Run(title,
 			func(t *testing.T) {
-				for _, bs := range cas.writeBytes {
-					err := cas.queue.WriteBytes(bs)
+				for _, bs := range cases[title].writeBytes {
+					err := cases[title].queue.WriteBytes(bs)
 					if err != nil {
 						t.Errorf("Received unexpected error: %v", err)
 						return
 					}
 				}
 
-				if !reflect.DeepEqual(cas.expectPacketQueue, cas.queue) {
+				if !reflect.DeepEqual(cases[title].expectPacketQueue, cases[title].queue) {
 					t.Errorf("Invalid result:")
-					t.Errorf("Expected: %#v", cas.expectPacketQueue)
-					t.Errorf("Received: %#v", cas.queue)
+					t.Errorf("Expected: %#v", cases[title].expectPacketQueue)
+					t.Errorf("Received: %#v", cases[title].queue)
 				}
 			},
 		)

@@ -22,11 +22,11 @@ type Connector struct {
 	EnvChangeHooks []tds.EnvChangeHook
 }
 
-func NewConnector(dsn *libdsn.Info) (*Connector, error) {
-	return NewConnectorWithHooks(dsn, nil)
+func NewConnector(dsn *libdsn.Info) (driver.Connector, error) {
+	return NewConnectorWithHooks(dsn)
 }
 
-func NewConnectorWithHooks(dsn *libdsn.Info, hooks ...tds.EnvChangeHook) (*Connector, error) {
+func NewConnectorWithHooks(dsn *libdsn.Info, hooks ...tds.EnvChangeHook) (driver.Connector, error) {
 	connector := &Connector{
 		DSN:            dsn,
 		EnvChangeHooks: hooks,

@@ -324,6 +324,15 @@ The pure go implementation is currently in beta and under active
 development. As such most features of the TDS protocol and ASE are not
 supported.
 
+### Prepared statements
+
+Regarding the limitations of prepared statements/dynamic SQL please see
+[the Client-Library documentation](https://help.sap.com/viewer/71b47f4a8269411da6d15ed25f5d39b3/LATEST/en-US/bfc531e46db61014bf8f040071e613d7.html).
+
+The Client-Library documentation applies to both the cgo and the pure go
+implementation as these restrictions are imposed by the implementation
+of dynamic SQL on the server side.
+
 ### Unsupported ASE data types
 
 Currently the following data types are not supported:

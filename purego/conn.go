@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/SAP/go-ase/libase/libdsn"
 	"github.com/SAP/go-ase/libase/tds"
@@ -29,6 +30,11 @@ type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
 	DSN     *libdsn.Info
+
+	// TODO I don't particularly like locking statements like this
+	stmts map[int]*Stmt
+	// TODO: iirc conns aren't used in multiple threads at the same time
+	stmtLock *sync.RWMutex
 }
 
 func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
@@ -36,7 +42,10 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 }
 
 func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
-	conn := &Conn{}
+	conn := &Conn{
+		stmts:    map[int]*Stmt{},
+		stmtLock: &sync.RWMutex{},
+	}
 
 	var err error
 	conn.Conn, err = tds.NewConn(ctx, dsn)
@@ -50,10 +59,17 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 		return nil, fmt.Errorf("go-ase: error opening logical channel: %w", err)
 	}
 
+	if drv.envChangeHooks != nil {
+		err := conn.Channel.RegisterEnvChangeHooks(drv.envChangeHooks...)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error registering driver EnvChangeHooks: %w", err)
+		}
+	}
+
 	if envChangeHooks != nil {
 		err := conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
 		if err != nil {
-			return nil, fmt.Errorf("go-ase: error registering hooks: %w", err)
+			return nil, fmt.Errorf("go-ase: error registering argument EnvChangeHooks: %w", err)
 		}
 	}
 
@@ -69,6 +85,14 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("go-ase: error logging in: %w", err)
+	}
+
+	// TODO can this be passed another way?
+	if dsn.Database != "" {
+		_, err = conn.ExecContext(ctx, "use "+dsn.Database, nil)
+		if err != nil {
+			return nil, fmt.Errorf("go-ase: error switching to database %s: %w", dsn.Database, err)
+		}
 	}
 
 	return conn, nil
@@ -95,33 +119,17 @@ func (c Conn) Begin() (driver.Tx, error) {
 	)
 }
 
-func (c Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	return nil, errors.New("go-ase: BeginTx not implemented")
 }
 
-func (c Conn) Prepare(query string) (driver.Stmt, error) {
-	return c.PrepareContext(context.Background(), query)
-}
-
-func (c Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
-	return nil, errors.New("go-ase: PrepareContext not implemented")
-}
-
-func (c Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	if len(args) > 0 {
-		return nil, errors.New("go-ase: args not implemented")
-	}
-
-	_, result, err := c.language(ctx, query)
+func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	_, result, err := c.GenericExec(ctx, query, args)
 	return result, err
 }
 
-func (c Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	if len(args) > 0 {
-		return nil, errors.New("go-ase: args not implemented")
-	}
-
-	rows, _, err := c.language(ctx, query)
+func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	rows, _, err := c.GenericExec(ctx, query, args)
 	return rows, err
 }
 

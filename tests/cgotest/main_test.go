@@ -17,40 +17,40 @@ import (
 func TestMain(m *testing.M) {
 	err := testMain(m)
 	if err != nil {
-		log.Printf("%v", err)
+		log.Fatalf("%v", err)
 		os.Exit(1)
 	}
 }
 
 func testMain(m *testing.M) error {
+	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
+	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
+
 	simpleDSN, simpleTeardown, err := libtest.DSN(false)
 	if err != nil {
-		return fmt.Errorf("Failed to setup simple DSN: %v", err)
+		return fmt.Errorf("error setting up simple DSN: %w", err)
 	}
 	defer simpleTeardown()
 
-	err = libtest.RegisterDSN("username password", *simpleDSN, cgo.NewConnector)
+	err = libtest.RegisterDSN("username password", simpleDSN, cgo.NewConnector)
 	if err != nil {
-		return fmt.Errorf("Failed to setup simple databases: %v", err)
+		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
 	userstoreDSN, userstoreTeardown, err := libtest.DSN(true)
 	if err != nil {
-		return fmt.Errorf("Failed to setup userstore DSN: %v", err)
+		return fmt.Errorf("error setting up userstore DSN: %w", err)
 	}
 	defer userstoreTeardown()
 
-	err = libtest.RegisterDSN("userstorekey", *userstoreDSN, cgo.NewConnector)
+	err = libtest.RegisterDSN("userstorekey", userstoreDSN, cgo.NewConnector)
 	if err != nil {
-		return fmt.Errorf("Failed to setup userstorekey databases: %v", err)
+		return fmt.Errorf("error setting up userstore database: %w", err)
 	}
-
-	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
-	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
 
 	rc := m.Run()
 	if rc != 0 {
-		return fmt.Errorf("Tests failed with %d", rc)
+		return fmt.Errorf("tests failed with %d", rc)
 	}
 
 	return nil

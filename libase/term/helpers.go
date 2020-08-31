@@ -24,7 +24,7 @@ var (
 )
 
 type GenericExecer interface {
-	GenericExec(context.Context, string) (driver.Rows, driver.Result, error)
+	GenericExec(context.Context, string, []driver.NamedValue) (driver.Rows, driver.Result, error)
 }
 
 func process(db *sql.DB, query string) error {
@@ -45,7 +45,7 @@ func rawProcess(driverConn interface{}, query string) error {
 		return fmt.Errorf("invalid driver, must support GenericExecer")
 	}
 
-	rows, result, err := execer.GenericExec(context.Background(), query)
+	rows, result, err := execer.GenericExec(context.Background(), query, nil)
 	if err != nil {
 		return fmt.Errorf("GenericExec failed: %w", err)
 	}

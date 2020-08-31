@@ -7,6 +7,7 @@ package tds
 import (
 	"fmt"
 	"io"
+	"sync"
 )
 
 var _ BytesChannel = (*PacketQueue)(nil)
@@ -15,6 +16,7 @@ var _ BytesChannel = (*PacketQueue)(nil)
 // difference, that it automatically sorts written data into Packets and
 // can supports reading over packet boundaries.
 type PacketQueue struct {
+	sync.Mutex
 	queue                  []*Packet
 	indexPacket, indexData int
 }
@@ -29,6 +31,9 @@ func NewPacketQueue() *PacketQueue {
 // Reset resets a PacketQueue as if it were newly initialized.
 // Note: All queued packets will be discarded.
 func (queue *PacketQueue) Reset() {
+	queue.Lock()
+	defer queue.Unlock()
+
 	queue.queue = []*Packet{}
 	queue.indexPacket = 0
 	queue.indexData = 0
@@ -36,6 +41,9 @@ func (queue *PacketQueue) Reset() {
 
 // AddPacket adds a packet to the queue.
 func (queue *PacketQueue) AddPacket(packet *Packet) {
+	queue.Lock()
+	defer queue.Unlock()
+
 	queue.queue = append(queue.queue, packet)
 }
 
@@ -51,13 +59,16 @@ func (queue *PacketQueue) AddPacket(packet *Packet) {
 // points to.
 // The data index only grows when bytes are read or written to the
 // queue. It may shrink when DiscardUntilCurrentPosition is called.
-func (queue PacketQueue) Position() (int, int) {
+func (queue *PacketQueue) Position() (int, int) {
 	return queue.indexPacket, queue.indexData
 }
 
 // SetPosition sets the two indizes used by PacketQueue.
 // See Position for more details.
 func (queue *PacketQueue) SetPosition(indexPacket, indexData int) {
+	queue.Lock()
+	defer queue.Unlock()
+
 	queue.indexPacket = indexPacket
 	queue.indexData = indexData
 }
@@ -71,6 +82,9 @@ func (queue *PacketQueue) DiscardUntilCurrentPosition() {
 		queue.Reset()
 		return
 	}
+
+	queue.Lock()
+	defer queue.Unlock()
 
 	// shift queue
 	queue.queue = queue.queue[queue.indexPacket:]
@@ -105,6 +119,9 @@ func (queue *PacketQueue) Write(p []byte) (int, error) {
 // If there aren't enough bytes to read n bytes Bytes will return
 // a wrapped io.EOF. The returned byte slice will still be of length n.
 func (queue *PacketQueue) Bytes(n int) ([]byte, error) {
+	queue.Lock()
+	defer queue.Unlock()
+
 	if n == 0 {
 		return []byte{}, nil
 	}
@@ -204,6 +221,9 @@ func (queue *PacketQueue) String(size int) (string, error) {
 //
 // The returned integer is the size of bs, the returned error is always nil.
 func (queue *PacketQueue) WriteBytes(bs []byte) error {
+	queue.Lock()
+	defer queue.Unlock()
+
 	if len(bs) == 0 {
 		return nil
 	}

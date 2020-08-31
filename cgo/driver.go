@@ -44,7 +44,7 @@ func (d *aseDrv) Open(dsn string) (driver.Conn, error) {
 		return nil, fmt.Errorf("Failed to parse DSN: %w", err)
 	}
 
-	return NewConnection(nil, *dsnInfo)
+	return NewConnection(nil, dsnInfo)
 }
 
 func (d *aseDrv) OpenConnector(dsn string) (driver.Connector, error) {
@@ -53,5 +53,5 @@ func (d *aseDrv) OpenConnector(dsn string) (driver.Connector, error) {
 		return nil, fmt.Errorf("Failed to parse DSN: %w", err)
 	}
 
-	return NewConnector(*dsnInfo)
+	return NewConnector(dsnInfo)
 }

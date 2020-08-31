@@ -28,7 +28,7 @@ func DoMain() error {
 	fmt.Println("Opening database")
 	db, err := sql.Open("ase", dsn.AsSimple())
 	if err != nil {
-		return fmt.Errorf("Failed to open connection to database: %v", err)
+		return fmt.Errorf("failed to open connection to database: %w", err)
 	}
 	defer db.Close()
 
@@ -40,7 +40,7 @@ func DoMain() error {
 	// performed before attaching the recorder to the message broker.
 	err = db.Ping()
 	if err != nil {
-		return fmt.Errorf("Failed to ping database")
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	fmt.Println("Creating MessageRecorder")
@@ -51,7 +51,7 @@ func DoMain() error {
 	fmt.Println("Enable traceflag 3604")
 	_, err = db.Exec("dbcc traceon(3604)")
 	if err != nil {
-		return fmt.Errorf("Failed to enable traceflag 3604")
+		return fmt.Errorf("failed to enable traceflag 3604: %w", err)
 	}
 
 	fmt.Println("Received messages:")
@@ -63,7 +63,7 @@ func DoMain() error {
 	recorder.Reset()
 	_, err = db.Exec("dbcc traceflags")
 	if err != nil {
-		return fmt.Errorf("Failed to list traceflags")
+		return fmt.Errorf("failed to list traceflags: %w", err)
 	}
 
 	fmt.Println("Received messages:")

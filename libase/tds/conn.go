@@ -24,7 +24,7 @@ import (
 // Channel.
 type Conn struct {
 	conn io.ReadWriteCloser
-	caps *CapabilityPackage
+	Caps *CapabilityPackage
 	dsn  *libdsn.Info
 
 	odce odceCipher
@@ -85,16 +85,22 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 //
 // If an error is returned it is a *multierror.Error with all errors.
 func (tds *Conn) Close() error {
-	tds.ctxCancel()
-
 	var me error
 
+	var tdsChannels []*Channel
+	// tdsChannels := make([]*Channel, len(tds.tdsChannels))
 	for _, channel := range tds.tdsChannels {
+		tdsChannels = append(tdsChannels, channel)
+	}
+
+	for _, channel := range tdsChannels {
 		err := channel.Close()
 		if err != nil {
 			me = multierror.Append(me, fmt.Errorf("error closing channel: %w", err))
 		}
 	}
+
+	tds.ctxCancel()
 
 	err := tds.conn.Close()
 	if err != nil {
@@ -171,7 +177,7 @@ func (tds *Conn) setCapabilities() error {
 			// Support cursors requests
 			// TODO: TDS_REQ_CURSOR,
 			// Support dynamic SQL
-			// TODO: TDS_REQ_DYNF,
+			TDS_REQ_DYNF,
 			// Support MSG requests
 			TDS_REQ_MSG,
 			// RPC will use TDS_DBRPC and TDS_PARAMFMT / TDS_PARAM
@@ -285,6 +291,6 @@ func (tds *Conn) setCapabilities() error {
 		return fmt.Errorf("error creating capability package: %w", err)
 	}
 
-	tds.caps = caps
+	tds.Caps = caps
 	return nil
 }

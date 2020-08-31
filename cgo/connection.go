@@ -10,7 +10,6 @@ import "C"
 import (
 	"context"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"io"
 	"unsafe"
@@ -43,7 +42,7 @@ var (
 // options in the dsn.
 //
 // If driverCtx is nil a new csContext will be initialized.
-func NewConnection(driverCtx *csContext, dsn libdsn.Info) (*Connection, error) {
+func NewConnection(driverCtx *csContext, dsn *libdsn.Info) (*Connection, error) {
 	if driverCtx == nil {
 		var err error
 		driverCtx, err = newCsContext(dsn)
@@ -170,8 +169,8 @@ func (conn *Connection) Close() error {
 	return nil
 }
 
-func (conn *Connection) ping() error {
-	rows, err := conn.Query("SELECT 'PING'", nil)
+func (conn *Connection) Ping(ctx context.Context) error {
+	rows, err := conn.QueryContext(ctx, "SELECT 'PING'", nil)
 	if err != nil {
 		return driver.ErrBadConn
 	}
@@ -193,88 +192,22 @@ func (conn *Connection) ping() error {
 	return nil
 }
 
-func (conn *Connection) Ping(ctx context.Context) error {
-	recvErr := make(chan error, 1)
-	go func() {
-		recvErr <- conn.ping()
-		close(recvErr)
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-recvErr:
-			return err
-		}
-	}
-}
-
 func (conn *Connection) Exec(query string, args []driver.Value) (driver.Result, error) {
-	q, err := libase.QueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn.ExecContext(context.Background(), q, nil)
+	return conn.ExecContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
 func (conn *Connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	q, err := libase.NamedQueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd, err := conn.NewCommand(ctx, q)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %w", err)
-	}
-	defer cmd.Drop()
-
-	var resResult driver.Result
-	for {
-		_, result, _, err := cmd.Response()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, fmt.Errorf("Received error reading results: %w", err)
-		}
-
-		if result != nil {
-			resResult = result
-		}
-	}
-
-	return resResult, nil
+	_, result, err := conn.GenericExec(ctx, query, args)
+	return result, err
 }
 
 func (conn *Connection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	q, err := libase.QueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return conn.QueryContext(context.Background(), q, nil)
+	return conn.QueryContext(context.Background(), query, libase.ValuesToNamedValues(args))
 }
 
 func (conn *Connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	q, err := libase.NamedQueryFormat(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd, err := conn.NewCommand(ctx, q)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to send command: %w", err)
-	}
-
-	rows, _, _, err := cmd.Response()
-	if err != nil {
-		return nil, fmt.Errorf("Received error while retrieving results: %w", err)
-	}
-
-	return rows, nil
+	rows, _, err := conn.GenericExec(ctx, query, args)
+	return rows, err
 }
 
 func (conn *Connection) CheckNamedValue(nv *driver.NamedValue) error {

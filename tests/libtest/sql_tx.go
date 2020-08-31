@@ -6,6 +6,7 @@ package libtest
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ func DoTestSQLTx(t *testing.T) {
 }
 
 func testSQLTxCommit(t *testing.T, db *sql.DB, tableName string) {
-	_, err := db.Exec("create table ? (a int)", tableName)
+	_, err := db.Exec(fmt.Sprintf("create table %s (a int)", tableName))
 	if err != nil {
 		t.Errorf("Error creating table %s: %v", tableName, err)
 		return
@@ -38,7 +39,7 @@ func testSQLTxCommit(t *testing.T, db *sql.DB, tableName string) {
 	}
 
 	sample := 5
-	_, err = tx.Exec("insert into ? values (?)", tableName, sample)
+	_, err = tx.Exec(fmt.Sprintf("insert into %s (a) values (?)", tableName), sample)
 	if err != nil {
 		t.Errorf("Error inserting value %d in transaction: %v", sample, err)
 		return
@@ -50,7 +51,7 @@ func testSQLTxCommit(t *testing.T, db *sql.DB, tableName string) {
 		return
 	}
 
-	rows, err := db.Query("select * from ?", tableName)
+	rows, err := db.Query(fmt.Sprintf("select * from %s", tableName))
 	if err != nil {
 		t.Errorf("Error selecting from table created in transaction: %v", err)
 		return
@@ -78,7 +79,7 @@ func testSQLTxCommit(t *testing.T, db *sql.DB, tableName string) {
 }
 
 func testSQLTxRollback(t *testing.T, db *sql.DB, tableName string) {
-	_, err := db.Exec("create table ? (a int)", tableName)
+	_, err := db.Exec(fmt.Sprintf("create table %s (a int)", tableName))
 	if err != nil {
 		t.Errorf("Error creating table %s: %v", tableName, err)
 		return
@@ -91,7 +92,7 @@ func testSQLTxRollback(t *testing.T, db *sql.DB, tableName string) {
 	}
 
 	sample := 5
-	_, err = tx.Exec("insert into ? values (?)", tableName, sample)
+	_, err = tx.Exec(fmt.Sprintf("insert into %s (a) values (?)", tableName), sample)
 	if err != nil {
 		t.Errorf("Error inserting value %d in transaction: %v", sample, err)
 		return
@@ -103,7 +104,7 @@ func testSQLTxRollback(t *testing.T, db *sql.DB, tableName string) {
 		return
 	}
 
-	rows, err := db.Query("select * from ?", tableName)
+	rows, err := db.Query(fmt.Sprintf("select * from %s", tableName))
 	if err != nil {
 		t.Errorf("Error selecting from table created in transaction: %v", err)
 		return
