@@ -66,6 +66,11 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 
 				return false, fmt.Errorf("%T does not have status TDS_DONE_COUNT or TDS_DONE_FINAL set: %s",
 					typed, typed)
+			case *tds.ReturnStatusPackage:
+				if typed.ReturnValue != 0 {
+					return false, fmt.Errorf("received return status %d", typed.ReturnValue)
+				}
+				return false, nil
 			default:
 				return false, fmt.Errorf("unhandled package type %T", typed)
 			}
