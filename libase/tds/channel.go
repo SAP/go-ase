@@ -329,6 +329,13 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 
 		ok, err := processPkg(pkg)
 		if err != nil {
+			err = fmt.Errorf("error in user-defined processing function: %w", err)
+
+			// Only return an EEDError if there were EEDPackages
+			if len(eedError.EEDPackages) == 0 {
+				return nil, err
+			}
+
 			eedError.WrappedError = err
 			return nil, eedError
 		}
