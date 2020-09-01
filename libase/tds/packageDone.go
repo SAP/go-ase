@@ -40,8 +40,8 @@ type DonePackage struct {
 	Count     int32
 }
 
-type DoneProcPackage struct{ DonePackage }
-type DoneInProcPackage struct{ DonePackage }
+type DoneProcPackage = DonePackage
+type DoneInProcPackage = DonePackage
 
 func (pkg *DonePackage) ReadFrom(ch BytesChannel) error {
 	status, err := ch.Uint16()
