@@ -48,7 +48,7 @@ func (t ASEType) ToDataType() types.DataType {
 	case DECIMAL:
 		return types.DECN
 	case FLOAT:
-		return types.FLT4
+		return types.FLT8
 	case IMAGE:
 		return types.IMAGE
 	case IMAGELOCATOR:
