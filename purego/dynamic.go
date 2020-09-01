@@ -239,32 +239,7 @@ func (stmt Stmt) exec(ctx context.Context, args []driver.NamedValue) (driver.Row
 		return nil, nil, err
 	}
 
-	rows := &Rows{Conn: stmt.conn}
-	result := &Result{}
-
-	_, err = stmt.conn.Channel.NextPackageUntil(ctx, true,
-		func(pkg tds.Package) (bool, error) {
-			switch typed := pkg.(type) {
-			case *tds.RowFmtPackage:
-				rows.RowFmt = typed
-				return false, nil
-			case *tds.DonePackage:
-				if typed.Status == tds.TDS_DONE_COUNT || typed.Status == tds.TDS_DONE_FINAL {
-					result.rowsAffected = int64(typed.Count)
-					return true, nil
-				}
-
-				return false, fmt.Errorf("DonePackage does not have status TDS_DONE_COUNT or TDS_DONE_FINAL set: %s", typed)
-			default:
-				return false, fmt.Errorf("unhandled package type %T for dynamic statements", typed)
-			}
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return rows, result, nil
+	return stmt.conn.genericResults(ctx)
 }
 
 func (stmt Stmt) CheckNamedValues(namedValues []*driver.NamedValue) error {
