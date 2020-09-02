@@ -41,8 +41,7 @@ func (rows Rows) Columns() []string {
 
 func (rows *Rows) Close() error {
 	for {
-		err := rows.NextResultSet()
-		if err != nil {
+		if err := rows.NextResultSet(); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
