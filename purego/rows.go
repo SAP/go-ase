@@ -108,10 +108,10 @@ func (rows *Rows) NextResultSet() error {
 	}
 }
 
-func (rows *Rows) ColumnTypeLength(index int) (int64, bool) {
+func (rows Rows) ColumnTypeLength(index int) (int64, bool) {
 	return rows.RowFmt.Fmts[index].MaxLength(), true
 }
 
-func (rows *Rows) ColumnTypeDatabaseTypeName(index int) string {
+func (rows Rows) ColumnTypeDatabaseTypeName(index int) string {
 	return string(rows.RowFmt.Fmts[index].DataType())
 }
