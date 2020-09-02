@@ -133,7 +133,16 @@ func (queue *PacketQueue) Bytes(n int) ([]byte, error) {
 
 	for {
 		if queue.indexPacket >= len(queue.queue) {
-			// Signal io.EOF but add the context of the packet queue
+			// No more packets available - check if more packets are
+			// expected
+			if len(queue.queue) > 0 && queue.queue[len(queue.queue)-1].Header.Status != TDS_BUFSTAT_EOM {
+				// More packets are expected and more bytes need to be
+				// read - return ErrNotEnoughBytes
+				return bs, ErrNotEnoughBytes
+			}
+
+			// No more packets are expected but more bytes need to be
+			// read - return io.EOF
 			return bs, fmt.Errorf("not enough packets in queue: %w", io.EOF)
 		}
 		data := queue.queue[queue.indexPacket].Data
