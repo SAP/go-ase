@@ -53,27 +53,37 @@ func (rows *Rows) Close() error {
 }
 
 func (rows *Rows) Next(dst []driver.Value) error {
-	pkg, err := rows.Conn.Channel.NextPackage(context.Background(), true)
+	_, err := rows.Conn.Channel.NextPackageUntil(context.Background(), true,
+		func(pkg tds.Package) (bool, error) {
+			switch typed := pkg.(type) {
+			case *tds.RowPackage:
+				for i := range dst {
+					dst[i] = typed.DataFields[i].Value()
+				}
+				return true, nil
+			case *tds.RowFmtPackage:
+				// TODO: should next return io.EOF if the result set is
+				// finished?
+				rows.RowFmt = typed
+				return false, nil
+			case *tds.OrderByPackage:
+				return false, nil
+			case *tds.DonePackage:
+				return true, io.EOF
+			default:
+				return true, fmt.Errorf("unhandled package type %T: %v", pkg, pkg)
+			}
+		},
+	)
+
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return io.EOF
+		}
 		return fmt.Errorf("go-ase: error reading next row package: %w", err)
 	}
 
-	switch typed := pkg.(type) {
-	case *tds.RowPackage:
-		for i := range dst {
-			dst[i] = typed.DataFields[i].Value()
-		}
-		return nil
-	case *tds.RowFmtPackage:
-		// TODO: should next return io.EOF if the result set is
-		// finished?
-		rows.RowFmt = typed
-		return rows.Next(dst)
-	case *tds.DonePackage:
-		return io.EOF
-	default:
-		return fmt.Errorf("go-ase: unhandled package type %T: %v", pkg, pkg)
-	}
+	return nil
 }
 
 func (rows *Rows) HasNextResultSet() bool {
@@ -84,27 +94,30 @@ func (rows *Rows) HasNextResultSet() bool {
 func (rows *Rows) NextResultSet() error {
 	// discard all RowPackage until either end of communication or next
 	// RowFmtPackage
-	for {
-		pkg, err := rows.Conn.Channel.NextPackage(context.Background(), false)
-		if err != nil {
-			if errors.Is(err, tds.ErrNoPackageReady) {
-				return io.EOF
+	_, err := rows.Conn.Channel.NextPackageUntil(context.Background(), false,
+		func(pkg tds.Package) (bool, error) {
+			switch typed := pkg.(type) {
+			case *tds.RowFmtPackage:
+				rows.RowFmt = typed
+				return false, nil
+			case *tds.RowPackage, *tds.OrderByPackage:
+				return true, nil
+			case *tds.DonePackage:
+				return true, io.EOF
+			default:
+				return false, fmt.Errorf("unhandled package type %T: %v", pkg, pkg)
 			}
-			return fmt.Errorf("go-ase: error reading next package: %w", err)
-		}
+		},
+	)
 
-		switch rowFmt := pkg.(type) {
-		case *tds.RowFmtPackage:
-			rows.RowFmt = rowFmt
-			return nil
-		case *tds.RowPackage:
-			continue
-		case *tds.DonePackage:
+	if err != nil {
+		if errors.Is(err, tds.ErrNoPackageReady) || errors.Is(err, io.EOF) {
 			return io.EOF
-		default:
-			return fmt.Errorf("go-ase: unhandled package type %T: %v", pkg, pkg)
 		}
+		return fmt.Errorf("go-ase: error reading next package: %w", err)
 	}
+
+	return nil
 }
 
 func (rows Rows) ColumnTypeLength(index int) (int64, bool) {
