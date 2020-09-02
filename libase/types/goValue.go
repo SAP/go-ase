@@ -75,6 +75,21 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 		var x uint64
 		err := binary.Read(buffer, endian, &x)
 		return x, err
+	case UINTN:
+		switch len(bs) {
+		case 0:
+			return 0, nil
+		case 1:
+			return INT1.GoValue(endian, bs)
+		case 2:
+			return UINT2.GoValue(endian, bs)
+		case 4:
+			return UINT4.GoValue(endian, bs)
+		case 8:
+			return UINT8.GoValue(endian, bs)
+		default:
+			return nil, fmt.Errorf("invalid length for UINTN: %d", len(bs))
+		}
 	case FLT4:
 		var x float32
 		err := binary.Read(buffer, endian, &x)
