@@ -238,7 +238,7 @@ func (tdsChan *Channel) Logout() error {
 func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 	if envChange, ok := pkg.(*EnvChangePackage); ok {
 		for _, member := range envChange.members {
-			tdsChan.callEnvChangeHooks(member.Type, member.NewValue, member.OldValue)
+			tdsChan.callEnvChangeHooks(member.Type, member.OldValue, member.NewValue)
 		}
 		return false, nil
 	}
