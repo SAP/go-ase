@@ -316,6 +316,45 @@ increasing the queue size.
 
 Defaults to 100.
 
+##### tls
+
+Recognized values: string
+
+Allows to pass SAN for TLS validation.
+
+For compatibility with the cgo implementation you may also use `ssl`
+instead of `tls` and pass `CN=<SAN>` instead of `<SAN>`.
+
+Defaults to empty string.
+
+Please note that as of go1.15 the CommonName in x509 certificates is no
+longer recognized as the hostname if no SANs are present in the
+certificate.
+If the certificate for your TDS server only utilizes the CN you can
+reenable this behaviour by setting `GODEBUG` to `x509ignoreCN=0` in your
+environment.
+
+For details see https://golang.google.cn/doc/go1.15#commonname
+
+##### tls-skip-validation
+
+Recognized values: string
+
+If the value is recognized by `strconv.ParseBool` to represent `true`
+the TLS certificate of the TDS server will not be validated.
+
+Defaults to empty string / false.
+
+##### tls-ca
+
+Recognized values: string
+
+Path to a CA file, which may contain multiple CAs, to validate the TDS
+servers certificate against.
+If empty the servers trust store is used.
+
+Defaults to empty string.
+
 ## Limitations
 
 ### Pure go beta
