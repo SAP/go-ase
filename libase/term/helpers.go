@@ -102,11 +102,6 @@ func processRows(rows driver.Rows) error {
 	fmt.Printf("\n")
 
 	cells := make([]driver.Value, len(colNames))
-	cellsI := make([]interface{}, len(colNames))
-
-	for i, cell := range cells {
-		cellsI[i] = &cell
-	}
 
 	for {
 		err := rows.Next(cells)
