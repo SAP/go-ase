@@ -14,19 +14,6 @@ import (
 	"github.com/SAP/go-ase/libase/libdsn"
 )
 
-// fromEnv reads an environment variable and returns the value.
-//
-// If the variable is not set in the environment a message is printed to
-// stderr and os.Exit is called.
-func fromEnv(name string) (string, error) {
-	target, ok := os.LookupEnv(name)
-	if !ok {
-		return "", fmt.Errorf("missing environment variable: %s", name)
-	}
-
-	return target, nil
-}
-
 // doCallbacks return true if CGO_CALLBACKS is set to 'yes', signaling
 // that client-library callbacks should be used.
 func doCallbacks() bool {
@@ -38,88 +25,39 @@ func doCallbacks() bool {
 	return val == "yes"
 }
 
-// DSNFromEnv initializes a libdsn.Info and fills it with information
-// from the environment.
-func DSNFromEnv() (*libdsn.Info, error) {
-	dsnInfo := libdsn.NewInfo()
-
-	var err error
-	dsnInfo.Host, err = fromEnv("ASE_HOST")
-	if err != nil {
-		return nil, err
-	}
-
-	dsnInfo.Port, err = fromEnv("ASE_PORT")
-	if err != nil {
-		return nil, err
-	}
-
-	dsnInfo.Username, err = fromEnv("ASE_USER")
-	if err != nil {
-		return nil, err
-	}
-
-	dsnInfo.Password, err = fromEnv("ASE_PASS")
-	if err != nil {
-		return nil, err
-	}
-
-	if doCallbacks() {
-		dsnInfo.ConnectProps["cgo-callback-client"] = []string{"yes"}
-		dsnInfo.ConnectProps["cgo-callback-server"] = []string{"yes"}
-	}
-
-	return dsnInfo, nil
-}
-
-// DSNUserstoreFromEnv initializes a dsn.Info and retrieves the
-// userstorekey from the environment.
-func DSNUserstoreFromEnv() (*libdsn.Info, error) {
-	dsnInfo := libdsn.NewInfo()
-
-	var err error
-
-	dsnInfo.Userstorekey, err = fromEnv("ASE_USERSTOREKEY")
-	if err != nil {
-		return nil, err
-	}
-
-	if doCallbacks() {
-		dsnInfo.ConnectProps["cgo-callback-client"] = []string{"yes"}
-		dsnInfo.ConnectProps["cgo-callback-server"] = []string{"yes"}
-	}
-
-	return dsnInfo, nil
-}
-
 // DSN creates a new dsn.Info, sets up a new database and returns the
 // Info and a function to tear down the database.
 func DSN(userstore bool) (*libdsn.Info, func(), error) {
-	var dsn *libdsn.Info
+	info := libdsn.NewInfoFromEnv("")
+
 	var err error
 	if !userstore {
-		dsn, err = DSNFromEnv()
+		info.Userstorekey = ""
 	} else {
-		dsn, err = DSNUserstoreFromEnv()
+		info.Host = ""
+		info.Port = ""
+		info.Username = ""
+		info.Password = ""
 	}
 
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create DSN from environment: %w", err)
+	if doCallbacks() {
+		info.ConnectProps["cgo-callback-client"] = []string{"yes"}
+		info.ConnectProps["cgo-callback-server"] = []string{"yes"}
 	}
 
-	err = SetupDB(dsn)
+	err = SetupDB(info)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup database: %w", err)
 	}
 
 	fn := func() {
-		err := TeardownDB(dsn)
+		err := TeardownDB(info)
 		if err != nil {
-			log.Printf("failed to drop database: %s", dsn.Database)
+			log.Printf("failed to drop database: %s", info.Database)
 		}
 	}
 
-	return dsn, fn, nil
+	return info, fn, nil
 }
 
 // genSQLDBFn is the signature of functions stored in the genSQLDBMap.
