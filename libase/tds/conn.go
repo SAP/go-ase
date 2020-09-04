@@ -6,11 +6,16 @@ package tds
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -47,6 +52,66 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 	c, err := net.Dial(network, fmt.Sprintf("%s:%s", dsn.Host, dsn.Port))
 	if err != nil {
 		return nil, fmt.Errorf("error opening connection: %w", err)
+	}
+
+	tlsConfig := &tls.Config{}
+	useTLS := false
+
+	if dsn.TLSHostname != "" {
+		useTLS = true
+
+		hostname := dsn.TLSHostname
+		if strings.HasPrefix(hostname, "CN=") {
+			hostname = strings.TrimPrefix(hostname, "CN=")
+		}
+
+		tlsConfig.ServerName = hostname
+	}
+
+	if dsn.TLSSkipValidation {
+		useTLS = true
+		tlsConfig.InsecureSkipVerify = dsn.TLSSkipValidation
+	}
+
+	if dsn.TLSCAFile != "" {
+		useTLS = true
+
+		bs, err := ioutil.ReadFile(dsn.TLSCAFile)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file at ssl-ca path '%s': %w",
+				dsn.Prop("ssl-ca"), err)
+		}
+
+		tlsConfig.RootCAs = x509.NewCertPool()
+
+		for {
+			var block *pem.Block
+			block, bs = pem.Decode(bs)
+			if block == nil {
+				return nil, fmt.Errorf("error parsing CA certificate into PEM block at ssl-ca path '%s': %w",
+					dsn.Prop("ssl-ca"), err)
+			}
+
+			caCert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing CA PEM at ssl-ca path '%s': %w",
+					dsn.Prop("ssl-ca"), err)
+			}
+
+			tlsConfig.RootCAs.AddCert(caCert)
+
+			if len(bs) == 0 {
+				break
+			}
+		}
+	}
+
+	if useTLS {
+		tlsClient := tls.Client(c, tlsConfig)
+		if err := tlsClient.Handshake(); err != nil {
+			return nil, fmt.Errorf("error during TLS handshake with server: %w", err)
+		}
+		c = tlsClient
 	}
 
 	tds := &Conn{}

@@ -24,9 +24,14 @@ func main() {
 }
 
 func doMain() error {
-	connector, err := ase.NewConnectorWithHooks(term.Dsn(), updateDatabaseName)
+	dsn, err := term.Dsn()
 	if err != nil {
-		return fmt.Errorf("goase: failed to create connector: %w", err)
+		return fmt.Errorf("error parsing DSN from env: %w", err)
+	}
+
+	connector, err := ase.NewConnectorWithHooks(dsn, updateDatabaseName)
+	if err != nil {
+		return fmt.Errorf("failed to create connector: %w", err)
 	}
 
 	db := sql.OpenDB(connector)

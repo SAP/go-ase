@@ -14,7 +14,7 @@ import (
 
 func TestParseDsnUri(t *testing.T) {
 	cases := map[string]struct {
-		dsn     string
+		dsn  string
 		info *Info
 	}{
 		"URI DSN": {
@@ -48,6 +48,17 @@ func TestParseDsnUri(t *testing.T) {
 					"foo": []string{"bar"},
 					"bar": []string{"baz", "baf"},
 				},
+			},
+		},
+		"URI DSN with bool": {
+			dsn: "ase://user:password@hostname:4901?tls-skip-validation=true",
+			info: &Info{
+				Host:              "hostname",
+				Port:              "4901",
+				Username:          "user",
+				Password:          "password",
+				TLSSkipValidation: true,
+				ConnectProps:      url.Values{},
 			},
 		},
 	}
@@ -109,7 +120,7 @@ func TestParseDsnUriFail(t *testing.T) {
 
 func TestParseDsnSimple(t *testing.T) {
 	cases := map[string]struct {
-		dsn     string
+		dsn  string
 		info *Info
 	}{
 		"Simple DSN": {
@@ -183,7 +194,7 @@ func TestParseDsnSimple(t *testing.T) {
 
 func TestParseDSN(t *testing.T) {
 	cases := map[string]struct {
-		dsn     string
+		dsn  string
 		info *Info
 	}{
 		"URI DSN": {

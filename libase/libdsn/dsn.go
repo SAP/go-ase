@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -19,12 +20,17 @@ import (
 //
 // The json tag is the expected string in a simple URI.
 type Info struct {
-	Host         string     `json:"host" multiref:"hostname" validate:"required"`
-	Port         string     `json:"port" validate:"required"`
-	Username     string     `json:"username" multiref:"user" validate:"required"`
-	Password     string     `json:"password" multiref:"passwd,pass"`
-	Userstorekey string     `json:"userstorekey" multiref:"key" validate:"required"`
-	Database     string     `json:"database" multiref:"db"`
+	Host         string `json:"host" multiref:"hostname" validate:"required"`
+	Port         string `json:"port" validate:"required"`
+	Username     string `json:"username" multiref:"user" validate:"required"`
+	Password     string `json:"password" multiref:"passwd,pass"`
+	Userstorekey string `json:"userstorekey" multiref:"key" validate:"required"`
+	Database     string `json:"database" multiref:"db"`
+
+	TLSHostname       string `json:"tls-hostname" multiref:"tls,ssl"`
+	TLSSkipValidation bool   `json:"tls-skip-validation"`
+	TLSCAFile         string `json:"tls-ca"`
+
 	ConnectProps url.Values `json:"connectprops"`
 }
 
@@ -44,11 +50,10 @@ func NewInfo() *Info {
 // tag>. E.g. `.Host` with the prefix `""` would recognize `ASE_HOST`
 // and `ASE_HOSTNAME`.
 //
-// Properties with dashes are recognized with double underscored
-// instead.
-// E.g. the property `cgo-callback-client` can be passed as
-// `CGO__CALLBACK__CLIENT`.
-func NewInfoFromEnv(prefix string) *Info {
+// Properties with dashes are recognized with undescores instead of
+// dashes. E.g. the property `cgo-callback-client` can be passed as
+// `CGO_CALLBACK_CLIENT`.
+func NewInfoFromEnv(prefix string) (*Info, error) {
 	dsn := NewInfo()
 
 	if prefix == "" {
@@ -56,7 +61,6 @@ func NewInfoFromEnv(prefix string) *Info {
 	}
 	prefix += "_"
 
-	ttf := dsn.tagToField(true)
 	for _, env := range os.Environ() {
 		envSplit := strings.SplitN(env, "=", 2)
 		key, value := envSplit[0], envSplit[1]
@@ -66,15 +70,14 @@ func NewInfoFromEnv(prefix string) *Info {
 		}
 
 		key = strings.ToLower(strings.TrimPrefix(key, prefix))
-		key = strings.ReplaceAll(key, "__", "-")
-		if field, ok := ttf[key]; ok {
-			field.SetString(value)
-		} else {
-			dsn.ConnectProps.Add(key, value)
+		key = strings.ReplaceAll(key, "_", "-")
+
+		if err := dsn.SetField(key, value); err != nil {
+			return nil, fmt.Errorf("error setting value '%s' for field %s: %w", value, key, err)
 		}
 	}
 
-	return dsn
+	return dsn, nil
 }
 
 // tagToField returns a mapping from json metadata tags to
@@ -127,8 +130,15 @@ func (info Info) AsSimple() string {
 	ret := []string{}
 
 	for key, field := range info.tagToField(false) {
-		if field.String() != "" {
-			ret = append(ret, fmt.Sprintf("%s='%s'", key, field.String()))
+		switch field.Kind() {
+		case reflect.String:
+			if field.String() != "" {
+				ret = append(ret, fmt.Sprintf("%s='%s'", key, field.String()))
+			}
+		case reflect.Bool:
+			if field.Bool() {
+				ret = append(ret, fmt.Sprintf("%s=%t", key, field.Bool()))
+			}
 		}
 	}
 
@@ -149,6 +159,31 @@ func (info Info) AsSimple() string {
 	sort.Strings(props)
 
 	return strings.Join(append(ret, props...), " ")
+}
+
+func (info *Info) SetField(key, value string) error {
+	ttf := info.tagToField(true)
+	field, ok := ttf[key]
+	if !ok {
+		info.ConnectProps.Add(key, value)
+		return nil
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Bool:
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("error parsing '%s' as bool for field %s: %w",
+				value, key, err)
+		}
+		field.SetBool(b)
+	default:
+		return fmt.Errorf("unhandled field kind: %s", field.Kind())
+	}
+
+	return nil
 }
 
 // Prop returns the last value for a property or empty string.

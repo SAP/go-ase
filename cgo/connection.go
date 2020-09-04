@@ -118,12 +118,13 @@ func NewConnection(driverCtx *csContext, dsn *libdsn.Info) (*Connection, error) 
 		// '-o ssl' is set.
 		strHostport := dsn.Host + " " + dsn.Port
 		// If '-o ssl='-option is set, add it to strHostport
-		if dsn.ConnectProps.Get("ssl") != "" {
-			strHostport += fmt.Sprintf("ssl=\"%s\"", dsn.ConnectProps.Get("ssl"))
+		if dsn.TLSHostname != "" {
+			strHostport += fmt.Sprintf("ssl=\"%s\"", dsn.TLSHostname)
 		}
 		// Create pointer
 		ptrHostport := unsafe.Pointer(C.CString(strHostport))
 		defer C.free(ptrHostport)
+
 		retval = C.ct_con_props(conn.conn, C.CS_SET, C.CS_SERVERADDR, ptrHostport, C.CS_NULLTERM, nil)
 		if retval != C.CS_SUCCEED {
 			conn.Close()
