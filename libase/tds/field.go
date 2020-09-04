@@ -709,8 +709,38 @@ type VarBinaryFieldData struct{ fieldData }
 type VarCharFieldData struct{ fieldData }
 type BigDateTimeNFieldData struct{ fieldData }
 type BigTimeNFieldData struct{ fieldData }
-type DecNFieldData struct{ fieldData }
-type NumNFieldData struct{ fieldData }
+
+type fieldDataPrecisionScale struct {
+	fieldData
+}
+
+func (field *fieldDataPrecisionScale) ReadFrom(ch BytesChannel) (int, error) {
+	n, err := field.readFrom(ch)
+	if err != nil {
+		return 0, err
+	}
+
+	dec, ok := field.value.(*types.Decimal)
+	if !ok {
+		return 0, fmt.Errorf("%T is not of type decimal", field.value)
+	}
+
+	switch fieldFmt := field.fmt.(type) {
+	case *DecNFieldFmt:
+		dec.Precision = int(fieldFmt.precision)
+		dec.Scale = int(fieldFmt.scale)
+	case *NumNFieldFmt:
+		dec.Precision = int(fieldFmt.precision)
+		dec.Scale = int(fieldFmt.scale)
+	default:
+		return 0, fmt.Errorf("%T is not of type %T", field.value, fieldFmt)
+	}
+
+	return n, nil
+}
+
+type DecNFieldData struct{ fieldDataPrecisionScale }
+type NumNFieldData struct{ fieldDataPrecisionScale }
 
 type fieldDataBlob struct {
 	fieldData
