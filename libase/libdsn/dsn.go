@@ -49,11 +49,10 @@ func NewInfo() *Info {
 // tag>. E.g. `.Host` with the prefix `""` would recognize `ASE_HOST`
 // and `ASE_HOSTNAME`.
 //
-// Properties with dashes are recognized with double underscored
-// instead.
-// E.g. the property `cgo-callback-client` can be passed as
-// `CGO__CALLBACK__CLIENT`.
-func NewInfoFromEnv(prefix string) *Info {
+// Properties with dashes are recognized with undescores instead of
+// dashes. E.g. the property `cgo-callback-client` can be passed as
+// `CGO_CALLBACK_CLIENT`.
+func NewInfoFromEnv(prefix string) (*Info, error) {
 	dsn := NewInfo()
 
 	if prefix == "" {
@@ -71,7 +70,7 @@ func NewInfoFromEnv(prefix string) *Info {
 		}
 
 		key = strings.ToLower(strings.TrimPrefix(key, prefix))
-		key = strings.ReplaceAll(key, "__", "-")
+		key = strings.ReplaceAll(key, "_", "-")
 		if field, ok := ttf[key]; ok {
 			field.SetString(value)
 		} else {
