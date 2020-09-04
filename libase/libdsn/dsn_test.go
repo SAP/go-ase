@@ -8,25 +8,19 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 )
 
-func setEnv(prefix string, kv map[string]string) (func(), error) {
-	if prefix != "" {
-		prefix += "_"
-	}
-
+func setEnv(kv map[string]string) (func(), error) {
 	for key, value := range kv {
-		err := os.Setenv(strings.ToUpper(prefix+key), value)
-		if err != nil {
+		if err := os.Setenv(key, value); err != nil {
 			return nil, err
 		}
 	}
 
 	return func() {
 		for key := range kv {
-			os.Unsetenv(strings.ToUpper(prefix + key))
+			os.Unsetenv(key)
 		}
 	}, nil
 }
@@ -40,28 +34,34 @@ func TestNewInfoFromEnv(t *testing.T) {
 		"no prefix": {
 			prefix: "",
 			env: map[string]string{
-				"host": "testhost",
-				"port": "4901",
-				"user": "username",
-				"pass": "password",
+				"ASE_HOST":                "testhost",
+				"ASE_PORT":                "4901",
+				"ASE_USER":                "username",
+				"ASE_PASS":                "password",
+				"ASE_TLS_HOSTNAME":        "not-testhost",
+				"ASE_TLS_SKIP_VALIDATION": "true",
+				"ASE_TLS_CA":              "/tmp",
 			},
 			expected: Info{
-				Host:         "testhost",
-				Port:         "4901",
-				Username:     "username",
-				Password:     "password",
-				Database:     "",
-				ConnectProps: url.Values{},
+				Host:              "testhost",
+				Port:              "4901",
+				Username:          "username",
+				Password:          "password",
+				Database:          "",
+				TLSHostname:       "not-testhost",
+				TLSSkipValidation: true,
+				TLSCAFile:         "/tmp",
+				ConnectProps:      url.Values{},
 			},
 		},
 		"prefix": {
 			prefix: "NOTASE",
 			env: map[string]string{
-				"host":         "testhost",
-				"port":         "4901",
-				"user":         "username",
-				"userstorekey": "sapsa",
-				"database":     "testdatabase",
+				"NOTASE_HOST":         "testhost",
+				"NOTASE_PORT":         "4901",
+				"NOTASE_USER":         "username",
+				"NOTASE_USERSTOREKEY": "sapsa",
+				"NOTASE_DATABASE":     "testdatabase",
 			},
 			expected: Info{
 				Host:         "testhost",
@@ -78,21 +78,20 @@ func TestNewInfoFromEnv(t *testing.T) {
 	for name, cas := range cases {
 		t.Run(name,
 			func(t *testing.T) {
-				passPrefix := cas.prefix
-				if passPrefix == "" {
-					passPrefix = "ASE"
-				}
-
 				os.Clearenv()
 
-				fn, err := setEnv(passPrefix, cas.env)
+				fn, err := setEnv(cas.env)
 				if err != nil {
 					t.Errorf("Error preparing environment: %v", err)
 					return
 				}
 				defer fn()
 
-				d := NewInfoFromEnv(cas.prefix)
+				d, err := NewInfoFromEnv(cas.prefix)
+				if err != nil {
+					t.Errorf("Received unexpected error: %v", err)
+					return
+				}
 
 				if !reflect.DeepEqual(cas.expected, *d) {
 					t.Errorf("Received Info does not match expected:")
