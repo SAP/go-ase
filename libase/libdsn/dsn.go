@@ -61,7 +61,6 @@ func NewInfoFromEnv(prefix string) (*Info, error) {
 	}
 	prefix += "_"
 
-	ttf := dsn.tagToField(true)
 	for _, env := range os.Environ() {
 		envSplit := strings.SplitN(env, "=", 2)
 		key, value := envSplit[0], envSplit[1]
@@ -72,22 +71,9 @@ func NewInfoFromEnv(prefix string) (*Info, error) {
 
 		key = strings.ToLower(strings.TrimPrefix(key, prefix))
 		key = strings.ReplaceAll(key, "_", "-")
-		if field, ok := ttf[key]; ok {
-			switch field.Kind() {
-			case reflect.String:
-				field.SetString(value)
-			case reflect.Bool:
-				b, err := strconv.ParseBool(value)
-				if err != nil {
-					return nil, fmt.Errorf("error parsing '%s' as bool for field %s: %w",
-						value, key, err)
-				}
-				field.SetBool(b)
-			default:
-				return nil, fmt.Errorf("unhandled field kind: %s", field.Kind())
-			}
-		} else {
-			dsn.ConnectProps.Add(key, value)
+
+		if err := dsn.SetField(key, value); err != nil {
+			return nil, fmt.Errorf("error setting value '%s' for field %s: %w", value, key, err)
 		}
 	}
 
@@ -173,6 +159,31 @@ func (info Info) AsSimple() string {
 	sort.Strings(props)
 
 	return strings.Join(append(ret, props...), " ")
+}
+
+func (info *Info) SetField(key, value string) error {
+	ttf := info.tagToField(true)
+	field, ok := ttf[key]
+	if !ok {
+		info.ConnectProps.Add(key, value)
+		return nil
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Bool:
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("error parsing '%s' as bool for field %s: %w",
+				value, key, err)
+		}
+		field.SetBool(b)
+	default:
+		return fmt.Errorf("unhandled field kind: %s", field.Kind())
+	}
+
+	return nil
 }
 
 // Prop returns the last value for a property or empty string.

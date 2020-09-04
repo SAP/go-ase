@@ -110,6 +110,27 @@ func parseDsnUri(dsn string) (*Info, error) {
 		}
 	}
 
+	// Check ConnectProps for any values that should be set in struct
+	ttf := dsni.tagToField(true)
+	for prop, values := range dsni.ConnectProps {
+		// Skip if values is empty
+		if len(values) == 0 {
+			continue
+		}
+
+		if _, ok := ttf[prop]; !ok {
+			// ConnectProp is not in struct
+			continue
+		}
+
+		if err := dsni.SetField(prop, values[len(values)-1]); err != nil {
+			return nil, fmt.Errorf("error setting field %s with value '%s': %w",
+				prop, values[len(values)-1], err)
+		}
+
+		dsni.ConnectProps.Del(prop)
+	}
+
 	return dsni, nil
 }
 
@@ -126,9 +147,6 @@ func parseDsnSimple(dsn string) (*Info, error) {
 	// Split the DSN on whitespace - any quoted values containing
 	// whitespaces will be concatenated in the first step in the loop.
 	dsnS := strings.Split(dsn, " ")
-
-	// Prepare a tag to field map
-	tagToField := dsni.tagToField(true)
 
 	for len(dsnS) > 0 {
 		var part string
@@ -164,10 +182,8 @@ func parseDsnSimple(dsn string) (*Info, error) {
 			}
 		}
 
-		if field, ok := tagToField[key]; ok {
-			field.SetString(value)
-		} else {
-			dsni.ConnectProps.Add(key, value)
+		if err := dsni.SetField(key, value); err != nil {
+			return nil, fmt.Errorf("error setting value '%s' for field %s: %w", value, key, err)
 		}
 	}
 
