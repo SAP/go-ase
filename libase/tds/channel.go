@@ -206,7 +206,7 @@ func (tdsChan *Channel) Logout() error {
 		return fmt.Errorf("error sending logout package: %w", err)
 	}
 
-	pkg, err := tdsChan.NextPackage(context.Background(), true)
+	pkg, err := tdsChan.NextPackage(context.Background(), false)
 	if err != nil {
 		return fmt.Errorf("error reading logout response: %w", err)
 	}
