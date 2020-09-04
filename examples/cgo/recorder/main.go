@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// The recorder example shows how the MessageRecorder can be used to
-// record non-sql server responses.
+// This example shows how the cgo.MessageRecorder can be used to process
+// messages from the TDS server.
 package main
 
 import (

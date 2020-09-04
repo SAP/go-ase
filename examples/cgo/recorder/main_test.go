@@ -7,8 +7,7 @@ package main
 import "log"
 
 func ExampleDoMain() {
-	err := DoMain()
-	if err != nil {
+	if err := DoMain(); err != nil {
 		log.Fatalf("Failed to execute example: %v", err)
 	}
 	// Output:
