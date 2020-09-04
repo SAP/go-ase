@@ -26,9 +26,14 @@ func doMain() error {
 	cgo.GlobalServerMessageBroker.RegisterHandler(handleMessage)
 	cgo.GlobalClientMessageBroker.RegisterHandler(handleMessage)
 
-	db, err := sql.Open("ase", term.Dsn().AsSimple())
+	dsn, err := term.Dsn()
 	if err != nil {
-		return fmt.Errorf("cgoase: failed to connect to database: %w", err)
+		return fmt.Errorf("error parsing DSN: %w", err)
+	}
+
+	db, err := sql.Open("ase", dsn.AsSimple())
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	defer db.Close()
 

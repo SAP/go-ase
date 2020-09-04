@@ -24,7 +24,10 @@ func main() {
 }
 
 func DoMain() error {
-	dsn := libdsn.NewInfoFromEnv("")
+	dsn, err := libdsn.NewInfoFromEnv("")
+	if err != nil {
+		return fmt.Errorf("error reading DSN info from env: %w", err)
+	}
 
 	fmt.Println("Opening database")
 	db, err := sql.Open("ase", dsn.AsSimple())

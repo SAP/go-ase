@@ -6,6 +6,7 @@ package term
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 
 	"github.com/SAP/go-ase/libase/flagslice"
@@ -28,8 +29,11 @@ func init() {
 	flag.Parse()
 }
 
-func Dsn() *libdsn.Info {
-	dsn := libdsn.NewInfoFromEnv("")
+func Dsn() (*libdsn.Info, error) {
+	dsn, err := libdsn.NewInfoFromEnv("")
+	if err != nil {
+		return nil, fmt.Errorf("error reading DSN info from env: %w", err)
+	}
 
 	if *fHost != "" {
 		dsn.Host = *fHost
@@ -63,8 +67,11 @@ func Dsn() *libdsn.Info {
 			value = split[1]
 		}
 
-		dsn.ConnectProps.Set(opt, value)
+		if err := dsn.SetField(opt, value); err != nil {
+			return nil, fmt.Errorf("term: error setting field %s with value '%v': %w",
+				opt, value, err)
+		}
 	}
 
-	return dsn
+	return dsn, nil
 }

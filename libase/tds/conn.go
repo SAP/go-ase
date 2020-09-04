@@ -15,7 +15,6 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -58,30 +57,26 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 	tlsConfig := &tls.Config{}
 	useTLS := false
 
-	if dsn.Prop("ssl") != "" {
+	if dsn.TLSHostname != "" {
 		useTLS = true
 
-		sslName := dsn.Prop("ssl")
-		if strings.HasPrefix(sslName, "CN=") {
-			sslName = strings.TrimPrefix(sslName, "CN=")
+		hostname := dsn.TLSHostname
+		if strings.HasPrefix(hostname, "CN=") {
+			hostname = strings.TrimPrefix(hostname, "CN=")
 		}
 
-		tlsConfig.ServerName = sslName
+		tlsConfig.ServerName = hostname
 	}
 
-	if dsn.Prop("ssl-skip-validation") != "" {
+	if dsn.TLSSkipValidation {
 		useTLS = true
-		tlsConfig.InsecureSkipVerify, err = strconv.ParseBool(dsn.Prop("ssl-skip-validation"))
-		if err != nil {
-			return nil, fmt.Errorf("couldn't parse value '%s' for ssl-skip-validation as boolean: %w",
-				dsn.Prop("ssl-skip-validation"), err)
-		}
+		tlsConfig.InsecureSkipVerify = dsn.TLSSkipValidation
 	}
 
-	if dsn.Prop("ssl-ca") != "" {
+	if dsn.TLSCAFile != "" {
 		useTLS = true
 
-		bs, err := ioutil.ReadFile(dsn.Prop("ssl-ca"))
+		bs, err := ioutil.ReadFile(dsn.TLSCAFile)
 		if err != nil {
 			return nil, fmt.Errorf("error reading file at ssl-ca path '%s': %w",
 				dsn.Prop("ssl-ca"), err)

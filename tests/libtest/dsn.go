@@ -28,9 +28,11 @@ func doCallbacks() bool {
 // DSN creates a new dsn.Info, sets up a new database and returns the
 // Info and a function to tear down the database.
 func DSN(userstore bool) (*libdsn.Info, func(), error) {
-	info := libdsn.NewInfoFromEnv("")
+	info, err := libdsn.NewInfoFromEnv("")
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading DSN info from env: %w", err)
+	}
 
-	var err error
 	if !userstore {
 		info.Userstorekey = ""
 	} else {
