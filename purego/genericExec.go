@@ -27,8 +27,7 @@ func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.Name
 	}
 
 	for i := range args {
-		err := stmt.CheckNamedValue(&args[i])
-		if err != nil {
+		if err := stmt.CheckNamedValue(&args[i]); err != nil {
 			return nil, nil, fmt.Errorf("go-ase: error checking argument: %w", err)
 		}
 	}

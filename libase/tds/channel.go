@@ -144,8 +144,7 @@ func (tdsChan *Channel) Close() error {
 
 	if tdsChan.channelId == 0 {
 		// Channel 0 is the main communication channel - send logout packages
-		err := tdsChan.Logout()
-		if err != nil {
+		if err := tdsChan.Logout(); err != nil {
 			me = multierror.Append(me, fmt.Errorf("error in logout sequence: %w", err))
 		}
 	} else {
@@ -158,8 +157,7 @@ func (tdsChan *Channel) Close() error {
 		teardown.Data = nil
 		tdsChan.CurrentHeaderType = TDS_BUF_CLOSE
 
-		err := tdsChan.sendPacket(teardown)
-		if err != nil {
+		if err := tdsChan.sendPacket(teardown); err != nil {
 			me = multierror.Append(me,
 				fmt.Errorf("error sending teardown for channel %d: %w",
 					tdsChan.channelId, err))

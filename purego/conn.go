@@ -98,8 +98,7 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 }
 
 func (c *Conn) Close() error {
-	err := c.Conn.Close()
-	if err != nil {
+	if err := c.Conn.Close(); err != nil {
 		return fmt.Errorf("go-ase: error closing TDS connection: %w", err)
 	}
 
