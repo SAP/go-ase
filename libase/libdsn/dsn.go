@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -72,13 +73,25 @@ func NewInfoFromEnv(prefix string) (*Info, error) {
 		key = strings.ToLower(strings.TrimPrefix(key, prefix))
 		key = strings.ReplaceAll(key, "_", "-")
 		if field, ok := ttf[key]; ok {
-			field.SetString(value)
+			switch field.Kind() {
+			case reflect.String:
+				field.SetString(value)
+			case reflect.Bool:
+				b, err := strconv.ParseBool(value)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing '%s' as bool for field %s: %w",
+						value, key, err)
+				}
+				field.SetBool(b)
+			default:
+				return nil, fmt.Errorf("unhandled field kind: %s", field.Kind())
+			}
 		} else {
 			dsn.ConnectProps.Add(key, value)
 		}
 	}
 
-	return dsn
+	return dsn, nil
 }
 
 // tagToField returns a mapping from json metadata tags to
@@ -131,8 +144,15 @@ func (info Info) AsSimple() string {
 	ret := []string{}
 
 	for key, field := range info.tagToField(false) {
-		if field.String() != "" {
-			ret = append(ret, fmt.Sprintf("%s='%s'", key, field.String()))
+		switch field.Kind() {
+		case reflect.String:
+			if field.String() != "" {
+				ret = append(ret, fmt.Sprintf("%s='%s'", key, field.String()))
+			}
+		case reflect.Bool:
+			if field.Bool() {
+				ret = append(ret, fmt.Sprintf("%s=%t", key, field.Bool()))
+			}
 		}
 	}
 
