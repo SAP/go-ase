@@ -19,12 +19,17 @@ import (
 //
 // The json tag is the expected string in a simple URI.
 type Info struct {
-	Host         string     `json:"host" multiref:"hostname" validate:"required"`
-	Port         string     `json:"port" validate:"required"`
-	Username     string     `json:"username" multiref:"user" validate:"required"`
-	Password     string     `json:"password" multiref:"passwd,pass"`
-	Userstorekey string     `json:"userstorekey" multiref:"key" validate:"required"`
-	Database     string     `json:"database" multiref:"db"`
+	Host         string `json:"host" multiref:"hostname" validate:"required"`
+	Port         string `json:"port" validate:"required"`
+	Username     string `json:"username" multiref:"user" validate:"required"`
+	Password     string `json:"password" multiref:"passwd,pass"`
+	Userstorekey string `json:"userstorekey" multiref:"key" validate:"required"`
+	Database     string `json:"database" multiref:"db"`
+
+	TLSHostname       string `json:"tls-hostname" multiref:"tls,ssl"`
+	TLSSkipValidation bool   `json:"tls-skip-validation"`
+	TLSCAFile         string `json:"tls-ca"`
+
 	ConnectProps url.Values `json:"connectprops"`
 }
 
