@@ -75,8 +75,8 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 		envChangeHooksLock: &sync.Mutex{},
 		CurrentHeaderType:  TDS_BUF_NORMAL,
 		window:             0, // TODO
-		queueRx:            NewPacketQueue(),
-		queueTx:            NewPacketQueue(),
+		queueRx:            NewPacketQueue(tds.PacketSize),
+		queueTx:            NewPacketQueue(tds.PacketSize),
 		packageCh:          make(chan Package, queueSize),
 		errCh:              make(chan error, 10),
 	}
@@ -89,8 +89,8 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 	}
 
 	// Send packets to setup logical channel
-	setup := NewPacket()
-	setup.Header.Length = MsgHeaderLength
+	setup := NewPacket(PacketHeaderSize)
+	setup.Header.Length = PacketHeaderSize
 	setup.Data = nil
 
 	tdsChan.CurrentHeaderType = TDS_BUF_SETUP
@@ -152,8 +152,7 @@ func (tdsChan *Channel) Close() error {
 		// header-only packets
 
 		// Send packet to tear down logical channel
-		teardown := NewPacket()
-		teardown.Header.Length = MsgHeaderLength
+		teardown := NewPacket(tdsChan.tdsConn.PacketSize())
 		teardown.Data = nil
 		tdsChan.CurrentHeaderType = TDS_BUF_CLOSE
 
@@ -236,6 +235,15 @@ func (tdsChan *Channel) Logout() error {
 func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 	if envChange, ok := pkg.(*EnvChangePackage); ok {
 		for _, member := range envChange.members {
+			if member.Type == TDS_ENV_PACKSIZE {
+				packSize, err := strconv.Atoi(member.NewValue)
+				if err != nil {
+					return false, fmt.Errorf("error parsing new packet size '%s' to int: %w",
+						member.NewValue, err)
+				}
+				tdsChan.tdsConn.packetSize = packSize
+			}
+
 			tdsChan.callEnvChangeHooks(member.Type, member.OldValue, member.NewValue)
 		}
 		return false, nil
@@ -412,7 +420,7 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 			return context.Canceled
 		default:
 			// Only the last packet should not be full.
-			if i == tdsChan.queueTx.indexPacket && tdsChan.queueTx.indexData < MsgBodyLength {
+			if i == tdsChan.queueTx.indexPacket && tdsChan.queueTx.indexData < tdsChan.tdsConn.PacketBodySize() {
 				if onlyFull {
 					// Packet is not exhausted and only exhausted packets
 					// should be sent. Return.
@@ -421,7 +429,7 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 
 				// Packet is not exhausted but should be sent. Adjust header
 				// length
-				packet.Header.Length = uint16(MsgHeaderLength + tdsChan.queueTx.indexData)
+				packet.Header.Length = uint16(PacketHeaderSize + tdsChan.queueTx.indexData)
 				packet.Data = packet.Data[:tdsChan.queueTx.indexData]
 			}
 
@@ -448,7 +456,7 @@ func (tdsChan *Channel) sendPacket(packet *Packet) error {
 		packet.Header.Window = uint8(tdsChan.window)
 	}
 
-	if len(packet.Data) != MsgBodyLength {
+	if len(packet.Data) != tdsChan.tdsConn.PacketBodySize() {
 		// Data portion is not exhausted, this is the last packet.
 		packet.Header.Status |= TDS_BUFSTAT_EOM
 	}
@@ -460,7 +468,7 @@ func (tdsChan *Channel) sendPacket(packet *Packet) error {
 
 	if int(n) != int(packet.Header.Length) {
 		return fmt.Errorf("expected to write %d bytes for packet, wrote %d instead",
-			int(packet.Header.Length)+MsgHeaderLength, n)
+			int(packet.Header.Length)+PacketHeaderSize, n)
 	}
 
 	return nil
@@ -477,7 +485,7 @@ func (tdsChan *Channel) WritePacket(packet *Packet) {
 
 	// The packet is header-only - pass it directly into the package
 	// channel.
-	if packet.Header.Length == MsgHeaderLength {
+	if packet.Header.Length == PacketHeaderSize {
 		tdsChan.packageCh <- HeaderOnlyPackage{Header: packet.Header}
 		return
 	}

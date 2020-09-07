@@ -12,18 +12,24 @@ import (
 
 var _ BytesChannel = (*PacketQueue)(nil)
 
-// PacketQueue is loosely modeled after bytes.Buffer with the
-// difference, that it automatically sorts written data into Packets and
-// can supports reading over packet boundaries.
+// PacketQueue is loosely modeled after bytes.Buffer.
+// It supports automatically writing data into Packets, generating new
+// Packets as required and reading over Packet boundaries.
 type PacketQueue struct {
 	sync.Mutex
 	queue                  []*Packet
 	indexPacket, indexData int
+
+	// packetSize should be a function returning the currently used
+	// packetSize.
+	packetSize func() int
 }
 
 // NewPacketQueue returns an initialized PacketQueue.
-func NewPacketQueue() *PacketQueue {
-	queue := &PacketQueue{}
+func NewPacketQueue(packetSize func() int) *PacketQueue {
+	queue := &PacketQueue{
+		packetSize: packetSize,
+	}
 	queue.Reset()
 	return queue
 }
@@ -242,21 +248,21 @@ func (queue *PacketQueue) WriteBytes(bs []byte) error {
 	for bsOffset < len(bs) {
 		// Add new packet if the index points to no packet
 		if queue.indexPacket == len(queue.queue) {
-			queue.queue = append(queue.queue, NewPacket())
+			queue.queue = append(queue.queue, NewPacket(queue.packetSize()))
 		}
 
 		// Retrieve current package and calculate how many bytes can
 		// still be written to it.
 		curPacket := queue.queue[queue.indexPacket]
-		freeBytes := int(curPacket.Header.Length) - MsgHeaderLength - queue.indexData
+		freeBytes := int(curPacket.Header.Length) - PacketHeaderSize - queue.indexData
 
 		// No free bytes, add a new packet.
 		if freeBytes == 0 {
-			curPacket = NewPacket()
+			curPacket = NewPacket(queue.packetSize())
 			queue.queue = append(queue.queue, curPacket)
 			queue.indexPacket++
 			queue.indexData = 0
-			freeBytes = int(curPacket.Header.Length) - MsgHeaderLength
+			freeBytes = int(curPacket.Header.Length) - PacketHeaderSize
 		}
 
 		// Calculate how many bytes are left in bs if more free bytes

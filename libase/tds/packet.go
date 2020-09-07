@@ -15,22 +15,22 @@ type Packet struct {
 	Data   []byte
 }
 
-func NewPacket() *Packet {
+func NewPacket(packetSize int) *Packet {
 	packet := &Packet{}
-	packet.Header = NewPacketHeader()
-	packet.Data = make([]byte, MsgBodyLength)
+	packet.Header = NewPacketHeader(packetSize)
+	packet.Data = make([]byte, packetSize-PacketHeaderSize)
 	return packet
 }
 
 func (packet Packet) Bytes() ([]byte, error) {
 	bs := make([]byte, int(packet.Header.Length))
 
-	_, err := packet.Header.Read(bs[:MsgHeaderLength])
+	_, err := packet.Header.Read(bs[:PacketHeaderSize])
 	if err != nil {
 		return nil, fmt.Errorf("error reading header into byte slice: %w", err)
 	}
 
-	copy(bs[MsgHeaderLength:], packet.Data)
+	copy(bs[PacketHeaderSize:], packet.Data)
 	return bs, nil
 }
 
@@ -45,7 +45,7 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 	totalBytes += n
 
-	packet.Data = make([]byte, packet.Header.Length-MsgHeaderLength)
+	packet.Data = make([]byte, packet.Header.Length-PacketHeaderSize)
 
 	m, err := reader.Read(packet.Data)
 	totalBytes += int64(m)
