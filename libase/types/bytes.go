@@ -96,6 +96,11 @@ func (t DataType) Bytes(endian binary.ByteOrder, value interface{}) ([]byte, err
 		return bs, nil
 	}
 
+	switch typed := value.(type) {
+	case string:
+		value = []byte(typed)
+	}
+
 	buf := &bytes.Buffer{}
 	err := binary.Write(buf, endian, value)
 	if err != nil {
