@@ -717,12 +717,12 @@ type fieldDataPrecisionScale struct {
 func (field *fieldDataPrecisionScale) ReadFrom(ch BytesChannel) (int, error) {
 	n, err := field.readFrom(ch)
 	if err != nil {
-		return 0, err
+		return n, err
 	}
 
 	dec, ok := field.value.(*types.Decimal)
 	if !ok {
-		return 0, fmt.Errorf("%T is not of type decimal", field.value)
+		return n, fmt.Errorf("%T is not of type decimal", field.value)
 	}
 
 	switch fieldFmt := field.fmt.(type) {
@@ -733,7 +733,7 @@ func (field *fieldDataPrecisionScale) ReadFrom(ch BytesChannel) (int, error) {
 		dec.Precision = int(fieldFmt.precision)
 		dec.Scale = int(fieldFmt.scale)
 	default:
-		return 0, fmt.Errorf("%T is not of type %T", field.value, fieldFmt)
+		return n, fmt.Errorf("%T is neither of type DecNFieldFmt nor NumNFieldFmt", field.value)
 	}
 
 	return n, nil
