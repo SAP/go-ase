@@ -40,6 +40,9 @@ type Conn struct {
 	tdsChannels         map[int]*Channel
 	tdsChannelsLock     *sync.RWMutex
 	errCh               chan error
+
+	// packetSize is the negotiated packet size
+	packetSize int
 }
 
 // Dial returns a prepared and dialed Conn.
@@ -114,9 +117,11 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 		c = tlsClient
 	}
 
-	tds := &Conn{}
-	tds.dsn = dsn
-	tds.conn = c
+	tds := &Conn{
+		dsn:        dsn,
+		conn:       c,
+		packetSize: 512,
+	}
 
 	err = tds.setCapabilities()
 	if err != nil {
@@ -173,6 +178,14 @@ func (tds *Conn) Close() error {
 	}
 
 	return me
+}
+
+func (tds Conn) PacketSize() int {
+	return tds.packetSize
+}
+
+func (tds Conn) PacketBodySize() int {
+	return tds.packetSize - PacketHeaderSize
 }
 
 func (tds *Conn) getValidChannelId() (int, error) {
@@ -328,7 +341,7 @@ func (tds *Conn) setCapabilities() error {
 			TDS_CSR_KEYSETDRIVEN,
 
 			// Renegotiate packet size after login negotiation
-			//TODO: TDS_REQ_SRVPKTSIZE,
+			TDS_REQ_SRVPKTSIZE,
 
 			// Support cluster failover and migration
 			//TODO: TDS_CAP_CLUSTERFAILOVER,
