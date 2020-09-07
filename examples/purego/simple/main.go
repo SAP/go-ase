@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // This example shows a simple interaction with a TDS server using the
-// database/sql interface and the cgo-based driver.
+// database/sql interface and the pure go driver.
 package main
 
 import (
@@ -13,8 +13,8 @@ import (
 	"math"
 	"os"
 
-	_ "github.com/SAP/go-ase/cgo"
 	"github.com/SAP/go-ase/libase/libdsn"
+	_ "github.com/SAP/go-ase/purego"
 )
 
 func main() {
@@ -38,20 +38,17 @@ func DoMain() error {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("if object_id('simple') is not null drop table simple")
-	if err != nil {
+	if _, err = db.Exec("if object_id('simple') is not null drop table simple"); err != nil {
 		return fmt.Errorf("failed to drop table 'simple': %w", err)
 	}
 
 	fmt.Println("Creating table 'simple'")
-	_, err = db.Exec("create table simple (a int, b char(30))")
-	if err != nil {
+	if _, err = db.Exec("create table simple (a int, b char(30))"); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
 	fmt.Printf("Writing a=%d, b='a string' to table\n", math.MaxInt32)
-	_, err = db.Exec("insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string")
-	if err != nil {
+	if _, err = db.Exec("insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
 		return fmt.Errorf("failed to insert values: %w", err)
 	}
 
@@ -75,8 +72,7 @@ func DoMain() error {
 	var b string
 
 	for rows.Next() {
-		err = rows.Scan(&a, &b)
-		if err != nil {
+		if err = rows.Scan(&a, &b); err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 

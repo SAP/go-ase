@@ -46,7 +46,7 @@ integration: integration-cgo integration-go
 integration-cgo:
 	$(GO) test -race ./tests/cgotest ./examples/cgo/...
 integration-go:
-	$(GO) test -race ./tests/puregotest
+	$(GO) test -race ./tests/puregotest ./examples/purego/...
 
 GO_EXAMPLES := $(wildcard examples/purego/*)
 CGO_EXAMPLES := $(wildcard examples/cgo/*)
