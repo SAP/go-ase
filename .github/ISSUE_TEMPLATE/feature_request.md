@@ -1,11 +1,4 @@
 ---
-
-<!--
-SPDX-FileCopyrightText: 2020 SAP SE
-
-SPDX-License-Identifier: Apache-2.0
--->
-
 name: Feature request
 about: Suggest an idea for this project
 title: ''
@@ -13,6 +6,12 @@ labels: ''
 assignees: ''
 
 ---
+
+<!--
+SPDX-FileCopyrightText: 2020 SAP SE
+
+SPDX-License-Identifier: Apache-2.0
+-->
 
 **Problem Description**
 
