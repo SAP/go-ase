@@ -20,7 +20,7 @@ var (
 func Entrypoint(db *sql.DB) error {
 	flag.Parse()
 
-	if len(flag.Args()) == 0 || *fInputFile == "" {
+	if len(flag.Args()) == 0 && *fInputFile == "" {
 		return Repl(db)
 	}
 
