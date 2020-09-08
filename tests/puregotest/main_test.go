@@ -55,3 +55,7 @@ func TestFlt4(t *testing.T) { libtest.DoTestReal(t) }
 
 // Bit
 func TestBit(t *testing.T) { libtest.DoTestBit(t) }
+
+// Routines
+func TestSQLTx(t *testing.T)   { libtest.DoTestSQLTx(t) }
+func TestSQLExec(t *testing.T) { libtest.DoTestSQLExec(t) }
