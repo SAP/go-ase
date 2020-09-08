@@ -9,9 +9,30 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"github.com/SAP/go-ase/libase"
 	"github.com/SAP/go-ase/libase/tds"
 )
 
+// DirectExec is a wrapper for GenericExec and meant to be used when
+// directly accessing this library, rather than using database/sql.
+//
+// The primary advantage are the variadic args, which can be normal
+// values and are automatically transformed to driver.NamedValues for
+// GenericExec.
+func (c *Conn) DirectExec(ctx context.Context, query string, args ...interface{}) (driver.Rows, driver.Result, error) {
+	var namedArgs []driver.NamedValue
+	if len(args) > 0 {
+		values := make([]driver.Value, len(args))
+		for i, arg := range args {
+			values[i] = driver.Value(arg)
+		}
+		namedArgs = libase.ValuesToNamedValues(values)
+	}
+	return c.GenericExec(ctx, query, namedArgs)
+}
+
+// GenericExec is the central method through which SQL statements are
+// sent to ASE.
 func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
 	if len(args) == 0 {
 		rows, result, err := c.language(ctx, query)
@@ -32,7 +53,7 @@ func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.Name
 		}
 	}
 
-	rows, result, err := stmt.exec(ctx, args)
+	rows, result, err := stmt.GenericExec(ctx, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("go-ase: error executing dynamic SQL: %w", err)
 	}
