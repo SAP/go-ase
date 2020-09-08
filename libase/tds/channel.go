@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -200,12 +201,15 @@ func (tdsChan *Channel) Close() error {
 
 // Logout implements the logout sequence.
 func (tdsChan *Channel) Logout() error {
-	err := tdsChan.SendPackage(context.Background(), &LogoutPackage{})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	err := tdsChan.SendPackage(ctx, &LogoutPackage{})
 	if err != nil {
 		return fmt.Errorf("error sending logout package: %w", err)
 	}
 
-	pkg, err := tdsChan.NextPackage(context.Background(), false)
+	pkg, err := tdsChan.NextPackage(ctx, true)
 	if err != nil {
 		return fmt.Errorf("error reading logout response: %w", err)
 	}
