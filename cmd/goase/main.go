@@ -6,10 +6,8 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/SAP/go-ase/libase/tds"
 	"github.com/SAP/go-ase/libase/term"
@@ -37,14 +35,7 @@ func doMain() error {
 	db := sql.OpenDB(connector)
 	defer db.Close()
 
-	if len(flag.Args()) > 0 {
-		// Positional arguments were supplied, execute these as SQL
-		// statements
-		query := strings.Join(flag.Args(), " ") + ";"
-		return term.ParseAndExecQueries(db, query)
-	}
-
-	return term.Repl(db)
+	return term.Entrypoint(db)
 }
 
 func updateDatabaseName(typ tds.EnvChangeType, oldValue, newValue string) {
