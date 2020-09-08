@@ -22,6 +22,10 @@ else
 	$(GO) generate ./$(TARGET)
 	reuse addheader $(REUSE_ARGS) $(shell find ./$(TARGET) -type f -not -path '*/.git/*')
 endif
+	# go generate will also rebuild the go.sum and remove the
+	# header. Since generate only targets generated files and
+	# licenses the go.sum modification can be reverted.
+	[ -d .git ] && git checkout -- go.sum
 
 LINT_IGNORE ?= /cgo \
 	      /cmd/cgoase
