@@ -6,11 +6,8 @@ package purego
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/SAP/go-ase/libase/libdsn"
@@ -19,7 +16,6 @@ import (
 
 var (
 	_ driver.Conn               = (*Conn)(nil)
-	_ driver.ConnBeginTx        = (*Conn)(nil)
 	_ driver.ConnPrepareContext = (*Conn)(nil)
 	_ driver.ExecerContext      = (*Conn)(nil)
 	_ driver.QueryerContext     = (*Conn)(nil)
@@ -103,22 +99,6 @@ func (c *Conn) Close() error {
 	}
 
 	return nil
-}
-
-func (c Conn) Begin() (driver.Tx, error) {
-	readOnly, err := strconv.ParseBool(c.DSN.Prop("read-only"))
-	if err != nil {
-		return nil, fmt.Errorf("go-ase: error parsing connection property 'read-only': %w", err)
-	}
-
-	return c.BeginTx(
-		context.Background(),
-		driver.TxOptions{Isolation: driver.IsolationLevel(sql.LevelDefault), ReadOnly: readOnly},
-	)
-}
-
-func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	return nil, errors.New("go-ase: BeginTx not implemented")
 }
 
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {

@@ -112,8 +112,9 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 				stmt.rowFmt = typed
 				return false, nil
 			case *tds.DonePackage:
-				if typed.Status != tds.TDS_DONE_FINAL {
-					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL set: %s", typed)
+				if typed.Status != tds.TDS_DONE_FINAL && typed.Status != tds.TDS_DONE_INXACT {
+					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL or TDS_DONE_INXACT set: %s",
+						typed)
 				}
 				return true, nil
 			default:
@@ -174,7 +175,7 @@ func (stmt Stmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (stmt Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
-	rows, result, err := stmt.exec(ctx, args)
+	rows, result, err := stmt.GenericExec(ctx, args)
 	if rows != nil {
 		rows.Close()
 	}
@@ -186,11 +187,30 @@ func (stmt Stmt) Query(args []driver.Value) (driver.Rows, error) {
 }
 
 func (stmt Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
-	rows, _, err := stmt.exec(ctx, args)
+	rows, _, err := stmt.GenericExec(ctx, args)
 	return rows, err
 }
 
-func (stmt Stmt) exec(ctx context.Context, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
+func (stmt Stmt) DirectExec(ctx context.Context, args ...interface{}) (driver.Rows, driver.Result, error) {
+	var namedArgs []driver.NamedValue
+	if len(args) > 0 {
+		values := make([]driver.Value, len(args))
+		for i, arg := range args {
+			values[i] = driver.Value(arg)
+		}
+		namedArgs = libase.ValuesToNamedValues(values)
+	}
+
+	for i := range args {
+		if err := stmt.CheckNamedValue(&namedArgs[i]); err != nil {
+			return nil, nil, fmt.Errorf("go-ase: error checking argument: %w", err)
+		}
+	}
+
+	return stmt.GenericExec(ctx, namedArgs)
+}
+
+func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
 	// Prepare and send payload
 	stmt.pkg.Type = tds.TDS_DYN_EXEC
 	if stmt.paramFmt != nil {
