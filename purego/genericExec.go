@@ -64,6 +64,7 @@ func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.Name
 func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, error) {
 	rows := &Rows{Conn: c}
 	result := &Result{}
+	returnStatus := -1
 
 	_, err := c.Channel.NextPackageUntil(ctx, true,
 		func(pkg tds.Package) (bool, error) {
@@ -90,15 +91,16 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 				if typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC ||
 					typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT ||
 					typed.Status == tds.TDS_DONE_FINAL {
+					if returnStatus > 0 {
+						return true, fmt.Errorf("query failed with return status %d", returnStatus)
+					}
 					return true, nil
 				}
 
 				return false, fmt.Errorf("%T is not recognized by go-ase: %s",
 					typed, typed)
 			case *tds.ReturnStatusPackage:
-				if typed.ReturnValue != 0 {
-					return false, fmt.Errorf("received return status %d", typed.ReturnValue)
-				}
+				returnStatus = int(typed.ReturnValue)
 				return false, nil
 			default:
 				return false, fmt.Errorf("unhandled package type %T", typed)
