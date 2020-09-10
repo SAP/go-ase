@@ -14,7 +14,7 @@ type DoneState uint16
 const (
 	TDS_DONE_FINAL      DoneState = 0x0
 	TDS_DONE_MORE       DoneState = 0x1
-	TDS_DONE_ERRROR     DoneState = 0x2
+	TDS_DONE_ERROR      DoneState = 0x2
 	TDS_DONE_INXACT     DoneState = 0x4
 	TDS_DONE_PROC       DoneState = 0x8
 	TDS_DONE_COUNT      DoneState = 0x10

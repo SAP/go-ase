@@ -74,17 +74,26 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 			case *tds.DonePackage:
 				if typed.Status&tds.TDS_DONE_COUNT == tds.TDS_DONE_COUNT {
 					result.rowsAffected = int64(typed.Count)
+					if typed.Status == tds.TDS_DONE_COUNT {
+						return true, nil
+					}
 				}
 
 				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE {
 					return false, nil
 				}
 
-				if typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC || typed.Status&tds.TDS_DONE_FINAL == tds.TDS_DONE_FINAL {
+				if typed.Status&tds.TDS_DONE_ERROR == tds.TDS_DONE_ERROR {
+					return true, fmt.Errorf("received done package with error: %s", typed)
+				}
+
+				if typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC ||
+					typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT ||
+					typed.Status == tds.TDS_DONE_FINAL {
 					return true, nil
 				}
 
-				return false, fmt.Errorf("%T does not have status TDS_DONE_COUNT or TDS_DONE_FINAL set: %s",
+				return false, fmt.Errorf("%T is not recognized by go-ase: %s",
 					typed, typed)
 			case *tds.ReturnStatusPackage:
 				if typed.ReturnValue != 0 {

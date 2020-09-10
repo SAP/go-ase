@@ -537,16 +537,14 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	}
 
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
-		err := acceptor.LastPkg(tdsChan.lastPkgRx)
-		if err != nil {
+		if err := acceptor.LastPkg(tdsChan.lastPkgRx); err != nil {
 			tdsChan.errCh <- fmt.Errorf("error in LastPkg: %w", err)
 			return false
 		}
 	}
 
 	// Read data into Package.
-	err = pkg.ReadFrom(tdsChan.queueRx)
-	if err != nil {
+	if err := pkg.ReadFrom(tdsChan.queueRx); err != nil {
 		if errors.Is(err, ErrNotEnoughBytes) {
 			// Not enough bytes available to parse package
 			return false

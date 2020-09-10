@@ -68,7 +68,7 @@ func rawProcess(driverConn interface{}) error {
 	}
 
 	fmt.Println("opening transaction")
-	tx, err := conn.NewTransaction(context.Background(), driver.TxOptions{}, "transaction")
+	tx, err := conn.NewTransaction(context.Background(), driver.TxOptions{}, "outer")
 	if err != nil {
 		return fmt.Errorf("error creating transaction: %w", err)
 	}
@@ -97,7 +97,8 @@ func rawProcess(driverConn interface{}) error {
 	}
 
 	fmt.Println("opening subtransaction")
-	subTx, err := tx.NewTransaction(context.Background(), driver.TxOptions{}, "subtransaction")
+	// Only the outermost transaction can have a name
+	subTx, err := tx.NewTransaction(context.Background(), driver.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("error opening subtransaction: %w", err)
 	}

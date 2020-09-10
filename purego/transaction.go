@@ -83,10 +83,9 @@ func (tx Transaction) begin(ctx context.Context, opts driver.TxOptions) error {
 	return nil
 }
 
-func (tx Transaction) NewTransaction(ctx context.Context, opts driver.TxOptions, name string) (*Transaction, error) {
+func (tx Transaction) NewTransaction(ctx context.Context, opts driver.TxOptions) (*Transaction, error) {
 	newTx := &Transaction{
 		conn: tx.conn,
-		name: name,
 	}
 
 	return newTx, newTx.begin(ctx, opts)
