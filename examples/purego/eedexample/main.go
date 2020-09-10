@@ -47,7 +47,26 @@ func DoMain() error {
 				fmt.Printf("    %d: %s\n", eed.MsgNumber, eed.Msg)
 			}
 		}
-		return err
+	}
+
+	if _, err := db.Exec("create table eed_example values (int, string)"); err != nil {
+		var eedError *tds.EEDError
+		if errors.As(err, &eedError) {
+			fmt.Println("Messages from ASE server:")
+			for _, eed := range eedError.EEDPackages {
+				fmt.Printf("    %d: %s\n", eed.MsgNumber, eed.Msg)
+			}
+		}
+	}
+
+	if _, err := db.Exec("create database testDatabase"); err != nil {
+		var eedError *tds.EEDError
+		if errors.As(err, &eedError) {
+			fmt.Println("Messages from ASE server:")
+			for _, eed := range eedError.EEDPackages {
+				fmt.Printf("    %d: %s\n", eed.MsgNumber, eed.Msg)
+			}
+		}
 	}
 
 	return nil
