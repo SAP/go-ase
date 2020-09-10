@@ -32,14 +32,26 @@ func (t DataType) Bytes(endian binary.ByteOrder, value interface{}) ([]byte, err
 		}
 
 		return bs, nil
-	case DATE:
+	case DECN, NUMN:
+		dec, ok := value.(*Decimal)
+		if !ok {
+			return nil, fmt.Errorf("expected *types.Decimal for %s, received %T", t, value)
+		}
+
+		bs := make([]byte, dec.ByteSize())
+		copy(bs[dec.ByteSize()-len(dec.Bytes()):], dec.Bytes())
+		if dec.IsNegative() {
+			bs[0] = 0x1
+		}
+		return bs, nil
+	case DATE, DATEN:
 		t := asetime.DurationFromDateTime(value.(time.Time))
 		t -= asetime.DurationFromDateTime(asetime.Epoch1900())
 
 		bs := make([]byte, 4)
 		endian.PutUint32(bs, uint32(t.Days()))
 		return bs, nil
-	case TIME:
+	case TIME, TIMEN:
 		dur := asetime.DurationFromTime(value.(time.Time))
 		fract := asetime.MillisecondToFractionalSecond(dur.Microseconds())
 

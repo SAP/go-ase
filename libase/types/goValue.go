@@ -114,7 +114,7 @@ func (t DataType) goValue(endian binary.ByteOrder, bs []byte) (interface{}, erro
 			return true, nil
 		}
 		return false, nil
-	case LONGBINARY, BINARY, IMAGE:
+	case LONGBINARY, BINARY, VARBINARY, IMAGE:
 		// Noop
 		return bs, nil
 	case CHAR, VARCHAR, TEXT, LONGCHAR:

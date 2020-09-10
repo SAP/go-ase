@@ -16,36 +16,36 @@ import (
 func SetupDB(testDsn *libdsn.Info) error {
 	db, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer db.Close()
 
 	conn, err := db.Conn(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to open connection: %v", err)
+		return fmt.Errorf("failed to open connection: %w", err)
 	}
 	defer conn.Close()
 
 	_, err = conn.ExecContext(context.Background(), "use master")
 	if err != nil {
-		return fmt.Errorf("failed to switch context to master: %v", err)
+		return fmt.Errorf("failed to switch context to master: %w", err)
 	}
 
 	testDatabase := "test" + RandomNumber()
 
 	_, err = conn.ExecContext(context.Background(), fmt.Sprintf("if db_id('%s') is not null drop database %s", testDatabase, testDatabase))
 	if err != nil {
-		return fmt.Errorf("error on conditional drop of database: %v", err)
+		return fmt.Errorf("error on conditional drop of database: %w", err)
 	}
 
 	_, err = conn.ExecContext(context.Background(), "create database "+testDatabase)
 	if err != nil {
-		return fmt.Errorf("failed to create database: %v", err)
+		return fmt.Errorf("failed to create database: %w", err)
 	}
 
 	_, err = conn.ExecContext(context.Background(), "use "+testDatabase)
 	if err != nil {
-		return fmt.Errorf("failed to switch context to %s: %v", testDatabase, err)
+		return fmt.Errorf("failed to switch context to %s: %w", testDatabase, err)
 	}
 
 	testDsn.Database = testDatabase
@@ -57,24 +57,24 @@ func SetupDB(testDsn *libdsn.Info) error {
 func TeardownDB(testDsn *libdsn.Info) error {
 	db, err := sql.Open("ase", testDsn.AsSimple())
 	if err != nil {
-		return fmt.Errorf("failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer db.Close()
 
 	conn, err := db.Conn(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to open connection: %v", err)
+		return fmt.Errorf("failed to open connection: %w", err)
 	}
 	defer conn.Close()
 
 	_, err = conn.ExecContext(context.Background(), "use master")
 	if err != nil {
-		return fmt.Errorf("failed to switch context to master: %v", err)
+		return fmt.Errorf("failed to switch context to master: %w", err)
 	}
 
 	_, err = conn.ExecContext(context.Background(), "drop database "+testDsn.Database)
 	if err != nil {
-		return fmt.Errorf("failed to drop database: %v", err)
+		return fmt.Errorf("failed to drop database: %w", err)
 	}
 
 	testDsn.Database = ""
@@ -86,25 +86,25 @@ func TeardownDB(testDsn *libdsn.Info) error {
 func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, func() error, error) {
 	_, err := db.Exec(fmt.Sprintf("create table %s (a %s)", tableName, aseType))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create table: %v", err)
+		return nil, nil, fmt.Errorf("failed to create table: %w", err)
 	}
 
 	stmt, err := db.Prepare(fmt.Sprintf("insert into %s (a) values (?)", tableName))
 	if err != nil {
-		return nil, nil, fmt.Errorf("error preparing statement: %v", err)
+		return nil, nil, fmt.Errorf("error preparing statement: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, sample := range samples {
 		_, err := stmt.Exec(sample)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to execute prepared statement with %v: %v", sample, err)
+			return nil, nil, fmt.Errorf("failed to execute prepared statement with %v: %w", sample, err)
 		}
 	}
 
 	rows, err := db.Query("select * from " + tableName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error selecting from %s: %v", tableName, err)
+		return nil, nil, fmt.Errorf("error selecting from %s: %w", tableName, err)
 	}
 
 	teardownFn := func() error {
