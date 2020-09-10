@@ -14,7 +14,7 @@ func _() {
 	var x [1]struct{}
 	_ = x[TDS_DONE_FINAL-0]
 	_ = x[TDS_DONE_MORE-1]
-	_ = x[TDS_DONE_ERRROR-2]
+	_ = x[TDS_DONE_ERROR-2]
 	_ = x[TDS_DONE_INXACT-4]
 	_ = x[TDS_DONE_PROC-8]
 	_ = x[TDS_DONE_COUNT-16]
@@ -24,7 +24,7 @@ func _() {
 }
 
 const (
-	_DoneState_name_0 = "TDS_DONE_FINALTDS_DONE_MORETDS_DONE_ERRROR"
+	_DoneState_name_0 = "TDS_DONE_FINALTDS_DONE_MORETDS_DONE_ERROR"
 	_DoneState_name_1 = "TDS_DONE_INXACT"
 	_DoneState_name_2 = "TDS_DONE_PROC"
 	_DoneState_name_3 = "TDS_DONE_COUNT"
@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	_DoneState_index_0 = [...]uint8{0, 14, 27, 42}
+	_DoneState_index_0 = [...]uint8{0, 14, 27, 41}
 )
 
 func (i DoneState) String() string {
