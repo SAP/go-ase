@@ -196,19 +196,19 @@ var samplesBigTime = []time.Time{
 	time.Date(1, time.January, 1, 23, 59, 59, 999999000, time.UTC),
 }
 
-//go:generate go run ./gen_type.go VarChar string -columndef varchar(13) -compare compareChar
+//go:generate go run ./gen_type.go VarChar string -columndef "varchar(13) null" -compare compareChar
 // TODO: -null database/sql.NullString
 var samplesVarChar = samplesChar
 
-//go:generate go run ./gen_type.go Char string -columndef char(13) -compare compareChar
+//go:generate go run ./gen_type.go Char string -columndef "char(13) null" -compare compareChar
 // TODO: -null database/sql.NullString
 var samplesChar = []string{"", "test", "a longer test"}
 
-//go:generate go run ./gen_type.go NChar string -columndef nchar(13) -compare compareChar
+//go:generate go run ./gen_type.go NChar string -columndef "nchar(13) null"  -compare compareChar
 // TODO: -null database/sql.NullString
 var samplesNChar = samplesChar
 
-//go:generate go run ./gen_type.go NVarChar string -columndef nvarchar(13) -compare compareChar
+//go:generate go run ./gen_type.go NVarChar string -columndef "nvarchar(13) null" -compare compareChar
 // TODO: -null database/sql.NullString
 var samplesNVarChar = samplesChar
 
@@ -216,14 +216,14 @@ func compareChar(recv, expect string) bool {
 	return strings.Compare(strings.TrimSpace(recv), expect) != 0
 }
 
-//go:generate go run ./gen_type.go Binary []byte -columndef "binary(13)" -compare compareBinary
+//go:generate go run ./gen_type.go Binary []byte -columndef binary(13) -compare compareBinary
 // TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
 var samplesBinary = [][]byte{
 	[]byte("test"),
 	[]byte("a longer test"),
 }
 
-//go:generate go run ./gen_type.go VarBinary []byte -columndef "varbinary(13)" -compare compareBinary
+//go:generate go run ./gen_type.go VarBinary []byte -columndef varbinary(13) -compare compareBinary
 // TODO: -null github.com/SAP/go-ase/libase/types.NullBinary
 var samplesVarBinary = samplesBinary
 

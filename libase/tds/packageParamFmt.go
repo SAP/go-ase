@@ -176,20 +176,17 @@ func (pkg ParamFmtPackage) WriteTo(ch BytesChannel) error {
 	// 2 bytes params count, x bytes for params
 	length := 2
 	for _, field := range pkg.Fmts {
-		// 1 byte name length
-		// x bytes name
-		// 1 or 4 bytes status based on pkg.wide
-		// 4 bytes usertype
-		// 1 byte token
-		// x bytes paramfmt (param.FormatByteLength())
-		// 1 byte localeinfo length
-		// x bytes localeinfo
-		length += 7 + len(field.Name()) + field.FormatByteLength() + len(field.LocaleInfo())
-		// status
+		// 1 namelength
+		// x name
+		// 4 or 1 status (wide)
+		// 4 usertype
+		// 1 token
+		// x FormatByteLength
+		// 1 locale len
+		// x locale
+		length += 1 + len(field.Name()) + 1 + 4 + 1 + field.FormatByteLength() + 1 + len(field.LocaleInfo())
 		if pkg.wide {
-			length += 4
-		} else {
-			length += 1
+			length += 3
 		}
 	}
 

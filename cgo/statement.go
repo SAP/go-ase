@@ -167,21 +167,18 @@ func (stmt *statement) exec(ctx context.Context, args []driver.NamedValue) (*Row
 			ptr = C.CBytes(bs)
 			defer C.free(ptr)
 		case DECIMAL, NUMERIC:
-			csDec := (*C.CS_DECIMAL)(C.calloc(1, C.sizeof_CS_DECIMAL))
-			defer C.free(unsafe.Pointer(csDec))
-
-			dec := arg.Value.(*types.Decimal)
-
-			csDec.precision = (C.CS_BYTE)(dec.Precision)
-			csDec.scale = (C.CS_BYTE)(dec.Scale)
-
-			offset := dec.ByteSize() - len(dec.Bytes())
-			for i, b := range dec.Bytes() {
-				csDec.array[i+offset] = (C.CS_BYTE)(b)
+			bs, err := dataType.Bytes(binary.LittleEndian, arg.Value)
+			if err != nil {
+				return nil, nil, err
 			}
 
-			if dec.IsNegative() {
-				csDec.array[0] = 0x1
+			csDec := (*C.CS_DECIMAL)(C.calloc(1, C.sizeof_CS_DECIMAL))
+			defer C.free(unsafe.Pointer(csDec))
+			csDec.precision = (C.CS_BYTE)(arg.Value.(*types.Decimal).Precision)
+			csDec.scale = (C.CS_BYTE)(arg.Value.(*types.Decimal).Scale)
+
+			for i, b := range bs {
+				csDec.array[i] = (C.CS_BYTE)(b)
 			}
 
 			ptr = unsafe.Pointer(csDec)

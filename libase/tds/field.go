@@ -963,7 +963,7 @@ type fieldFmtTxtPtr struct {
 }
 
 func (field fieldFmtTxtPtr) FormatByteLength() int {
-	return 1 + len(field.tableName) + field.LengthBytes()
+	return 2 + len(field.tableName) + field.LengthBytes()
 }
 
 func (field *fieldFmtTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
@@ -972,17 +972,17 @@ func (field *fieldFmtTxtPtr) ReadFrom(ch BytesChannel) (int, error) {
 		return n, err
 	}
 
-	nameLength, err := ch.Uint16()
+	tableNameLength, err := ch.Uint16()
 	if err != nil {
 		return 0, ErrNotEnoughBytes
 	}
 	n += 2
 
-	field.name, err = ch.String(int(nameLength))
+	field.tableName, err = ch.String(int(tableNameLength))
 	if err != nil {
 		return 0, ErrNotEnoughBytes
 	}
-	n += int(nameLength)
+	n += int(tableNameLength)
 
 	return n, nil
 }
@@ -993,15 +993,15 @@ func (field fieldFmtTxtPtr) WriteTo(ch BytesChannel) (int, error) {
 		return n, err
 	}
 
-	if err := ch.WriteUint16(uint16(len(field.name))); err != nil {
-		return n, fmt.Errorf("failed to write Name length: %w", err)
+	if err := ch.WriteUint16(uint16(len(field.tableName))); err != nil {
+		return n, fmt.Errorf("failed to write TableName length: %w", err)
 	}
 	n += 2
 
-	if err := ch.WriteString(field.name); err != nil {
-		return n, fmt.Errorf("failed to write Name: %w", err)
+	if err := ch.WriteString(field.tableName); err != nil {
+		return n, fmt.Errorf("failed to write TableName: %w", err)
 	}
-	n += len(field.name)
+	n += len(field.tableName)
 
 	return n, nil
 }
@@ -1078,9 +1078,14 @@ func (field fieldDataTxtPtr) WriteTo(ch BytesChannel) (int, error) {
 	}
 	n += len(field.timeStamp)
 
-	data, ok := field.value.([]byte)
-	if !ok {
-		return n, fmt.Errorf("field value is of tye %T instead of byte slice", field.value)
+	var data []byte
+	switch t := field.value.(type) {
+	case string:
+		data = []byte(t)
+	case []byte:
+		data = t
+	default:
+		return n, fmt.Errorf("field value is of type %T instead of string or byte slice", field.value)
 	}
 
 	if err := ch.WriteUint32(uint32(len(data))); err != nil {
