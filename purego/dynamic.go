@@ -112,7 +112,8 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 				stmt.rowFmt = typed
 				return false, nil
 			case *tds.DonePackage:
-				if typed.Status != tds.TDS_DONE_FINAL && typed.Status != tds.TDS_DONE_INXACT {
+				if typed.Status != tds.TDS_DONE_FINAL &&
+					typed.Status&tds.TDS_DONE_INXACT != tds.TDS_DONE_INXACT {
 					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL or TDS_DONE_INXACT set: %s",
 						typed)
 				}
@@ -128,6 +129,15 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (stmt Stmt) fieldFmts() ([]tds.FieldFmt, error) {
+	if stmt.paramFmt != nil {
+		return stmt.paramFmt.Fmts, nil
+	} else if stmt.rowFmt != nil {
+		return stmt.rowFmt.Fmts, nil
+	}
+	return nil, fmt.Errorf("bot paramFmt and rowFmt are unset")
 }
 
 func (stmt *Stmt) Reset() {
@@ -167,7 +177,11 @@ func (stmt *Stmt) close(ctx context.Context) error {
 }
 
 func (stmt Stmt) NumInput() int {
-	return len(stmt.paramFmt.Fmts)
+	fieldFmts, err := stmt.fieldFmts()
+	if err != nil {
+		return -1
+	}
+	return len(fieldFmts)
 }
 
 func (stmt Stmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -216,8 +230,7 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	if stmt.paramFmt != nil {
 		stmt.pkg.Status |= tds.TDS_DYNAMIC_HASARGS
 	}
-	err := stmt.conn.Channel.QueuePackage(ctx, stmt.pkg)
-	if err != nil {
+	if err := stmt.conn.Channel.QueuePackage(ctx, stmt.pkg); err != nil {
 		return nil, nil, fmt.Errorf("error queueing dynamic statement exec package: %w", err)
 	}
 	stmt.Reset()
@@ -254,41 +267,25 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	}
 
 	// Receive response
-	err = stmt.recvDynAck(ctx)
-	if err != nil {
+	if err := stmt.recvDynAck(ctx); err != nil {
 		return nil, nil, err
 	}
 
 	return stmt.conn.genericResults(ctx)
 }
 
-func (stmt Stmt) CheckNamedValues(namedValues []*driver.NamedValue) error {
-	for _, nv := range namedValues {
-		err := stmt.CheckNamedValue(nv)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
-	var fieldFmts []tds.FieldFmt
-	if stmt.paramFmt != nil {
-		fieldFmts = stmt.paramFmt.Fmts
-	} else if stmt.rowFmt != nil {
-		fieldFmts = stmt.rowFmt.Fmts
-	} else {
-		return fmt.Errorf("go-ase: both row and paramFmt are unset")
+	fieldFmts, err := stmt.fieldFmts()
+	if err != nil {
+		return fmt.Errorf("go-ase: no formats are set: %w", err)
 	}
 
-	index := named.Ordinal - 1
-	if index > len(fieldFmts) {
-		return fmt.Errorf("go-ase: ordinal %d is larger than the number of columns %d",
-			named.Ordinal, len(fieldFmts))
+	if named.Ordinal-1 >= len(fieldFmts) {
+		return fmt.Errorf("go-ase: ordinal %d (index %d) is larger than the number of expected arguments %d",
+			named.Ordinal, named.Ordinal-1, len(fieldFmts))
 	}
 
-	val, err := fieldFmts[index].DataType().ConvertValue(named.Value)
+	val, err := fieldFmts[named.Ordinal-1].DataType().ConvertValue(named.Value)
 	if err != nil {
 		return fmt.Errorf("go-ase: error converting value: %w", err)
 	}
