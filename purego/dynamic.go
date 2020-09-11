@@ -263,16 +263,6 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	return stmt.conn.genericResults(ctx)
 }
 
-func (stmt Stmt) CheckNamedValues(namedValues []*driver.NamedValue) error {
-	for _, nv := range namedValues {
-		err := stmt.CheckNamedValue(nv)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
 	var fieldFmts []tds.FieldFmt
 	if stmt.paramFmt != nil {
