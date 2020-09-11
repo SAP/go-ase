@@ -131,6 +131,15 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 	return nil
 }
 
+func (stmt Stmt) fieldFmts() ([]tds.FieldFmt, error) {
+	if stmt.paramFmt != nil {
+		return stmt.paramFmt.Fmts, nil
+	} else if stmt.rowFmt != nil {
+		return stmt.rowFmt.Fmts, nil
+	}
+	return nil, fmt.Errorf("bot paramFmt and rowFmt are unset")
+}
+
 func (stmt *Stmt) Reset() {
 	stmt.pkg.Type = tds.TDS_DYN_INVALID
 	stmt.pkg.Status = tds.TDS_DYNAMIC_UNUSED
@@ -168,7 +177,11 @@ func (stmt *Stmt) close(ctx context.Context) error {
 }
 
 func (stmt Stmt) NumInput() int {
-	return len(stmt.paramFmt.Fmts)
+	fieldFmts, err := stmt.fieldFmts()
+	if err != nil {
+		return -1
+	}
+	return len(fieldFmts)
 }
 
 func (stmt Stmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -264,13 +277,9 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 }
 
 func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
-	var fieldFmts []tds.FieldFmt
-	if stmt.paramFmt != nil {
-		fieldFmts = stmt.paramFmt.Fmts
-	} else if stmt.rowFmt != nil {
-		fieldFmts = stmt.rowFmt.Fmts
-	} else {
-		return fmt.Errorf("go-ase: both row and paramFmt are unset")
+	fieldFmts, err := stmt.fieldFmts()
+	if err != nil {
+		return fmt.Errorf("go-ase: no formats are set: %w", err)
 	}
 
 	if named.Ordinal-1 >= len(fieldFmts) {
