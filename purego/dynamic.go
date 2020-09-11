@@ -230,8 +230,7 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	if stmt.paramFmt != nil {
 		stmt.pkg.Status |= tds.TDS_DYNAMIC_HASARGS
 	}
-	err := stmt.conn.Channel.QueuePackage(ctx, stmt.pkg)
-	if err != nil {
+	if err := stmt.conn.Channel.QueuePackage(ctx, stmt.pkg); err != nil {
 		return nil, nil, fmt.Errorf("error queueing dynamic statement exec package: %w", err)
 	}
 	stmt.Reset()
@@ -268,8 +267,7 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	}
 
 	// Receive response
-	err = stmt.recvDynAck(ctx)
-	if err != nil {
+	if err := stmt.recvDynAck(ctx); err != nil {
 		return nil, nil, err
 	}
 
