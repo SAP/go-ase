@@ -1,16 +1,15 @@
 // SPDX-FileCopyrightText: 2020 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
+// +build integration
 
-package cgotest
+package cgo
 
 import (
 	"fmt"
 	"log"
-	"os"
 	"testing"
 
-	"github.com/SAP/go-ase/cgo"
 	"github.com/SAP/go-ase/tests/libtest"
 )
 
@@ -22,8 +21,8 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) error {
-	cgo.GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
-	cgo.GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
+	GlobalServerMessageBroker.RegisterHandler(genMessageHandler())
+	GlobalClientMessageBroker.RegisterHandler(genMessageHandler())
 
 	simpleDSN, simpleTeardown, err := libtest.DSN(false)
 	if err != nil {
@@ -31,7 +30,7 @@ func testMain(m *testing.M) error {
 	}
 	defer simpleTeardown()
 
-	if err := libtest.RegisterDSN("username password", simpleDSN, cgo.NewConnector); err != nil {
+	if err := libtest.RegisterDSN("username password", simpleDSN, NewConnector); err != nil {
 		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
@@ -41,7 +40,7 @@ func testMain(m *testing.M) error {
 	}
 	defer userstoreTeardown()
 
-	if err := libtest.RegisterDSN("userstorekey", userstoreDSN, cgo.NewConnector); err != nil {
+	if err := libtest.RegisterDSN("userstorekey", userstoreDSN, NewConnector); err != nil {
 		return fmt.Errorf("error setting up userstore database: %w", err)
 	}
 

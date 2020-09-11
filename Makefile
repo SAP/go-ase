@@ -48,9 +48,21 @@ test-go:
 
 integration: integration-cgo integration-go
 integration-cgo:
-	$(GO) test -race ./tests/cgotest ./examples/cgo/...
+	$(GO) test -race -cover ./cgo/... ./examples/cgo/... --tags=integration
 integration-go:
-	$(GO) test -race ./tests/puregotest ./examples/purego/...
+	$(GO) test -race -cover ./purego/... ./examples/purego/... --tags=integration
+
+report:
+	$(GO) test -race -cover -coverprofile=/tmp/covCmd.out -coverpkg=./... \
+		./cmd/...
+	$(GO) test -race -cover -coverprofile=/tmp/covUnitLibase.out ./libase/...
+	$(GO) test -race -cover -coverprofile=/tmp/covIntCgo.out -coverpkg=./... \
+		./cgo/... ./examples/cgo/... --tags=integration
+	$(GO) test -race -cover -coverprofile=/tmp/covIntGo.out -coverpkg=./... \
+		./purego/... ./examples/purego/... --tags=integration
+	# Merge coverprofiles and create summary-html-file
+	gocovmerge /tmp/covIntCgo.out /tmp/covIntGo.out /tmp/covCmd.out /tmp/covUnitLibase.out > sumCoverage.out
+	$(GO) tool cover -html=sumCoverage.out -o ./sumCoverage.html
 
 GO_EXAMPLES := $(wildcard examples/purego/*)
 CGO_EXAMPLES := $(wildcard examples/cgo/*)

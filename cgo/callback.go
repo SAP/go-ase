@@ -1,17 +1,16 @@
 // SPDX-FileCopyrightText: 2020 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
+// +build integration
 
-package cgotest
+package cgo
 
 import (
 	"log"
-
-	"github.com/SAP/go-ase/cgo"
 )
 
-func genMessageHandler() cgo.MessageHandler {
-	return func(msg cgo.Message) {
+func genMessageHandler() MessageHandler {
+	return func(msg Message) {
 		// Ignore CS_SV_INFORM
 		if msg.MessageSeverity() == 10 {
 			return

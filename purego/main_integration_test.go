@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2020 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
+// +build integration
 
-package puregotest
+package purego
 
 import (
 	"fmt"
 	"log"
 	"testing"
 
-	ase "github.com/SAP/go-ase/purego"
 	"github.com/SAP/go-ase/tests/libtest"
 )
 
@@ -26,7 +26,7 @@ func testMain(m *testing.M) error {
 	}
 	defer simpleTeardown()
 
-	if err := libtest.RegisterDSN("username password", simpleDSN, ase.NewConnector); err != nil {
+	if err := libtest.RegisterDSN("username password", simpleDSN, NewConnector); err != nil {
 		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
