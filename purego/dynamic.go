@@ -112,7 +112,8 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 				stmt.rowFmt = typed
 				return false, nil
 			case *tds.DonePackage:
-				if typed.Status != tds.TDS_DONE_FINAL && typed.Status != tds.TDS_DONE_INXACT {
+				if typed.Status != tds.TDS_DONE_FINAL &&
+					typed.Status&tds.TDS_DONE_INXACT != tds.TDS_DONE_INXACT {
 					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL or TDS_DONE_INXACT set: %s",
 						typed)
 				}
