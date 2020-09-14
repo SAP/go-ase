@@ -91,7 +91,7 @@ func newRows(cmd *Command) (*Rows, error) {
 
 		// Set padding for datatypes that support it.
 		switch r.dataFmts[i].datatype {
-		case C.CS_BINARY_TYPE, C.CS_LONGBINARY_TYPE, C.CS_VARBINARY_TYPE:
+		case C.CS_BINARY_TYPE, C.CS_LONGBINARY_TYPE, C.CS_VARBINARY_TYPE, C.CS_CHAR_TYPE, C.CS_VARCHAR_TYPE, C.CS_LONGCHAR_TYPE:
 			r.dataFmts[i].format = C.CS_FMT_PADNULL
 		case C.CS_XML_TYPE:
 			r.dataFmts[i].format = C.CS_FMT_NULLTERM
