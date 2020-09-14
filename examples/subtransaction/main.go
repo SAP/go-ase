@@ -65,7 +65,7 @@ func DoMain() error {
 func rawProcess(driverConn interface{}) error {
 	conn, ok := driverConn.(*ase.Conn)
 	if !ok {
-		return errors.New("invalid driver, conn is not *github.com/SAP/go-ase/purego.Conn")
+		return errors.New("invalid driver, conn is not *github.com/SAP/go-ase.Conn")
 	}
 
 	fmt.Println("creating table subtransaction_tab")

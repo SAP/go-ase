@@ -236,28 +236,8 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	stmt.Reset()
 
 	if stmt.paramFmt != nil {
-		if err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt); err != nil {
-			return nil, nil, fmt.Errorf("error queueing dynamic statement parameter format: %w", err)
-		}
-
-		dataFields := []tds.FieldData{}
-
-		for i, arg := range args {
-			fmtField := stmt.paramFmt.Fmts[i]
-
-			dataField, err := tds.LookupFieldData(fmtField)
-			if err != nil {
-				return nil, nil, fmt.Errorf("unable to find FieldData for datatype %s: %w",
-					fmtField.DataType(), err)
-			}
-
-			dataField.SetValue(arg.Value)
-
-			dataFields = append(dataFields, dataField)
-		}
-
-		if err := stmt.conn.Channel.QueuePackage(ctx, tds.NewParamsPackage(dataFields...)); err != nil {
-			return nil, nil, fmt.Errorf("error queueing dynamic statement parameters: %w", err)
+		if err := stmt.sendArgs(ctx, args); err != nil {
+			return nil, nil, fmt.Errorf("error queueing arguments: %w", err)
 		}
 	}
 
@@ -271,6 +251,33 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	}
 
 	return stmt.conn.genericResults(ctx)
+}
+
+func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
+	if err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt); err != nil {
+		return fmt.Errorf("error queueing dynamic statement parameter format: %w", err)
+	}
+
+	dataFields := []tds.FieldData{}
+
+	for i, arg := range args {
+		fmtField := stmt.paramFmt.Fmts[i]
+
+		dataField, err := tds.LookupFieldData(fmtField)
+		if err != nil {
+			return fmt.Errorf("unable to find FieldData for datatype %s: %w", fmtField.DataType(), err)
+		}
+
+		dataField.SetValue(arg.Value)
+
+		dataFields = append(dataFields, dataField)
+	}
+
+	if err := stmt.conn.Channel.QueuePackage(ctx, tds.NewParamsPackage(dataFields...)); err != nil {
+		return fmt.Errorf("error queueing dynamic statement parameters: %w", err)
+	}
+
+	return nil
 }
 
 // CheckNamedValue implements the driver.NamedValueChecker interface.

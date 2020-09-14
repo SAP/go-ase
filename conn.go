@@ -132,8 +132,12 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 // QueryContext implements the driver.QueryerContext.
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	rows, _, err := c.GenericExec(ctx, query, args)
-	return rows, err
+	cursor, err := c.NewCursorWithValues(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return cursor.Fetch(ctx)
 }
 
 // Ping implements the driver.Pinger interface.
