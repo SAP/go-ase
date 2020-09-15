@@ -52,7 +52,11 @@ integration-cgo:
 integration-go:
 	$(GO) test -race -cover ./purego/... ./examples/purego/... --tags=integration
 
+REPORT_COVERAGE_OUT = report
+
+.PHONY: report
 report:
+	$(GO) clean -testcache
 	$(GO) test -race -cover -coverprofile=/tmp/covCmd.out -coverpkg=./... \
 		./cmd/...
 	$(GO) test -race -cover -coverprofile=/tmp/covUnitLibase.out ./libase/...
@@ -61,8 +65,10 @@ report:
 	$(GO) test -race -cover -coverprofile=/tmp/covIntGo.out -coverpkg=./... \
 		./purego/... ./examples/purego/... --tags=integration
 	# Merge coverprofiles and create summary-html-file
-	gocovmerge /tmp/covIntCgo.out /tmp/covIntGo.out /tmp/covCmd.out /tmp/covUnitLibase.out > sumCoverage.out
-	$(GO) tool cover -html=sumCoverage.out -o ./sumCoverage.html
+	# https://github.com/wadey/gocovmerge
+	gocovmerge /tmp/covIntCgo.out /tmp/covIntGo.out /tmp/covCmd.out /tmp/covUnitLibase.out > $(REPORT_COVERAGE_OUT).out
+	rm /tmp/covIntCgo.out /tmp/covIntGo.out /tmp/covCmd.out /tmp/covUnitLibase.out
+	$(GO) tool cover -html=$(REPORT_COVERAGE_OUT).out -o ./$(GO_COVERAGE_OUT).html
 
 GO_EXAMPLES := $(wildcard examples/purego/*)
 CGO_EXAMPLES := $(wildcard examples/cgo/*)
