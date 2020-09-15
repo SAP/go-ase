@@ -14,9 +14,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	err := testMain(m)
-	if err != nil {
-		log.Fatalf("%v", err)
+	if err := testMain(m); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -27,13 +26,11 @@ func testMain(m *testing.M) error {
 	}
 	defer simpleTeardown()
 
-	err = libtest.RegisterDSN("username password", simpleDSN, ase.NewConnector)
-	if err != nil {
+	if err := libtest.RegisterDSN("username password", simpleDSN, ase.NewConnector); err != nil {
 		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
-	rc := m.Run()
-	if rc != 0 {
+	if rc := m.Run(); rc != 0 {
 		return fmt.Errorf("tests failed with %d", rc)
 	}
 
