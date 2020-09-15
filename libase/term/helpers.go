@@ -53,15 +53,13 @@ func rawProcess(driverConn interface{}, query string) error {
 	if rows != nil && !reflect.ValueOf(rows).IsNil() {
 		defer rows.Close()
 
-		err = processRows(rows)
-		if err != nil {
+		if err := processRows(rows); err != nil {
 			return fmt.Errorf("error processing rows: %w", err)
 		}
 	}
 
 	if result != nil && !reflect.ValueOf(result).IsNil() {
-		err = processResult(result)
-		if err != nil {
+		if err := processResult(result); err != nil {
 			return fmt.Errorf("error processing result: %w", err)
 		}
 	}
@@ -104,8 +102,7 @@ func processRows(rows driver.Rows) error {
 	cells := make([]driver.Value, len(colNames))
 
 	for {
-		err := rows.Next(cells)
-		if err != nil {
+		if err := rows.Next(cells); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}

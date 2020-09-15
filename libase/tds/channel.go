@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 	"time"
@@ -339,7 +340,7 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 
 		ok, err := processPkg(pkg)
 		if err != nil {
-			err = fmt.Errorf("error in user-defined processing function: %w", err)
+			err = fmt.Errorf("tds: error in user-defined processing function: %w", err)
 
 			// Only return an EEDError if there were EEDPackages
 			if len(eedError.EEDPackages) == 0 {
@@ -521,6 +522,26 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	// Attempt to process data from channel into a Package.
 	tokenByte, err := tdsChan.queueRx.Byte()
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// If the error is io.EOF then the payload from the server
+			// has been fully consumed.
+			// TDS doesn't always send a DonePackage with TDS_DONE_FINAL
+			// - usually only when a procedure with multiple commands is
+			// being executed.
+			lastPkg, ok := tdsChan.lastPkgRx.(*DonePackage)
+			if !ok {
+				return false
+			}
+
+			if lastPkg.Status == TDS_DONE_FINAL ||
+				lastPkg.Status == TDS_DONE_COUNT {
+				// The last received package is a DonePackage with
+				// TDS_DONE_FINAL or TDS_DONE_COUNT - no need to add one.
+				return false
+			}
+
+			tdsChan.packageCh <- &DonePackage{Status: TDS_DONE_FINAL}
+		}
 		return false
 	}
 

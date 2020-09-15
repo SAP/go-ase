@@ -77,8 +77,7 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 
 	loginConfig.AppName = dsn.PropDefault("appname", "github.com/SAP/go-ase/purego")
 
-	err = conn.Channel.Login(ctx, loginConfig)
-	if err != nil {
+	if err := conn.Channel.Login(ctx, loginConfig); err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("go-ase: error logging in: %w", err)
 	}

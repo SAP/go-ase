@@ -17,8 +17,7 @@ import (
 func TestMain(m *testing.M) {
 	err := testMain(m)
 	if err != nil {
-		log.Fatalf("%v", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
@@ -32,8 +31,7 @@ func testMain(m *testing.M) error {
 	}
 	defer simpleTeardown()
 
-	err = libtest.RegisterDSN("username password", simpleDSN, cgo.NewConnector)
-	if err != nil {
+	if err := libtest.RegisterDSN("username password", simpleDSN, cgo.NewConnector); err != nil {
 		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 
@@ -43,13 +41,11 @@ func testMain(m *testing.M) error {
 	}
 	defer userstoreTeardown()
 
-	err = libtest.RegisterDSN("userstorekey", userstoreDSN, cgo.NewConnector)
-	if err != nil {
+	if err := libtest.RegisterDSN("userstorekey", userstoreDSN, cgo.NewConnector); err != nil {
 		return fmt.Errorf("error setting up userstore database: %w", err)
 	}
 
-	rc := m.Run()
-	if rc != 0 {
+	if rc := m.Run(); rc != 0 {
 		return fmt.Errorf("tests failed with %d", rc)
 	}
 
