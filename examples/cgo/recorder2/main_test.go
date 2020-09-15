@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// +build integration
+
 package main
 
 func ExampleDoMain() {
