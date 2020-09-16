@@ -20,16 +20,18 @@ var (
 type Connector struct {
 	DSN            *libdsn.Info
 	EnvChangeHooks []tds.EnvChangeHook
+	EEDHooks       []tds.EEDHook
 }
 
 func NewConnector(dsn *libdsn.Info) (driver.Connector, error) {
-	return NewConnectorWithHooks(dsn)
+	return NewConnectorWithHooks(dsn, nil, nil)
 }
 
-func NewConnectorWithHooks(dsn *libdsn.Info, hooks ...tds.EnvChangeHook) (driver.Connector, error) {
+func NewConnectorWithHooks(dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
 	connector := &Connector{
 		DSN:            dsn,
-		EnvChangeHooks: hooks,
+		EnvChangeHooks: envChangeHooks,
+		EEDHooks:       eedHooks,
 	}
 
 	conn, err := connector.Connect(context.Background())
@@ -56,5 +58,5 @@ func (c Connector) Driver() driver.Driver {
 }
 
 func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
-	return NewConnWithHooks(ctx, c.DSN, c.EnvChangeHooks)
+	return NewConnWithHooks(ctx, c.DSN, c.EnvChangeHooks, c.EEDHooks)
 }
