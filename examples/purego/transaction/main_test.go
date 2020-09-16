@@ -13,8 +13,8 @@ func ExampleDoMain() {
 		log.Fatal(err)
 	}
 	// Output:
-	// opening transaction
 	// creating table simple
+	// opening transaction
 	// inserting values into simple
 	// preparing statement
 	// executing prepared statement

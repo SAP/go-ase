@@ -13,8 +13,8 @@ func ExampleDoMain() {
 		log.Fatal(err)
 	}
 	// Output:
-	// opening transaction
 	// creating table simple
+	// opening transaction
 	// inserting values into simple
 	// reading table contents
 	// a: 2147483647
@@ -27,7 +27,5 @@ func ExampleDoMain() {
 	// b: another string
 	// rolling back subtransaction
 	// reading table contents after subtransaction rollback
-	// a: 2147483647
-	// b: a string
 	// committing transaction
 }
