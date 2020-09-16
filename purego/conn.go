@@ -34,10 +34,10 @@ type Conn struct {
 }
 
 func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
-	return NewConnWithHooks(ctx, dsn, nil)
+	return NewConnWithHooks(ctx, dsn, nil, nil)
 }
 
-func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook) (*Conn, error) {
+func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
 		stmts:    map[int]*Stmt{},
 		stmtLock: &sync.RWMutex{},
@@ -56,16 +56,26 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 	}
 
 	if drv.envChangeHooks != nil {
-		err := conn.Channel.RegisterEnvChangeHooks(drv.envChangeHooks...)
-		if err != nil {
+		if err := conn.Channel.RegisterEnvChangeHooks(drv.envChangeHooks...); err != nil {
 			return nil, fmt.Errorf("go-ase: error registering driver EnvChangeHooks: %w", err)
 		}
 	}
 
 	if envChangeHooks != nil {
-		err := conn.Channel.RegisterEnvChangeHooks(envChangeHooks...)
-		if err != nil {
+		if err := conn.Channel.RegisterEnvChangeHooks(envChangeHooks...); err != nil {
 			return nil, fmt.Errorf("go-ase: error registering argument EnvChangeHooks: %w", err)
+		}
+	}
+
+	if drv.eedHooks != nil {
+		if err := conn.Channel.RegisterEEDHooks(drv.eedHooks...); err != nil {
+			return nil, fmt.Errorf("go-ase: error registering driver EEDHooks: %w", err)
+		}
+	}
+
+	if eedHooks != nil {
+		if err := conn.Channel.RegisterEEDHooks(eedHooks...); err != nil {
+			return nil, fmt.Errorf("go-ase: error registering argument EEDHooks: %w", err)
 		}
 	}
 

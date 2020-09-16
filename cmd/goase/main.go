@@ -27,7 +27,7 @@ func doMain() error {
 		return fmt.Errorf("error parsing DSN from env: %w", err)
 	}
 
-	connector, err := ase.NewConnectorWithHooks(dsn, updateDatabaseName)
+	connector, err := ase.NewConnectorWithHooks(dsn, []tds.EnvChangeHook{updateDatabaseName}, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create connector: %w", err)
 	}

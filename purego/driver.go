@@ -28,6 +28,7 @@ func init() {
 
 type Driver struct {
 	envChangeHooks []tds.EnvChangeHook
+	eedHooks       []tds.EEDHook
 }
 
 func (d Driver) Open(name string) (driver.Conn, error) {
@@ -56,5 +57,16 @@ func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
 	}
 
 	drv.envChangeHooks = append(drv.envChangeHooks, fns...)
+	return nil
+}
+
+func AddEEDHooks(fns ...tds.EEDHook) error {
+	for _, fn := range fns {
+		if fn == nil {
+			return fmt.Errorf("go-ase: Received nil EEDHook: %#v", fns)
+		}
+	}
+
+	drv.eedHooks = append(drv.eedHooks, fns...)
 	return nil
 }

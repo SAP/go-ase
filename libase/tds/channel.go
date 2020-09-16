@@ -31,9 +31,13 @@ type Channel struct {
 	sync.RWMutex
 	closed bool
 
-	channelId          int
+	channelId int
+
 	envChangeHooks     []EnvChangeHook
 	envChangeHooksLock *sync.Mutex
+
+	eedHooks     []EEDHook
+	eedHooksLock *sync.Mutex
 
 	// currentHeaderType is the PacketHeaderType set on outgoing
 	// packets.
@@ -75,6 +79,8 @@ func (tds *Conn) NewChannel() (*Channel, error) {
 		channelId:          channelId,
 		envChangeHooks:     []EnvChangeHook{},
 		envChangeHooksLock: &sync.Mutex{},
+		eedHooks:           []EEDHook{},
+		eedHooksLock:       &sync.Mutex{},
 		CurrentHeaderType:  TDS_BUF_NORMAL,
 		window:             0, // TODO
 		queueRx:            NewPacketQueue(tds.PacketSize),
@@ -261,6 +267,7 @@ func (tdsChan *Channel) handleSpecialPackage(pkg Package) (bool, error) {
 			return false, nil
 		}
 
+		tdsChan.callEEDHooks(*eed)
 		return true, nil
 	}
 
