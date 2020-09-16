@@ -84,31 +84,15 @@ func (pkg DonePackage) WriteTo(ch BytesChannel) error {
 }
 
 func (pkg DonePackage) String() string {
-	stati := deBitmask(int(pkg.Status), int(TDS_DONE_CUMULATIVE))
-	strStati := ""
-	if len(stati) == 0 {
-		strStati = TDS_DONE_FINAL.String()
-	} else {
-		for i, status := range stati {
-			strStati += DoneState(status).String()
-			if i+1 != len(stati) {
-				strStati += "|"
-			}
-		}
-	}
+	strStati := deBitmaskString(int(pkg.Status), int(TDS_DONE_CUMULATIVE),
+		func(i int) string { return DoneState(i).String() },
+		TDS_DONE_FINAL.String(),
+	)
 
-	transi := deBitmask(int(pkg.TranState), int(TDS_TRAN_STMT_FAIL))
-	strTransi := ""
-	if len(transi) == 0 {
-		strTransi = TDS_NOT_IN_TRAN.String()
-	} else {
-		for i, trans := range transi {
-			strTransi += TransState(trans).String()
-			if i+1 != len(transi) {
-				strTransi += "|"
-			}
-		}
-	}
+	strTransi := deBitmaskString(int(pkg.TranState), int(TDS_TRAN_STMT_FAIL),
+		func(i int) string { return TransState(i).String() },
+		TDS_NOT_IN_TRAN.String(),
+	)
 
 	return fmt.Sprintf("%T(%s, %s)", pkg, strStati, strTransi)
 }
