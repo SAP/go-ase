@@ -628,7 +628,7 @@ func (tdsChan *Channel) tryParsePackage() bool {
 		}
 
 		// Parsing went wrong, record as error
-		tdsChan.errCh <- fmt.Errorf("error parsing package: %w", err)
+		tdsChan.errCh <- fmt.Errorf("error parsing package %T: %w", pkg, err)
 		return false
 	}
 
