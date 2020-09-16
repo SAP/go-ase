@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 module github.com/SAP/go-ase
 
-go 1.14
+go 1.15
 
 require (
 	github.com/chzyer/logex v1.1.10 // indirect
