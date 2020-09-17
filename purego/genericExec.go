@@ -7,7 +7,9 @@ package purego
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/SAP/go-ase/libase"
 	"github.com/SAP/go-ase/libase/tds"
@@ -74,26 +76,14 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 			case *tds.DonePackage:
 				if typed.Status&tds.TDS_DONE_COUNT == tds.TDS_DONE_COUNT {
 					result.rowsAffected = int64(typed.Count)
-					if typed.Status == tds.TDS_DONE_COUNT {
-						return true, nil
-					}
 				}
 
-				if typed.Status&tds.TDS_DONE_ERROR == tds.TDS_DONE_ERROR {
-					return true, fmt.Errorf("go-ase: query failed with errors")
+				ok, err := handleDonePackage(typed)
+				if err != nil {
+					return true, fmt.Errorf("go-ase: %w", err)
 				}
 
-				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE ||
-					typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT ||
-					typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC {
-					return false, nil
-				}
-
-				if typed.Status == tds.TDS_DONE_FINAL {
-					return true, nil
-				}
-
-				return false, fmt.Errorf("go-ase: %T with unrecognized Status: %s", typed, typed)
+				return ok, nil
 			case *tds.ReturnStatusPackage:
 				if typed.ReturnValue != 0 {
 					return true, fmt.Errorf("go-ase: query failed with return status %d", typed.ReturnValue)
@@ -104,7 +94,7 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 			}
 		},
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, nil, err
 	}
 

@@ -69,25 +69,12 @@ func (rows *Rows) Next(dst []driver.Value) error {
 			case *tds.OrderByPackage:
 				return false, nil
 			case *tds.DonePackage:
-				if typed.Status == tds.TDS_DONE_COUNT {
-					return true, io.EOF
+				ok, err := handleDonePackage(typed)
+				if err != nil {
+					return true, fmt.Errorf("go-ase: %w", err)
 				}
 
-				if typed.Status&tds.TDS_DONE_ERROR == tds.TDS_DONE_ERROR {
-					return true, fmt.Errorf("go-ase: query failed with errors")
-				}
-
-				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE ||
-					typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT ||
-					typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC {
-					return false, nil
-				}
-
-				if typed.Status == tds.TDS_DONE_FINAL {
-					return true, io.EOF
-				}
-
-				return false, fmt.Errorf("go-ase: %T with unrecognized Status: %s", typed, typed)
+				return ok, nil
 			case *tds.ReturnStatusPackage:
 				if typed.ReturnValue != 0 {
 					return true, fmt.Errorf("go-ase: query failed with return status %d", typed.ReturnValue)
