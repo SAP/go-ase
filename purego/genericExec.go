@@ -65,9 +65,6 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 	rows := &Rows{Conn: c}
 	result := &Result{}
 
-	returnStatus := -1
-	recvErr := false
-
 	_, err := c.Channel.NextPackageUntil(ctx, true,
 		func(pkg tds.Package) (bool, error) {
 			switch typed := pkg.(type) {
@@ -82,37 +79,25 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 					}
 				}
 
-				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE {
-					return false, nil
-				}
-
 				if typed.Status&tds.TDS_DONE_ERROR == tds.TDS_DONE_ERROR {
-					recvErr = true
-					return false, nil
+					return true, fmt.Errorf("go-ase: query failed with errors")
 				}
 
-				if typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT {
-					return false, nil
-				}
-
-				if typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC {
+				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE ||
+					typed.Status&tds.TDS_DONE_INXACT == tds.TDS_DONE_INXACT ||
+					typed.Status&tds.TDS_DONE_PROC == tds.TDS_DONE_PROC {
 					return false, nil
 				}
 
 				if typed.Status == tds.TDS_DONE_FINAL {
-					if returnStatus > 0 {
-						return true, fmt.Errorf("go-ase: query failed with return status %d", returnStatus)
-					}
-					if recvErr {
-						return true, fmt.Errorf("go-ase: query failed with errors")
-					}
 					return true, nil
 				}
 
-				return false, fmt.Errorf("go-ase: %T is not recognized by go-ase: %s",
-					typed, typed)
+				return false, fmt.Errorf("go-ase: %T with unrecognized Status: %s", typed, typed)
 			case *tds.ReturnStatusPackage:
-				returnStatus = int(typed.ReturnValue)
+				if typed.ReturnValue != 0 {
+					return true, fmt.Errorf("go-ase: query failed with return status %d", typed.ReturnValue)
+				}
 				return false, nil
 			default:
 				return false, fmt.Errorf("go-ase: unhandled package type %T", typed)
