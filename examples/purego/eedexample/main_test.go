@@ -17,7 +17,6 @@ func ExampleDoMain() {
 	//     17231: No login with the specified name exists.
 	// Messages from ASE server:
 	//     156: Incorrect syntax near the keyword 'values'.
-	//
 	// Messages from ASE server:
 	//     1809: CREATE DATABASE must be preceded by a 'USE master' command.  Check with your DBO <or a user with System Administrator (SA) role> if you do not have permission to USE master.
 }
