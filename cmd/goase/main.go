@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	err := doMain()
-	if err != nil {
+	if err := doMain(); err != nil {
 		log.Fatalf("goase failed: %v", err)
 	}
 }
@@ -27,7 +26,10 @@ func doMain() error {
 		return fmt.Errorf("error parsing DSN from env: %w", err)
 	}
 
-	connector, err := ase.NewConnectorWithHooks(dsn, []tds.EnvChangeHook{updateDatabaseName}, nil)
+	connector, err := ase.NewConnectorWithHooks(dsn,
+		[]tds.EnvChangeHook{updateDatabaseName},
+		[]tds.EEDHook{logEED},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create connector: %w", err)
 	}
@@ -44,4 +46,8 @@ func updateDatabaseName(typ tds.EnvChangeType, oldValue, newValue string) {
 	}
 
 	term.PromptDatabaseName = newValue
+}
+
+func logEED(eed tds.EEDPackage) {
+	fmt.Println(eed.Msg)
 }
