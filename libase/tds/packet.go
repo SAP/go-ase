@@ -74,15 +74,19 @@ func (packet Packet) WriteTo(writer io.Writer) (int64, error) {
 }
 
 func (packet Packet) String() string {
+	strHeaderStatus := deBitmaskString(int(packet.Header.Status), int(TDS_BUFSTAT_SYMENCRYPT),
+		func(i int) string { return PacketHeaderStatus(i).String() },
+		"no status",
+	)
+
 	return fmt.Sprintf(
-		"Type: %s, Status: %s, Length: %d, Channel: %d, PacketNr: %d, Window: %d, DataLen: %d, Data: %#v",
+		"Type: %s, Status: %s, Length: %d, Channel: %d, PacketNr: %d, Window: %d, DataLen: %d",
 		packet.Header.MsgType,
-		packet.Header.Status,
+		strHeaderStatus,
 		packet.Header.Length,
 		packet.Header.Channel,
 		packet.Header.PacketNr,
 		packet.Header.Window,
 		len(packet.Data),
-		packet.Data,
 	)
 }

@@ -43,3 +43,20 @@ func deBitmask(bitmask int, maxValue int) []int {
 
 	return ret
 }
+
+func deBitmaskString(bitmask, maxValue int, toString func(i int) string, defaultValue string) string {
+	values := deBitmask(bitmask, maxValue)
+	if len(values) == 0 {
+		return defaultValue
+	}
+
+	ret := ""
+	for i, value := range values {
+		ret += toString(value)
+		if i+1 != len(values) {
+			ret += "|"
+		}
+	}
+
+	return ret
+}
