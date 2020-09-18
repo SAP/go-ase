@@ -27,6 +27,8 @@ type Info struct {
 	Userstorekey string `json:"userstorekey" multiref:"key" validate:"required"`
 	Database     string `json:"database" multiref:"db"`
 
+	ClientHostname string `json:"client-hostname"`
+
 	TLSHostname       string `json:"tls-hostname" multiref:"tls,ssl"`
 	TLSSkipValidation bool   `json:"tls-skip-validation"`
 	TLSCAFile         string `json:"tls-ca"`
