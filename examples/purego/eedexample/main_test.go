@@ -19,7 +19,6 @@ func ExampleDoMain() {
 	// create table
 	// Messages from ASE server:
 	//     156: Incorrect syntax near the keyword 'values'.
-	//
 	// create database
 	// Messages from ASE server:
 	//     102: Incorrect syntax near 'database'.

@@ -4,7 +4,10 @@
 
 package tds
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 //go:generate stringer -type=EEDStatus
 type EEDStatus uint8
@@ -83,10 +86,12 @@ func (pkg *EEDPackage) ReadFrom(ch BytesChannel) error {
 	}
 	n += 2
 
-	pkg.Msg, err = ch.String(int(msgLength))
+	msg, err := ch.String(int(msgLength))
 	if err != nil {
 		return ErrNotEnoughBytes
 	}
+	// Some messages contain a trailing newline, but not all.
+	pkg.Msg = strings.TrimSuffix(msg, "\n")
 	n += int(msgLength)
 
 	serverLength, err := ch.Uint8()

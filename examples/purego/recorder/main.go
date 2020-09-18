@@ -51,7 +51,7 @@ func (rec *Recorder) LogMessages() {
 	defer rec.RUnlock()
 
 	for _, eed := range rec.eeds {
-		fmt.Printf("%s: MsgNumber %d: %s", rec.logprefix, eed.MsgNumber, eed.Msg)
+		fmt.Printf("%s: MsgNumber %d: %s\n", rec.logprefix, eed.MsgNumber, eed.Msg)
 	}
 }
 
