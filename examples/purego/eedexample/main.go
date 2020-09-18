@@ -39,6 +39,7 @@ func DoMain() error {
 		}
 	}()
 
+	fmt.Println("sp_adduser")
 	if _, err := db.Exec("sp_adduser nologin"); err != nil {
 		var eedError *tds.EEDError
 		if errors.As(err, &eedError) {
@@ -49,6 +50,7 @@ func DoMain() error {
 		}
 	}
 
+	fmt.Println("create table")
 	if _, err := db.Exec("create table eed_example values (int, string)"); err != nil {
 		var eedError *tds.EEDError
 		if errors.As(err, &eedError) {
@@ -59,7 +61,8 @@ func DoMain() error {
 		}
 	}
 
-	if _, err := db.Exec("create database testDatabase"); err != nil {
+	fmt.Println("create database")
+	if _, err := db.Exec("create database"); err != nil {
 		var eedError *tds.EEDError
 		if errors.As(err, &eedError) {
 			fmt.Println("Messages from ASE server:")
