@@ -347,6 +347,31 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 
 		ok, err := processPkg(pkg)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil, err
+			}
+
+			// Consume all packages until DonePackage{TDS_DONE_FINAL} if
+			// the current package wasn't a DonePackage{TDS_DONE_FINAL}
+			// to prevent any leftovers that may impact later
+			// communications.
+			if done, ok := pkg.(*DonePackage); !ok || (ok && done.Status != TDS_DONE_FINAL) {
+				_, err := tdsChan.NextPackageUntil(ctx, wait, func(pkg Package) (bool, error) {
+					done, ok := pkg.(*DonePackage)
+					if !ok {
+						return false, nil
+					}
+
+					return done.Status == TDS_DONE_FINAL, nil
+				})
+				// Append any additional received EEDPackages to the
+				// EEDError.
+				var finalEEDError *EEDError
+				if err != nil && errors.As(err, &finalEEDError) {
+					eedError.EEDPackages = append(eedError.EEDPackages, finalEEDError.EEDPackages...)
+				}
+			}
+
 			err = fmt.Errorf("tds: error in user-defined processing function: %w", err)
 
 			// Only return an EEDError if there were EEDPackages
