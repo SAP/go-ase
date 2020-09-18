@@ -29,9 +29,7 @@ func NewConnector(dsn *libdsn.Info) (driver.Connector, error) {
 
 func NewConnectorWithHooks(dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
 	connector := &Connector{
-		DSN:            dsn,
-		EnvChangeHooks: envChangeHooks,
-		EEDHooks:       eedHooks,
+		DSN: dsn,
 	}
 
 	conn, err := connector.Connect(context.Background())
@@ -45,10 +43,14 @@ func NewConnectorWithHooks(dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook,
 		return nil, fmt.Errorf("received conn does not satisfy the pinger interface: %v", conn)
 	}
 
-	err = pinger.Ping(context.Background())
-	if err != nil {
+	if err := pinger.Ping(context.Background()); err != nil {
 		return nil, fmt.Errorf("error pinging database server: %w", err)
 	}
+
+	// Set the hooks after validating the connection otherwise hooks
+	// would get called during the test connection.
+	connector.EnvChangeHooks = envChangeHooks
+	connector.EEDHooks = eedHooks
 
 	return connector, nil
 }
