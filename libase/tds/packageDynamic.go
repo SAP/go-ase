@@ -198,31 +198,15 @@ func (pkg *DynamicPackage) WriteTo(ch BytesChannel) error {
 }
 
 func (pkg DynamicPackage) String() string {
-	types := deBitmask(int(pkg.Type), int(TDS_DYN_DESCOUT))
-	strTypes := ""
-	if len(types) == 0 {
-		strTypes = TDS_DYN_PREPARE.String()
-	} else {
-		for i, typ := range types {
-			strTypes += DynamicOperationType(typ).String()
-			if i+1 != len(types) {
-				strTypes += "|"
-			}
-		}
-	}
+	strTypes := deBitmaskString(int(pkg.Type), int(TDS_DYN_DESCOUT),
+		func(i int) string { return DynamicOperationType(i).String() },
+		TDS_DYN_PREPARE.String(),
+	)
 
-	stati := deBitmask(int(pkg.Status), int(TDS_DYNAMIC_SUPPRESS_FMT))
-	strStati := ""
-	if len(stati) == 0 {
-		strStati = TDS_DYNAMIC_UNUSED.String()
-	} else {
-		for i, status := range stati {
-			strStati += DynamicStatusType(status).String()
-			if i+1 != len(stati) {
-				strStati += "|"
-			}
-		}
-	}
+	strStati := deBitmaskString(int(pkg.Status), int(TDS_DYNAMIC_SUPPRESS_FMT),
+		func(i int) string { return DynamicStatusType(i).String() },
+		TDS_DYNAMIC_UNUSED.String(),
+	)
 
 	return fmt.Sprintf("%T(%s, %s - %s: %s)", pkg, strTypes, strStati, pkg.ID, pkg.Stmt)
 }
