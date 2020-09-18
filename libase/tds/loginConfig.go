@@ -41,11 +41,19 @@ func NewLoginConfig(dsn *libdsn.Info) (*LoginConfig, error) {
 
 	conf.DSN = dsn
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve hostname: %w", err)
+	if dsn.ClientHostname != "" {
+		conf.Hostname = dsn.ClientHostname
+	} else {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve hostname: %w", err)
+		}
+		conf.Hostname = hostname
 	}
-	conf.Hostname = hostname
+	if len(conf.Hostname) > 30 {
+		conf.Hostname = conf.Hostname[:30]
+	}
+
 	conf.HostProc = strconv.Itoa(os.Getpid())
 
 	conf.ServName = conf.DSN.Host

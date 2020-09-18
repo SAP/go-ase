@@ -316,6 +316,15 @@ increasing the queue size.
 
 Defaults to 100.
 
+##### client-hostname
+
+Recognized values: string
+
+The client-hostname to report to the TDS server. Due to protocol
+limitations this will be cut off after 30 characters.
+
+Defaults to the hostname of the machine, acquired using `os.Hostname`.
+
 ##### tls
 
 Recognized values: string
