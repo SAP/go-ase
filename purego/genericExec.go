@@ -38,7 +38,7 @@ func (c *Conn) DirectExec(ctx context.Context, query string, args ...interface{}
 func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
 	if len(args) == 0 {
 		rows, result, err := c.language(ctx, query)
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, nil, fmt.Errorf("go-ase: error executing statement: %w", err)
 		}
 		return rows, result, nil

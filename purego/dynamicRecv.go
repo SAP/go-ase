@@ -6,7 +6,9 @@ package purego
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/SAP/go-ase/libase/tds"
 )
@@ -27,7 +29,11 @@ func (stmt Stmt) recvDynAck(ctx context.Context) error {
 		},
 	)
 
-	return err
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+
+	return nil
 }
 
 func (stmt Stmt) recvDoneFinal(ctx context.Context) error {
@@ -42,9 +48,13 @@ func (stmt Stmt) recvDoneFinal(ctx context.Context) error {
 				return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL set: %s", done)
 			}
 
-			return true, nil
+			return true, io.EOF
 		},
 	)
 
-	return err
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+
+	return nil
 }
