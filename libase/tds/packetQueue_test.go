@@ -219,3 +219,40 @@ func TestPacketQueue_WriteBytes(t *testing.T) {
 		)
 	}
 }
+
+func TestPacketQueue_AllPacketsConsumed(t *testing.T) {
+	cases := map[string]struct {
+		queue  *PacketQueue
+		expect bool
+	}{
+		"empty queue returns true": {
+			queue:  prepQueue(0, 0),
+			expect: true,
+		},
+		"finished queue returns true": {
+			queue:  prepQueue(0, 35, &Packet{Data: make([]byte, 35)}),
+			expect: true,
+		},
+		"unfinished queue return false": {
+			queue:  prepQueue(0, 15, &Packet{Data: make([]byte, 35)}),
+			expect: false,
+		},
+		"indices overshooting returns true": {
+			queue:  prepQueue(1, 0, &Packet{Data: make([]byte, 35)}),
+			expect: true,
+		},
+		"one unread byte returns true": {
+			queue:  prepQueue(0, 0, &Packet{Data: []byte{0x1}}),
+			expect: false,
+		},
+	}
+
+	for title, cas := range cases {
+		t.Run(title, func(t *testing.T) {
+			recv := cas.queue.AllPacketsConsumed()
+			if recv != cas.expect {
+				t.Errorf("Expected .AllPacketsConsumed to return %t, got %t", cas.expect, recv)
+			}
+		})
+	}
+}
