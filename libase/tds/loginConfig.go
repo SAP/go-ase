@@ -57,6 +57,10 @@ func NewLoginConfig(dsn *libdsn.Info) (*LoginConfig, error) {
 	conf.HostProc = strconv.Itoa(os.Getpid())
 
 	conf.ServName = conf.DSN.Host
+	if len(conf.ServName) > 30 {
+		conf.ServName = conf.ServName[:30]
+	}
+
 	// Should be overwritten by clients
 	conf.AppName = "github.com/SAP/go-ase/libase/tds"
 
