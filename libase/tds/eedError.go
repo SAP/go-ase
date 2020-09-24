@@ -4,7 +4,10 @@
 
 package tds
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type EEDError struct {
 	EEDPackages  []*EEDPackage
@@ -13,6 +16,13 @@ type EEDError struct {
 
 func (err *EEDError) Add(eed *EEDPackage) {
 	err.EEDPackages = append(err.EEDPackages, eed)
+}
+
+func (err EEDError) Is(other error) bool {
+	if err.WrappedError == nil {
+		return false
+	}
+	return errors.Is(err.WrappedError, other)
 }
 
 func (err EEDError) Error() string {
