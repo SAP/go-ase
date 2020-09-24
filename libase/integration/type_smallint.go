@@ -41,8 +41,7 @@ func testSmallInt(t *testing.T, db *sql.DB, tableName string) {
 	i := 0
 	var recv int16
 	for rows.Next() {
-		err = rows.Scan(&recv)
-		if err != nil {
+		if err := rows.Scan(&recv); err != nil {
 			t.Errorf("Scan failed on %dth scan: %v", i, err)
 			continue
 		}
@@ -59,5 +58,9 @@ func testSmallInt(t *testing.T, db *sql.DB, tableName string) {
 
 	if err := rows.Err(); err != nil {
 		t.Errorf("Error preparing rows: %v", err)
+	}
+
+	if i != len(pass) {
+		t.Errorf("Only read %d values from database, expected to read %d", i, len(pass))
 	}
 }
