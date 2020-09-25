@@ -87,6 +87,8 @@ func (rows *Rows) Next(dst []driver.Value) error {
 	)
 
 	if err != nil {
+		// database/sql expects only an io.EOF - it doesn't check with
+		// errors.Is.
 		if errors.Is(err, io.EOF) {
 			return io.EOF
 		}
