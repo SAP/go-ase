@@ -7,7 +7,9 @@ package purego
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -112,18 +114,17 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 				stmt.rowFmt = typed
 				return false, nil
 			case *tds.DonePackage:
-				if typed.Status != tds.TDS_DONE_FINAL &&
-					typed.Status&tds.TDS_DONE_INXACT != tds.TDS_DONE_INXACT {
-					return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL or TDS_DONE_INXACT set: %s",
-						typed)
+				ok, err := handleDonePackage(typed)
+				if err != nil {
+					return true, err
 				}
-				return true, nil
+				return ok, nil
 			default:
 				return false, fmt.Errorf("unexpected package received: %#v", typed)
 			}
 		},
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		stmt.close(ctx)
 		return err
 	}

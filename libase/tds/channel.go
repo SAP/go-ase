@@ -16,7 +16,10 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-var ErrNoPackageReady = errors.New("no package ready")
+var (
+	ErrNoPackageReady = errors.New("no package ready")
+	ErrChannelClosed  = errors.New("channel is closed")
+)
 
 // Channel is a channel in a multiplexed connection with a TDS
 // server.
@@ -176,6 +179,7 @@ func (tdsChan *Channel) Close() error {
 	// Lock the channel and store the closed indicator.
 	tdsChan.Lock()
 	defer tdsChan.Unlock()
+
 	tdsChan.closed = true
 
 	// Channel closing has been communicated, remove channel from conn
@@ -288,9 +292,8 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 	tdsChan.RLock()
 	defer tdsChan.RUnlock()
 
-	// TODO return a proper error
 	if tdsChan.closed {
-		return nil, nil
+		return nil, ErrChannelClosed
 	}
 
 	ch := make(chan error, 1)
@@ -326,11 +329,33 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 // NextPackageUntil calls NextPackage until the passed function
 // processPkg returns true.
 //
-// This can be used to consume all packages of a response until the Done
-// token if an error occurred.
+// If processPkg returns true no further packages will be consumed, so
+// the communication handling can be passed to another function.
 //
-// If the passed function returns an error the error will be used to
-// wrap all EED messages until the error occurred.
+// If processPkg returns an error all packages in the payload will be
+// consumed and an error containing all EEDPackages in the payload will
+// be returned.
+//
+// If processPkg is nil all packages in the current payload are consumed
+// and no package and an io.EOF error is returned.
+// The io.EOF is wrapped with an EEDError with all EEDPackages in the
+// payload if the payload contained any EEDPackages.
+//
+// To just consume all packages a consumer can return an io.EOF in
+// processPkg and check if the error is not of io.EOF:
+//
+// _, err := ...NextPackageUntil(ctx, wait, func(pkg tds.Package) (bool, error) {
+//     switch pkg.(type) {
+//     case ...
+//         // handle communication
+//     case ...
+//         // handle final communication
+//         return true, io.EOF
+//     }
+// }
+// if err != nil && !errors.Is(err, io.EOF) {
+//     // error handling
+// }
 func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, processPkg func(Package) (bool, error)) (Package, error) {
 	eedError := &EEDError{}
 
@@ -345,25 +370,25 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 			continue
 		}
 
-		ok, err := processPkg(pkg)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil, err
+		if processPkg == nil {
+			if ok, _ := isDoneFinal(pkg); ok {
+				return nil, io.EOF
 			}
 
+			_, err := tdsChan.NextPackageUntil(ctx, wait, func(pkg Package) (bool, error) {
+				return isDoneFinal(pkg)
+			})
+			return nil, err
+		}
+
+		ok, err := processPkg(pkg)
+		if err != nil {
 			// Consume all packages until DonePackage{TDS_DONE_FINAL} if
 			// the current package wasn't a DonePackage{TDS_DONE_FINAL}
 			// to prevent any leftovers that may impact later
 			// communications.
-			if done, ok := pkg.(*DonePackage); !ok || (ok && done.Status != TDS_DONE_FINAL) {
-				_, err := tdsChan.NextPackageUntil(ctx, wait, func(pkg Package) (bool, error) {
-					done, ok := pkg.(*DonePackage)
-					if !ok {
-						return false, nil
-					}
-
-					return done.Status == TDS_DONE_FINAL, nil
-				})
+			if ok, _ := isDoneFinal(pkg); !ok {
+				_, err := tdsChan.NextPackageUntil(ctx, wait, nil)
 				// Append any additional received EEDPackages to the
 				// EEDError.
 				var finalEEDError *EEDError
@@ -389,6 +414,11 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 	}
 }
 
+func isDoneFinal(pkg Package) (bool, error) {
+	done, ok := pkg.(*DonePackage)
+	return ok && done.Status == TDS_DONE_FINAL, nil
+}
+
 type LastPkgAcceptor interface {
 	LastPkg(Package) error
 }
@@ -400,7 +430,7 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 	defer tdsChan.RUnlock()
 	// TODO return proper error
 	if tdsChan.closed {
-		return nil
+		return ErrChannelClosed
 	}
 
 	if acceptor, ok := pkg.(LastPkgAcceptor); ok {
@@ -424,9 +454,8 @@ func (tdsChan *Channel) QueuePackage(ctx context.Context, pkg Package) error {
 func (tdsChan *Channel) SendRemainingPackets(ctx context.Context) error {
 	tdsChan.RLock()
 	defer tdsChan.RUnlock()
-	// TODO return proper error
 	if tdsChan.closed {
-		return nil
+		return ErrChannelClosed
 	}
 
 	// SendRemainingPackets is only called when completing sending
@@ -536,10 +565,15 @@ func (tdsChan *Channel) WritePacket(packet *Packet) {
 		curPacket, curData := tdsChan.queueRx.Position()
 
 		// Attempt to parse a Package.
-		ok := tdsChan.tryParsePackage()
-		if !ok {
-			// Attempt failed, roll back position and return.
-			tdsChan.queueRx.SetPosition(curPacket, curData)
+		if ok := tdsChan.tryParsePackage(); !ok {
+			// Attempting to parse package failed
+			if tdsChan.queueRx.IsEOM() {
+				// And queue is EOM - reset queue
+				tdsChan.queueRx.Reset()
+			} else {
+				// Roll back position and return.
+				tdsChan.queueRx.SetPosition(curPacket, curData)
+			}
 			return
 		}
 
@@ -554,25 +588,15 @@ func (tdsChan *Channel) tryParsePackage() bool {
 	// Attempt to process data from channel into a Package.
 	tokenByte, err := tdsChan.queueRx.Byte()
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if tdsChan.queueRx.IsEOM() {
 			// If the error is io.EOF then the payload from the server
 			// has been fully consumed.
 			// TDS doesn't always send a DonePackage with TDS_DONE_FINAL
 			// - usually only when a procedure with multiple commands is
 			// being executed.
-			lastPkg, ok := tdsChan.lastPkgRx.(*DonePackage)
-			if !ok {
-				return false
+			if lastPkg, ok := tdsChan.lastPkgRx.(*DonePackage); !ok || lastPkg.Status != TDS_DONE_FINAL {
+				tdsChan.packageCh <- &DonePackage{Status: TDS_DONE_FINAL}
 			}
-
-			if lastPkg.Status == TDS_DONE_FINAL ||
-				lastPkg.Status == TDS_DONE_COUNT {
-				// The last received package is a DonePackage with
-				// TDS_DONE_FINAL or TDS_DONE_COUNT - no need to add one.
-				return false
-			}
-
-			tdsChan.packageCh <- &DonePackage{Status: TDS_DONE_FINAL}
 		}
 		return false
 	}
