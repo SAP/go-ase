@@ -5,6 +5,7 @@
 package tds
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -47,17 +48,29 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 	packet.Data = make([]byte, packet.Header.Length-PacketHeaderSize)
 
-	m, err := reader.Read(packet.Data)
-	totalBytes += int64(m)
+	for {
+		m, err := reader.Read(packet.Data[totalBytes-n:])
+		totalBytes += int64(m)
 
-	if err != nil {
-		if err == io.EOF {
-			if packet.Header.MsgType == TDS_BUF_CLOSE {
-				return totalBytes, io.EOF
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// The PDU is split over multiple responses
+				if totalBytes != int64(packet.Header.Length) {
+					continue
+				}
+
+				if packet.Header.MsgType == TDS_BUF_CLOSE {
+					return totalBytes, err
+				}
 			}
-			return totalBytes, nil
+
+			return totalBytes, fmt.Errorf("error reading body: %w", err)
 		}
-		return totalBytes, fmt.Errorf("error reading body: %w", err)
+
+		if totalBytes == int64(packet.Header.Length) {
+			// Read the expected amount of bytes
+			break
+		}
 	}
 
 	return totalBytes, nil
