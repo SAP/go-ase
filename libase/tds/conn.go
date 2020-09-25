@@ -220,10 +220,7 @@ func (tds *Conn) ReadFrom() {
 		default:
 			packet := &Packet{}
 			_, err := packet.ReadFrom(tds.conn)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					return
-				}
+			if err != nil && !errors.Is(err, io.EOF) {
 				tds.errCh <- fmt.Errorf("error reading packet: %w", err)
 				continue
 			}
@@ -238,6 +235,11 @@ func (tds *Conn) ReadFrom() {
 
 			// Errors are recorded in the channels' error channel.
 			tdsChan.WritePacket(packet)
+
+			// err from packet.ReadFrom
+			if errors.Is(err, io.EOF) {
+				return
+			}
 		}
 	}
 }
