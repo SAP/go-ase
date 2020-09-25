@@ -121,11 +121,14 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 }
 
 func (c Conn) Ping(ctx context.Context) error {
-	// TODO check rows
 	// TODO implement ErrBadConn check
-	_, _, err := c.language(ctx, "select 'ping'")
+	rows, _, err := c.language(ctx, "select 'ping'")
 	if err != nil {
 		return fmt.Errorf("go-ase: error pinging database: %w", err)
+	}
+
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("go-ase: error closing rows from ping: %w", err)
 	}
 
 	return nil
