@@ -74,8 +74,8 @@ func TestVarChar(t *testing.T)  { integration.DoTestVarChar(t) }
 func TestChar(t *testing.T)     { integration.DoTestChar(t) }
 func TestNChar(t *testing.T)    { integration.DoTestNChar(t) }
 func TestNVarChar(t *testing.T) { integration.DoTestNVarChar(t) }
-func TestText(t *testing.T)     { integration.DoTestText(t) }
 
+// TODO func TestText(t *testing.T)     { integration.DoTestText(t) }
 // TODO func TestUniChar(t *testing.T)  { integration.DoTestUniChar(t) }
 // TODO func TestUniText(t *testing.T)  { integration.DoTestUniText(t) }
 

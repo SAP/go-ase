@@ -84,8 +84,7 @@ func TeardownDB(testDsn *libdsn.Info) error {
 // SetupTableInsert creates a table with the passed type and inserts all
 // passed samples as rows.
 func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interface{}) (*sql.Rows, func() error, error) {
-	_, err := db.Exec(fmt.Sprintf("create table %s (a %s)", tableName, aseType))
-	if err != nil {
+	if _, err := db.Exec(fmt.Sprintf("create table %s (a %s)", tableName, aseType)); err != nil {
 		return nil, nil, fmt.Errorf("failed to create table: %w", err)
 	}
 
@@ -96,8 +95,7 @@ func SetupTableInsert(db *sql.DB, tableName, aseType string, samples ...interfac
 	defer stmt.Close()
 
 	for _, sample := range samples {
-		_, err := stmt.Exec(sample)
-		if err != nil {
+		if _, err := stmt.Exec(sample); err != nil {
 			return nil, nil, fmt.Errorf("failed to execute prepared statement with %v: %w", sample, err)
 		}
 	}
