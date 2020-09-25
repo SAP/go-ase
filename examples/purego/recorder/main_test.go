@@ -27,9 +27,6 @@ func ExampleDoMain() {
 	// connector: MsgNumber 5704: Changed client character set setting to 'utf8'.
 	// connector: MsgNumber 5701: Changed database context to 'saptools'.
 	// connector: MsgNumber 5703: Changed language setting to 'us_english'.
-	// connector: MsgNumber 5704: Changed client character set setting to 'utf8'.
-	// connector: MsgNumber 5701: Changed database context to 'saptools'.
-	// connector: MsgNumber 5703: Changed language setting to 'us_english'.
 	// connector: MsgNumber 2528: DBCC execution completed. If DBCC printed error messages, contact a user with System Administrator (SA) role.
 	// Opening second database
 	// Received messages on driver recorder:
@@ -41,9 +38,6 @@ func ExampleDoMain() {
 	// driver: MsgNumber 5703: Changed language setting to 'us_english'.
 	// Received messages on connector recorder:
 	// Received messages on connector recorder 2:
-	// connector: MsgNumber 5704: Changed client character set setting to 'utf8'.
-	// connector: MsgNumber 5701: Changed database context to 'saptools'.
-	// connector: MsgNumber 5703: Changed language setting to 'us_english'.
 	// connector: MsgNumber 5704: Changed client character set setting to 'utf8'.
 	// connector: MsgNumber 5701: Changed database context to 'saptools'.
 	// connector: MsgNumber 5703: Changed language setting to 'us_english'.

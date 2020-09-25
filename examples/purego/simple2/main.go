@@ -17,7 +17,7 @@ import (
 
 func main() {
 	if err := DoMain(); err != nil {
-		log.Fatalf("godb failed: %v", err)
+		log.Fatalf("simple2 failed: %v", err)
 	}
 }
 
