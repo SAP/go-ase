@@ -94,5 +94,5 @@ func (pkg DonePackage) String() string {
 		TDS_NOT_IN_TRAN.String(),
 	)
 
-	return fmt.Sprintf("%T(%s, %s)", pkg, strStati, strTransi)
+	return fmt.Sprintf("%T(%s, %s, Count=%d)", pkg, strStati, strTransi, pkg.Count)
 }
