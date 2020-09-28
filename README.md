@@ -327,12 +327,20 @@ Defaults to the hostname of the machine, acquired using `os.Hostname`.
 
 ##### tls
 
+Recognized values: bool
+
+Activates TLS for the connection. Any other TLS option is ignored unless tls is set to true.
+
+Defaults to true if the target port is 443, false otherwise.
+
+##### tls-hostname
+
 Recognized values: string
 
 Allows to pass SAN for TLS validation.
 
 For compatibility with the cgo implementation you may also use `ssl`
-instead of `tls` and pass `CN=<SAN>` instead of `<SAN>`.
+instead of `tls-hostname` and pass `CN=<SAN>` instead of `<SAN>`.
 
 Defaults to empty string.
 

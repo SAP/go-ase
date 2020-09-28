@@ -10,6 +10,10 @@ import (
 	"io"
 )
 
+var (
+	ErrEOFAfterZeroRead = errors.New("received io.EOF after reading 0 bytes")
+)
+
 // Packet represents a single packet in a message.
 type Packet struct {
 	Header PacketHeader
@@ -54,6 +58,10 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				if m == 0 {
+					return totalBytes, ErrEOFAfterZeroRead
+				}
+
 				// The PDU is split over multiple responses
 				if totalBytes != int64(packet.Header.Length) {
 					continue

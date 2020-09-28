@@ -29,7 +29,8 @@ type Info struct {
 
 	ClientHostname string `json:"client-hostname"`
 
-	TLSHostname       string `json:"tls-hostname" multiref:"tls,ssl"`
+	TLSEnable         bool   `json:"tls"`
+	TLSHostname       string `json:"tls-hostname" multiref:"ssl"`
 	TLSSkipValidation bool   `json:"tls-skip-validation"`
 	TLSCAFile         string `json:"tls-ca"`
 

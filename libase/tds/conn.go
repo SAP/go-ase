@@ -57,62 +57,54 @@ func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 		return nil, fmt.Errorf("error opening connection: %w", err)
 	}
 
-	tlsConfig := &tls.Config{}
-	useTLS := false
-
-	if dsn.TLSHostname != "" {
-		useTLS = true
-
-		hostname := dsn.TLSHostname
-		if strings.HasPrefix(hostname, "CN=") {
-			hostname = strings.TrimPrefix(hostname, "CN=")
-		}
-
-		tlsConfig.ServerName = hostname
-	}
-
-	if dsn.TLSSkipValidation {
-		useTLS = true
+	if dsn.TLSEnable || strings.TrimSpace(strings.Replace(dsn.Port, "0", "", -1)) == "443" {
+		tlsConfig := &tls.Config{}
+		tlsConfig.ServerName = dsn.Host
 		tlsConfig.InsecureSkipVerify = dsn.TLSSkipValidation
-	}
 
-	if dsn.TLSCAFile != "" {
-		useTLS = true
-
-		bs, err := ioutil.ReadFile(dsn.TLSCAFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading file at ssl-ca path '%s': %w",
-				dsn.TLSCAFile, err)
-		}
-
-		tlsConfig.RootCAs = x509.NewCertPool()
-
-		for {
-			var block *pem.Block
-			block, bs = pem.Decode(bs)
-			if block == nil {
-				break
+		if dsn.TLSHostname != "" {
+			hostname := dsn.TLSHostname
+			if strings.HasPrefix(hostname, "CN=") {
+				hostname = strings.TrimPrefix(hostname, "CN=")
 			}
 
-			caCert, err := x509.ParseCertificate(block.Bytes)
+			tlsConfig.ServerName = hostname
+		}
+
+		if dsn.TLSCAFile != "" {
+			bs, err := ioutil.ReadFile(dsn.TLSCAFile)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing CA PEM at ssl-ca path '%s': %w",
+				return nil, fmt.Errorf("error reading file at ssl-ca path '%s': %w",
 					dsn.TLSCAFile, err)
 			}
 
-			tlsConfig.RootCAs.AddCert(caCert)
+			tlsConfig.RootCAs = x509.NewCertPool()
 
-			if len(bs) == 0 {
-				break
+			for {
+				var block *pem.Block
+				block, bs = pem.Decode(bs)
+				if block == nil {
+					break
+				}
+
+				caCert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing CA PEM at ssl-ca path '%s': %w",
+						dsn.TLSCAFile, err)
+				}
+
+				tlsConfig.RootCAs.AddCert(caCert)
+
+				if len(bs) == 0 {
+					break
+				}
+			}
+
+			if len(tlsConfig.RootCAs.Subjects()) == 0 {
+				return nil, fmt.Errorf("could not parse any valid CA certificate from file '%s'", dsn.TLSCAFile)
 			}
 		}
 
-		if len(tlsConfig.RootCAs.Subjects()) == 0 {
-			return nil, fmt.Errorf("could not parse any valid CA certificate from file '%s'", dsn.TLSCAFile)
-		}
-	}
-
-	if useTLS {
 		tlsClient := tls.Client(c, tlsConfig)
 		if err := tlsClient.Handshake(); err != nil {
 			return nil, fmt.Errorf("error during TLS handshake with server: %w", err)
