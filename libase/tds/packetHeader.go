@@ -6,6 +6,7 @@ package tds
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -123,6 +124,9 @@ func (header *PacketHeader) ReadFrom(r io.Reader) (int64, error) {
 	bs := make([]byte, PacketHeaderSize)
 	n, err := r.Read(bs)
 	if err != nil || n != PacketHeaderSize {
+		if n == 0 && errors.Is(err, io.EOF) {
+			return 0, ErrEOFAfterZeroRead
+		}
 		return int64(n), fmt.Errorf("read %d of %d expected bytes from reader: %w", n, PacketHeaderSize, err)
 	}
 
