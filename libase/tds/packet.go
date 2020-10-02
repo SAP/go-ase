@@ -5,9 +5,11 @@
 package tds
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
 
 var (
@@ -39,7 +41,7 @@ func (packet Packet) Bytes() ([]byte, error) {
 	return bs, nil
 }
 
-func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
+func (packet *Packet) ReadFrom(ctx context.Context, reader io.Reader, timeout time.Duration) (int64, error) {
 	var totalBytes int64
 
 	packet.Header = PacketHeader{}
@@ -52,13 +54,35 @@ func (packet *Packet) ReadFrom(reader io.Reader) (int64, error) {
 
 	packet.Data = make([]byte, packet.Header.Length-PacketHeaderSize)
 
+	// The timeout will be refreshed (replaced) on every successful
+	// read. This is done so the timeout only triggers if there was
+	// actually no data read from the server to prevent failures when
+	// the PDU is split over multiple responses and the responses
+	// themselves are arriving slowly due to the network (e.g. erroneous
+	// scheduling, packet inspection, overloaded firewalls, etc.pp.).
+	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	for {
+		if err := ctx.Err(); err != nil {
+			return totalBytes, err
+		}
+
 		m, err := reader.Read(packet.Data[totalBytes-n:])
 		totalBytes += int64(m)
 
+		if m > 0 {
+			timeoutCtx, cancel = context.WithTimeout(ctx, timeout)
+			defer cancel()
+		}
+
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				if m == 0 {
+				// Check if the timeout was exceeded _and_ if the last
+				// read returned 0 bytes. So the timeout may be
+				// exceeded but isn't triggered until the packet also
+				// can't read any more data.
+				if err := timeoutCtx.Err(); err != nil && m == 0 {
 					return totalBytes, ErrEOFAfterZeroRead
 				}
 
