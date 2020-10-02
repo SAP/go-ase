@@ -215,8 +215,7 @@ func (tdsChan *Channel) Logout() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	err := tdsChan.SendPackage(ctx, &LogoutPackage{})
-	if err != nil {
+	if err := tdsChan.SendPackage(ctx, &LogoutPackage{}); err != nil {
 		return fmt.Errorf("error sending logout package: %w", err)
 	}
 
