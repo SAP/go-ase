@@ -311,9 +311,9 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 
 	select {
 	case <-ctx.Done():
-		return nil, context.Canceled
+		return nil, ctx.Err()
 	case <-tdsChan.tdsConn.ctx.Done():
-		return nil, context.Canceled
+		return nil, tdsChan.tdsConn.ctx.Err()
 	case err := <-tdsChan.tdsConn.errCh:
 		return nil, fmt.Errorf("error in TDS connection: %w", err)
 	case err := <-tdsChan.errCh:
@@ -481,9 +481,9 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 	for i, packet := range tdsChan.queueTx.queue {
 		select {
 		case <-ctx.Done():
-			return context.Canceled
+			return ctx.Err()
 		case <-tdsChan.tdsConn.ctx.Done():
-			return context.Canceled
+			return tdsChan.tdsConn.ctx.Err()
 		default:
 			// Only the last packet should not be full.
 			if i == tdsChan.queueTx.indexPacket && tdsChan.queueTx.indexData < tdsChan.tdsConn.PacketBodySize() {
