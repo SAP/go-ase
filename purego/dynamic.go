@@ -12,10 +12,9 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
-	"sync/atomic"
 
 	"github.com/SAP/go-ase/libase"
+	"github.com/SAP/go-ase/libase/namepool"
 	"github.com/SAP/go-ase/libase/tds"
 )
 
@@ -25,19 +24,13 @@ var (
 	_ driver.StmtQueryContext  = (*Stmt)(nil)
 	_ driver.NamedValueChecker = (*Stmt)(nil)
 
-	stmtIdCounter uint64 = 0
-	stmtIdPool           = &sync.Pool{
-		New: func() interface{} {
-			newId := atomic.AddUint64(&stmtIdCounter, 1)
-			return &newId
-		},
-	}
+	stmtIdPool = namepool.Pool("stmt%d")
 )
 
 type Stmt struct {
 	conn *Conn
 
-	stmtId *uint64
+	stmtId *namepool.Name
 	pkg    *tds.DynamicPackage
 
 	paramFmt *tds.ParamFmtPackage
@@ -65,8 +58,8 @@ func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool
 		hostname = strings.Replace(hostname, "-", "_", -1)
 
 		// TODO different pools for procs and prepares
-		stmt.stmtId = stmtIdPool.Get().(*uint64)
-		name = fmt.Sprintf("goase_%s_%d_%d", hostname, os.Getpid(), *stmt.stmtId)
+		stmt.stmtId = stmtIdPool.Acquire()
+		name = stmt.stmtId.Name()
 	}
 
 	stmt.pkg = &tds.DynamicPackage{
@@ -152,7 +145,7 @@ func (stmt *Stmt) Close() error {
 
 func (stmt *Stmt) close(ctx context.Context) error {
 	if stmt.stmtId != nil {
-		defer stmtIdPool.Put(stmt.stmtId)
+		defer stmtIdPool.Release(stmt.stmtId)
 	}
 
 	// communicate deallocation with server
