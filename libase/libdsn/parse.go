@@ -88,11 +88,10 @@ func parseDsnUri(dsn string) (*Info, error) {
 		return nil, fmt.Errorf("Failed to parse DSN using url.Parse: %v", err)
 	}
 
-	dsni := &Info{
-		Host:         url.Hostname(),
-		Port:         url.Port(),
-		ConnectProps: url.Query(),
-	}
+	dsni := NewInfo()
+	dsni.Host = url.Hostname()
+	dsni.Port = url.Port()
+	dsni.ConnectProps = url.Query()
 
 	// Assume that `astring` in the DSN ase://astring@hostname/ is the
 	// userstorekey. This is parsed as the username by url.Parse.
@@ -137,9 +136,7 @@ func parseDsnUri(dsn string) (*Info, error) {
 // parseDsnSimple parses a DSN in the simple form and returns the
 // resulting Info without checking for missing values.
 func parseDsnSimple(dsn string) (*Info, error) {
-	dsni := &Info{
-		ConnectProps: url.Values{},
-	}
+	dsni := NewInfo()
 
 	// Valid quotation marks to detect values with whitespaces
 	quotations := []byte{'\'', '"'}

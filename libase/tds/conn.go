@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/SAP/go-ase/libase/libdsn"
 	"github.com/hashicorp/go-multierror"
@@ -206,32 +207,31 @@ func (tds *Conn) getValidChannelId() (int, error) {
 // them to the corresponding Channel.
 func (tds *Conn) ReadFrom() {
 	for {
-		select {
-		case <-tds.ctx.Done():
+		if err := tds.ctx.Err(); err != nil {
 			return
-		default:
-			packet := &Packet{}
-			_, err := packet.ReadFrom(tds.conn)
-			if err != nil && !errors.Is(err, io.EOF) {
-				tds.errCh <- fmt.Errorf("error reading packet: %w", err)
-				continue
-			}
+		}
 
-			tds.tdsChannelsLock.RLock()
-			tdsChan, ok := tds.tdsChannels[int(packet.Header.Channel)]
-			tds.tdsChannelsLock.RUnlock()
-			if !ok {
-				tds.errCh <- fmt.Errorf("received packet for invalid channel %d", packet.Header.Channel)
-				continue
-			}
+		packet := &Packet{}
+		_, err := packet.ReadFrom(tds.ctx, tds.conn, time.Duration(tds.dsn.PacketReadTimeout)*time.Second)
+		if err != nil && !errors.Is(err, io.EOF) {
+			tds.errCh <- fmt.Errorf("error reading packet: %w", err)
+			continue
+		}
 
-			// Errors are recorded in the channels' error channel.
-			tdsChan.WritePacket(packet)
+		tds.tdsChannelsLock.RLock()
+		tdsChan, ok := tds.tdsChannels[int(packet.Header.Channel)]
+		tds.tdsChannelsLock.RUnlock()
+		if !ok {
+			tds.errCh <- fmt.Errorf("received packet for invalid channel %d", packet.Header.Channel)
+			continue
+		}
 
-			// err from packet.ReadFrom
-			if errors.Is(err, io.EOF) {
-				return
-			}
+		// Errors are recorded in the channels' error channel.
+		tdsChan.WritePacket(packet)
+
+		// err from packet.ReadFrom
+		if errors.Is(err, io.EOF) {
+			return
 		}
 	}
 }

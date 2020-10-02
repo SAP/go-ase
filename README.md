@@ -325,6 +325,18 @@ limitations this will be cut off after 30 characters.
 
 Defaults to the hostname of the machine, acquired using `os.Hostname`.
 
+##### packet-read-timeout
+
+Recognized values: integer
+
+The timeout in seconds when a packet is read. The timeout is reset every
+time a packet successfully reads data from the connection.
+
+That means the timeout only triggers if no data was read for longer than
+`packet-read-timeout` seconds.
+
+Default to 50.
+
 ##### tls
 
 Recognized values: bool

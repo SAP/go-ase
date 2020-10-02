@@ -29,6 +29,8 @@ type Info struct {
 
 	ClientHostname string `json:"client-hostname"`
 
+	PacketReadTimeout int `json:"packet-read-timeout"`
+
 	TLSEnable         bool   `json:"tls"`
 	TLSHostname       string `json:"tls-hostname" multiref:"ssl"`
 	TLSSkipValidation bool   `json:"tls-skip-validation"`
@@ -40,6 +42,7 @@ type Info struct {
 // NewInfo returns an initialized Info.
 func NewInfo() *Info {
 	dsn := &Info{}
+	dsn.PacketReadTimeout = 50
 	dsn.ConnectProps = url.Values{}
 	return dsn
 }
