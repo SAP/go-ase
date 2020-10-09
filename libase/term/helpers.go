@@ -130,6 +130,10 @@ func processRows(rows driver.Rows) error {
 		fmt.Printf("\n")
 	}
 
+	if nextResultSetter, ok := rows.(driver.RowsNextResultSet); ok && nextResultSetter.HasNextResultSet() {
+		return processRows(rows)
+	}
+
 	return nil
 }
 
