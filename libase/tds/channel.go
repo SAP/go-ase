@@ -331,17 +331,20 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 // If processPkg returns true no further packages will be consumed, so
 // the communication handling can be passed to another function.
 //
-// If processPkg returns an error all packages in the payload will be
-// consumed and an error containing all EEDPackages in the payload will
-// be returned.
+// If processPkg returns an error that is not an unwrapped io.EOF all
+// packages in the payload will be consumed and an error containing all
+// EEDPackages in the payload will be returned.
+// io.EOF is handled differently to allow to handle multiple result
+// sets in rows-like structs.
 //
 // If processPkg is nil all packages in the current payload are consumed
 // and no package and an io.EOF error is returned.
 // The io.EOF is wrapped with an EEDError with all EEDPackages in the
 // payload if the payload contained any EEDPackages.
 //
-// To just consume all packages a consumer can return an io.EOF in
-// processPkg and check if the error is not of io.EOF:
+// To just consume all packages a consumer can return any error aside
+// from an unwrapped io.EOF in processPkg and check if the error is not
+// of this error:
 //
 // _, err := ...NextPackageUntil(ctx, wait, func(pkg tds.Package) (bool, error) {
 //     switch pkg.(type) {
@@ -349,10 +352,10 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 //         // handle communication
 //     case ...
 //         // handle final communication
-//         return true, io.EOF
+//         return true, DefinedError
 //     }
 // }
-// if err != nil && !errors.Is(err, io.EOF) {
+// if err != nil && !errors.Is(err, DefinedError) {
 //     // error handling
 // }
 func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, processPkg func(Package) (bool, error)) (Package, error) {
@@ -382,6 +385,15 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 
 		ok, err := processPkg(pkg)
 		if err != nil {
+			// Special handling multiple result sets. To handle multiple
+			// result sets the loop of the consumer of calls to .Next of
+			// a rows-like struct must be interrupted.
+			// This can only be done by returning an unwrapped io.EOF
+			// and setting a new Row/ParamFmt.
+			if err == io.EOF {
+				return pkg, io.EOF
+			}
+
 			// Consume all packages until DonePackage{TDS_DONE_FINAL} if
 			// the current package wasn't a DonePackage{TDS_DONE_FINAL}
 			// to prevent any leftovers that may impact later
