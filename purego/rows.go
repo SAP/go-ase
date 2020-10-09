@@ -24,6 +24,8 @@ var (
 type Rows struct {
 	Conn   *Conn
 	RowFmt *tds.RowFmtPackage
+
+	hasNextResultSet bool
 }
 
 func (rows Rows) Columns() []string {
@@ -62,10 +64,9 @@ func (rows *Rows) Next(dst []driver.Value) error {
 				}
 				return true, nil
 			case *tds.RowFmtPackage:
-				// TODO: should next return io.EOF if the result set is
-				// finished?
 				rows.RowFmt = typed
-				return false, nil
+				rows.hasNextResultSet = true
+				return false, io.EOF
 			case *tds.OrderByPackage:
 				return false, nil
 			case *tds.DonePackage:
@@ -99,8 +100,11 @@ func (rows *Rows) Next(dst []driver.Value) error {
 }
 
 func (rows *Rows) HasNextResultSet() bool {
-	// TODO this doesn't seem good.
-	return rows.NextResultSet() != nil
+	if !rows.hasNextResultSet {
+		return false
+	}
+	rows.hasNextResultSet = false
+	return true
 }
 
 func (rows *Rows) NextResultSet() error {
@@ -111,11 +115,12 @@ func (rows *Rows) NextResultSet() error {
 			switch typed := pkg.(type) {
 			case *tds.RowFmtPackage:
 				rows.RowFmt = typed
+				rows.hasNextResultSet = true
 				return false, nil
 			case *tds.RowPackage, *tds.OrderByPackage:
 				return true, nil
 			case *tds.DonePackage:
-				return true, io.EOF
+				return true, fmt.Errorf("go-ase: no next result set: %w", io.EOF)
 			default:
 				return false, fmt.Errorf("unhandled package type %T: %v", pkg, pkg)
 			}
