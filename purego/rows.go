@@ -29,6 +29,10 @@ type Rows struct {
 }
 
 func (rows Rows) Columns() []string {
+	if rows.RowFmt == nil {
+		return []string{}
+	}
+
 	// TODO ignore hidden columns
 	response := make([]string, len(rows.RowFmt.Fmts))
 
@@ -55,6 +59,10 @@ func (rows *Rows) Close() error {
 }
 
 func (rows *Rows) Next(dst []driver.Value) error {
+	if rows.RowFmt == nil && len(dst) == 0 {
+		return io.EOF
+	}
+
 	_, err := rows.Conn.Channel.NextPackageUntil(context.Background(), true,
 		func(pkg tds.Package) (bool, error) {
 			switch typed := pkg.(type) {
