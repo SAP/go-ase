@@ -79,6 +79,11 @@ func processRows(rows driver.Rows) error {
 	}
 
 	colNames := rows.Columns()
+	// Check if rows is empty
+	if len(colNames) == 0 {
+		return nil
+	}
+
 	colLengths := map[int]int{}
 
 	fmt.Printf("|")
