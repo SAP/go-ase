@@ -98,9 +98,5 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 		return nil, nil, err
 	}
 
-	if rows.RowFmt == nil {
-		return nil, result, nil
-	}
-
 	return rows, result, nil
 }
