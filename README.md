@@ -6,12 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # go-ase
 
-
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/SAP/go-ase)](https://pkg.go.dev/github.com/SAP/go-ase)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SAP/go-ase)](https://goreportcard.com/report/github.com/SAP/go-ase)
 [![REUSE
 status](https://api.reuse.software/badge/github.com/SAP/go-ase)](https://api.reuse.software/info/github.com/SAP/go-ase)
-
 
 ## Description
 
@@ -23,41 +21,26 @@ SAP ASE is the shorthand for [SAP Adaptive Server Enterprise][sap-ase],
 a relational model database server originally known as Sybase SQL
 Server.
 
-`go-ase` contains two implementations in [cgo] in the directory
-`cgo` and in pure go in the directory `purego`.
-
-[cgo][cgo] enables Go to call C code and to link against shared objects.
+A cgo implementation can be found [here][cgo-ase].
 
 ## Requirements
 
-### cgo
+The go driver has no special requirements other than Go standard
+library and the third part modules listed in `go.mod`, e.g.
+`github.com/SAP/go-dblib`.
 
-The `cgo` driver requires the shared objects from either the ASE itself
-or Client-Library to compile.
+## Download
 
-The required shared objects from ASE can be found in the installation
-path of the ASE under `OCS-16_0/lib`, where `16_0` is the version of
-your ASE installation.
+The packages in this repo can be `go get` and imported as usual, e.g.:
 
-After [installing the Client-Library SDK][cl-sdk-install-guide] the
-shared objects can be found in the folder `lib` at the chosen
-installation path.
-
-The headers are provided at `cgo/includes`.
-
-### pure go
-
-The pure go driver has no special requirements other than Go standard
-library and the third part modules listed in `go.mod`.
-
-## Download and Usage
-
-The packages in this repo can be `go get` and imported as usual.
+```sh
+go get github.com/SAP/go-ase
+```
 
 For specifics on how to use `database/sql` please see the
 [documentation][pkg-database-sql].
 
-### cgo Usage
+## Usage
 
 Example code:
 
@@ -66,7 +49,7 @@ package main
 
 import (
     "database/sql"
-    _ "github.com/SAP/go-ase/cgo"
+    _ "github.com/SAP/go-ase"
 )
 
 func main() {
@@ -85,55 +68,13 @@ func main() {
 }
 ```
 
-`/path/to/OCS` is the path to your Client-Library SDK installation.
-`/lib` is the folder inside of the SDK installation containing the
-shared objects required for the cgo driver.
-
-Compilation:
-
-```sh
-CGO_LDFLAGS="-L/path/to/OCS/lib" go build -o cmd ./
-```
-
-Execution:
-
-```sh
-LD_LIBRARY_PATH="/path/to/OCS/lib" ./cmd
-```
-
-### go Usage
-
-```go
-package main
-
-import (
-    "database/sql"
-    _ "github.com/SAP/go-ase/purego"
-)
-
-func main() {
-    db, err := sql.Open("ase", "ase://user:pass@host:port/")
-    if err != nil {
-        log.Printf("Failed to open database: %v", err)
-        return
-    }
-    defer db.Close()
-
-    err = db.Ping()
-    if err != nil {
-        log.Printf("Failed to ping database: %v", err)
-        return
-    }
-}
-```
-
-Compilation:
+### Compilation
 
 ```sh
 go build -o cmd ./
 ```
 
-Execution:
+### Execution
 
 ```sh
 ./cmd
@@ -141,18 +82,12 @@ Execution:
 
 ### Examples
 
-More examples can be found in the folder `examples/$type`, where `$type`
-is either `purego` or `cgo`.
-
-### Unit tests
-
-Unit tests for the packages are included in their respective directories
-and can be run using `go test`.
+More examples can be found in the folder `examples`.
 
 ### Integration tests
 
-Integration tests are available in `tests/` and can be run using `go test test/${type}test`,
-where `$type` is either `purego` or `cgo`.
+Integration tests are available and can be run using `go test --tags=integration` and
+`go test ./examples/... --tags=integration`.
 
 These require the following environment variables to be set:
 
@@ -160,8 +95,6 @@ These require the following environment variables to be set:
 - `ASE_PORT`
 - `ASE_USER`
 - `ASE_PASS`
-
-The cgo tests additionally require the variable `ASE_USERSTOREKEY` to be set.
 
 The integration tests will create new databases for each connection type to run tests
 against. After the tests are finished the created databases will be removed.
@@ -172,8 +105,7 @@ The configuration is handled through either a data source name (DSN) in
 one of two forms or through a configuration struct passed to a connector.
 
 All of these support additional properties which can tweak the
-connection, configuration options in Client-Library or the drivers
-themselves.
+connection or the drivers themselves.
 
 ### Data Source Names
 
@@ -189,7 +121,7 @@ The simple DSN is a key/value string: `username=user password=pass host=hostname
 
 Values with spaces must be quoted using single or double quotes.
 
-Each member of `libase.libdsn.DsnInfo` can be set using any of their
+Each member of `dblib.dsn.DsnInfo` can be set using any of their
 possible json tags. E.g. `.Host` will receive the values from the keys
 `host` and `hostname`.
 
@@ -204,9 +136,9 @@ will only honour the last given value for a property.
 
 #### Connector
 
-As an alternative to the string DSNs `cgo.NewConnector` and
-`purego.NewConnector` accept a `libdsn.DsnInfo` directly and return
-a `driver.Connector`, which can be passed to `sql.OpenDB`:
+As an alternative to the string DSNs `ase.NewConnector` accept a
+`dsn.DsnInfo` directly and return a `driver.Connector`, which can 
+be passed to `sql.OpenDB`:
 
 ```go
 package main
@@ -214,13 +146,12 @@ package main
 import (
     "database/sql"
 
-    "github.com/SAP/go-ase/libase/libdsn"
-    // "github.com/SAP/go-ase/purego" for the pure go implementation
-    ase "github.com/SAP/go-ase/cgo"
+    "github.com/SAP/go-dblib/dsn"
+    "github.com/SAP/go-ase"
 )
 
 func main() {
-    d := libdsn.NewDsnInfo()
+    d := dsn.NewDsnInfo()
     d.Host = "hostname"
     d.Port = "4901"
     d.Username = "user"
@@ -250,32 +181,6 @@ Additional properties can be set by calling `d.ConnectProps.Add("prop1",
 "value1")` or `d.ConnectProps.Set("prop2", "value2")`.
 
 ### Properties
-
-#### cgo
-
-##### cgo-callback-client
-
-Recognized values: `yes` or any string
-
-When set to `yes` all client messages will be printed to stderr.
-
-Please note that this is a debug property - for logging you should
-register your own message handler with the `GlobalClientMessageBroker`.
-
-When set to any other string the callback will not bet set.
-
-##### cgo-callback-server
-
-Recognized values: `yes` or any string
-
-When set to `yes` all server messages will be printed to stderr.
-
-Please note that this is a debug property - for logging you should
-register your own message handler with the `GlobalServerMessageBroker`.
-
-When set to any other string the callback will not be set.
-
-#### pure go
 
 ##### appname
 
@@ -386,20 +291,19 @@ Defaults to empty string.
 
 ## Limitations
 
-### Pure go beta
+### Beta
 
-The pure go implementation is currently in beta and under active
-development. As such most features of the TDS protocol and ASE are not
-supported.
+The go implementation is currently in beta and under active development.
+As such most features of the TDS protocol and ASE are not supported.
 
 ### Prepared statements
 
 Regarding the limitations of prepared statements/dynamic SQL please see
 [the Client-Library documentation](https://help.sap.com/viewer/71b47f4a8269411da6d15ed25f5d39b3/LATEST/en-US/bfc531e46db61014bf8f040071e613d7.html).
 
-The Client-Library documentation applies to both the cgo and the pure go
-implementation as these restrictions are imposed by the implementation
-of dynamic SQL on the server side.
+The Client-Library documentation applies to the go implementation as
+these restrictions are imposed by the implementation of dynamic SQL
+on the server side.
 
 ### Unsupported ASE data types
 
@@ -407,16 +311,6 @@ Currently the following data types are not supported:
 
 - Timestamp
 - Univarchar
-
-### Null types in cgo
-
-Due to the limitations of the Client-Library it is not possible to
-support null types.
-
-Additionally columns of the following data types must be nullable:
-
-- Image
-- Binary
 
 ## Known Issues
 
@@ -436,10 +330,9 @@ For details on how to contribute please see the
 ## License
 
 Copyright (c) 2019-2020 SAP SE or an SAP affiliate company. All rights reserved.
-This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE)
+This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE).
 
-[cgo]: https://golang.org/cmd/cgo
-[cl-sdk-install-guide]: https://help.sap.com/viewer/882ef48c7e9c4d6e845d98f34378db40/16.0.3.2/en-US
+[cgo-ase]: https://github.com/SAP/cgo-ase
 [go]: https://golang.org/
 [issues]: https://github.com/SAP/go-ase/issues
 [pkg-database-sql]: https://golang.org/pkg/database/sql

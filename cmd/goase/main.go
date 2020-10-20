@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SAP/go-ase/libase/tds"
-	"github.com/SAP/go-ase/libase/term"
-	ase "github.com/SAP/go-ase/purego"
+	"github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/tds"
+	"github.com/SAP/go-dblib/term"
 )
 
 func main() {
