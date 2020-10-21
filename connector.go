@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
 	"database/sql/driver"
 	"fmt"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib/dsn"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (
@@ -18,16 +18,16 @@ var (
 )
 
 type Connector struct {
-	DSN            *libdsn.Info
+	DSN            *dsn.Info
 	EnvChangeHooks []tds.EnvChangeHook
 	EEDHooks       []tds.EEDHook
 }
 
-func NewConnector(dsn *libdsn.Info) (driver.Connector, error) {
+func NewConnector(dsn *dsn.Info) (driver.Connector, error) {
 	return NewConnectorWithHooks(dsn, nil, nil)
 }
 
-func NewConnectorWithHooks(dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
+func NewConnectorWithHooks(dsn *dsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
 	connector := &Connector{
 		DSN: dsn,
 	}

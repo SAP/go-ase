@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SAP/go-ase/libase"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib"
+	"github.com/SAP/go-dblib/tds"
 )
 
 // DirectExec is a wrapper for GenericExec and meant to be used when
@@ -28,7 +28,7 @@ func (c *Conn) DirectExec(ctx context.Context, query string, args ...interface{}
 		for i, arg := range args {
 			values[i] = driver.Value(arg)
 		}
-		namedArgs = libase.ValuesToNamedValues(values)
+		namedArgs = dblib.ValuesToNamedValues(values)
 	}
 	return c.GenericExec(ctx, query, namedArgs)
 }

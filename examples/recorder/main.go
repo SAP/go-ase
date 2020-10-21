@@ -10,9 +10,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	"github.com/SAP/go-ase/libase/tds"
-	ase "github.com/SAP/go-ase/purego"
+	"github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
+	"github.com/SAP/go-dblib/tds"
 )
 
 // This example shows how tds.EEDHooks can be utilized to access
@@ -70,7 +70,7 @@ func DoMain() error {
 		return fmt.Errorf("error adding EEDHook to driver: %w", err)
 	}
 
-	dsn, err := libdsn.NewInfoFromEnv("")
+	dsn, err := dsn.NewInfoFromEnv("")
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}

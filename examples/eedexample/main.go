@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	"github.com/SAP/go-ase/libase/tds"
-	_ "github.com/SAP/go-ase/purego"
+	_ "github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
+	"github.com/SAP/go-dblib/tds"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 }
 
 func DoMain() error {
-	dsn, err := libdsn.NewInfoFromEnv("")
+	dsn, err := dsn.NewInfoFromEnv("")
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}

@@ -13,20 +13,19 @@ import (
 	"math"
 	"os"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	_ "github.com/SAP/go-ase/purego"
+	_ "github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
 )
 
 func main() {
-	err := DoMain()
-	if err != nil {
+	if err := DoMain(); err != nil {
 		log.Printf("Failed: %v", err)
 		os.Exit(1)
 	}
 }
 
 func DoMain() error {
-	dsn, err := libdsn.NewInfoFromEnv("")
+	dsn, err := dsn.NewInfoFromEnv("")
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}

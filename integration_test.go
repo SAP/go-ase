@@ -4,14 +4,14 @@
 
 // +build integration
 
-package purego
+package ase
 
 import (
 	"fmt"
 	"log"
 	"testing"
 
-	"github.com/SAP/go-ase/libase/integration"
+	"github.com/SAP/go-dblib/integration"
 )
 
 func TestMain(m *testing.M) {

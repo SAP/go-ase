@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/SAP/go-ase/libase"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (
@@ -58,12 +58,12 @@ func (tx Transaction) begin(ctx context.Context, opts driver.TxOptions) error {
 		return errors.New("go-ase: ASE does not support read-only transactions")
 	}
 
-	isolationLvl, err := libase.IsolationLevelFromGo(sql.IsolationLevel(opts.Isolation))
+	isolationLvl, err := dblib.ASEIsolationLevelFromGo(sql.IsolationLevel(opts.Isolation))
 	if err != nil {
 		return fmt.Errorf("go-ase: error mapping sql.IsolationLevel to ASE isolation level: %w", err)
 	}
 
-	if isolationLvl == libase.LevelInvalid {
+	if isolationLvl == dblib.ASELevelInvalid {
 		return fmt.Errorf("go-ase: sql.IsolationLevel %s has no equivalent ASE isolation level", sql.IsolationLevel(opts.Isolation))
 	}
 

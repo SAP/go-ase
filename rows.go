@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (

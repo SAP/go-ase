@@ -20,8 +20,8 @@ import (
 	"io"
 	"log"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	_ "github.com/SAP/go-ase/purego"
+	_ "github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
 )
 
 type GenericExecer interface {
@@ -35,7 +35,7 @@ func main() {
 }
 
 func DoMain() error {
-	dsn, err := libdsn.NewInfoFromEnv("")
+	dsn, err := dsn.NewInfoFromEnv("")
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}

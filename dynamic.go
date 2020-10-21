@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -10,12 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"strings"
 
-	"github.com/SAP/go-ase/libase"
-	"github.com/SAP/go-ase/libase/namepool"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib"
+	"github.com/SAP/go-dblib/namepool"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (
@@ -50,13 +48,6 @@ func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool
 	stmt := &Stmt{conn: c}
 
 	if name == "" {
-		hostname, err := os.Hostname()
-		if err != nil {
-			return nil, fmt.Errorf("go-ase: no name for dynamic SQL passed and hostname cannot be retrieved: %w", err)
-		}
-
-		hostname = strings.Replace(hostname, "-", "_", -1)
-
 		// TODO different pools for procs and prepares
 		stmt.stmtId = stmtIdPool.Acquire()
 		name = stmt.stmtId.Name()
@@ -74,8 +65,7 @@ func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool
 	// Reset statement to default before proceeding
 	stmt.Reset()
 
-	err := stmt.allocateOnServer(ctx)
-	if err != nil {
+	if err := stmt.allocateOnServer(ctx); err != nil {
 		return nil, fmt.Errorf("go-ase: error allocating dynamic statement '%s': %w", query, err)
 	}
 
@@ -91,12 +81,11 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 	}
 	stmt.Reset()
 
-	err := stmt.recvDynAck(ctx)
-	if err != nil {
+	if err := stmt.recvDynAck(ctx); err != nil {
 		return err
 	}
 
-	_, err = stmt.conn.Channel.NextPackageUntil(ctx, true,
+	_, err := stmt.conn.Channel.NextPackageUntil(ctx, true,
 		func(pkg tds.Package) (bool, error) {
 			switch typed := pkg.(type) {
 			case *tds.ParamFmtPackage:
@@ -150,19 +139,16 @@ func (stmt *Stmt) close(ctx context.Context) error {
 	// communicate deallocation with server
 	// TODO option to not deallocate procs
 	stmt.pkg.Type = tds.TDS_DYN_DEALLOC
-	err := stmt.conn.Channel.SendPackage(ctx, stmt.pkg)
-	if err != nil {
+	if err := stmt.conn.Channel.SendPackage(ctx, stmt.pkg); err != nil {
 		return fmt.Errorf("error sending dealloc package: %w", err)
 	}
 	stmt.Reset()
 
-	err = stmt.recvDynAck(ctx)
-	if err != nil {
+	if err := stmt.recvDynAck(ctx); err != nil {
 		return err
 	}
 
-	err = stmt.recvDoneFinal(ctx)
-	if err != nil {
+	if err := stmt.recvDoneFinal(ctx); err != nil {
 		return err
 	}
 
@@ -178,7 +164,7 @@ func (stmt Stmt) NumInput() int {
 }
 
 func (stmt Stmt) Exec(args []driver.Value) (driver.Result, error) {
-	return stmt.ExecContext(context.Background(), libase.ValuesToNamedValues(args))
+	return stmt.ExecContext(context.Background(), dblib.ValuesToNamedValues(args))
 }
 
 func (stmt Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
@@ -190,7 +176,7 @@ func (stmt Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (dri
 }
 
 func (stmt Stmt) Query(args []driver.Value) (driver.Rows, error) {
-	return stmt.QueryContext(context.Background(), libase.ValuesToNamedValues(args))
+	return stmt.QueryContext(context.Background(), dblib.ValuesToNamedValues(args))
 }
 
 func (stmt Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
@@ -205,7 +191,7 @@ func (stmt Stmt) DirectExec(ctx context.Context, args ...interface{}) (driver.Ro
 		for i, arg := range args {
 			values[i] = driver.Value(arg)
 		}
-		namedArgs = libase.ValuesToNamedValues(values)
+		namedArgs = dblib.ValuesToNamedValues(values)
 	}
 
 	for i := range args {
@@ -229,8 +215,7 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	stmt.Reset()
 
 	if stmt.paramFmt != nil {
-		err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt)
-		if err != nil {
+		if err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt); err != nil {
 			return nil, nil, fmt.Errorf("error queueing dynamic statement parameter format: %w", err)
 		}
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib/dsn"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (
@@ -25,7 +25,7 @@ var (
 type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
-	DSN     *libdsn.Info
+	DSN     *dsn.Info
 
 	// TODO I don't particularly like locking statements like this
 	stmts map[int]*Stmt
@@ -33,11 +33,11 @@ type Conn struct {
 	stmtLock *sync.RWMutex
 }
 
-func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *dsn.Info) (*Conn, error) {
 	return NewConnWithHooks(ctx, dsn, nil, nil)
 }
 
-func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
+func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
 		stmts:    map[int]*Stmt{},
 		stmtLock: &sync.RWMutex{},

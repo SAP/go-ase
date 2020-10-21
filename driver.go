@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib/dsn"
+	"github.com/SAP/go-dblib/tds"
 )
 
 var (
@@ -41,7 +41,7 @@ func (d Driver) Open(name string) (driver.Conn, error) {
 }
 
 func (d Driver) OpenConnector(name string) (driver.Connector, error) {
-	dsnInfo, err := libdsn.ParseDSN(name)
+	dsnInfo, err := dsn.ParseDSN(name)
 	if err != nil {
 		return nil, fmt.Errorf("go-ase: error parsing DSN: %w", err)
 	}

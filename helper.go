@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package purego
+package ase
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/SAP/go-ase/libase/tds"
+	"github.com/SAP/go-dblib/tds"
 )
 
 func handleDonePackage(pkg *tds.DonePackage) (bool, error) {

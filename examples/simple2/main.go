@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/SAP/go-ase/libase/libdsn"
-	ase "github.com/SAP/go-ase/purego"
+	"github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 }
 
 func DoMain() error {
-	dsn, err := libdsn.NewInfoFromEnv("")
+	dsn, err := dsn.NewInfoFromEnv("")
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
@@ -34,8 +34,7 @@ func DoMain() error {
 
 	db := sql.OpenDB(connector)
 	defer func() {
-		err := db.Close()
-		if err != nil {
+		if err := db.Close(); err != nil {
 			log.Printf("Closing database failed: %v", err)
 		}
 	}()
