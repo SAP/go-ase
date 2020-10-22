@@ -15,4 +15,4 @@ Link any related issues here.
 **Tests**
 
 - [ ] make lint
-- [ ] make integration-go
+- [ ] make integration

@@ -16,6 +16,7 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
+// Interface satisfaction checks.
 var (
 	_ driver.Stmt              = (*Stmt)(nil)
 	_ driver.StmtExecContext   = (*Stmt)(nil)
@@ -25,6 +26,7 @@ var (
 	stmtIdPool = namepool.Pool("stmt%d")
 )
 
+// Stmt implements the driver.Stmt interface.
 type Stmt struct {
 	conn *Conn
 
@@ -35,15 +37,18 @@ type Stmt struct {
 	rowFmt   *tds.RowFmtPackage
 }
 
+// Prepare implements the driver.Conn interface.
 func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 	return c.PrepareContext(context.Background(), query)
 }
 
+// PrepareContext implements the driver.ConnPrepareContext interface.
 func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	// TODO option for create_proc
 	return c.NewStmt(ctx, "", query, true)
 }
 
+// NewStmt creates a new statement.
 func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool) (*Stmt, error) {
 	stmt := &Stmt{conn: c}
 
@@ -122,11 +127,13 @@ func (stmt Stmt) fieldFmts() ([]tds.FieldFmt, error) {
 	return nil, fmt.Errorf("bot paramFmt and rowFmt are unset")
 }
 
+// Reset resets a statement.
 func (stmt *Stmt) Reset() {
 	stmt.pkg.Type = tds.TDS_DYN_INVALID
 	stmt.pkg.Status = tds.TDS_DYNAMIC_UNUSED
 }
 
+// Close implements the driver.Stmt interface.
 func (stmt *Stmt) Close() error {
 	return stmt.close(context.Background())
 }
@@ -155,6 +162,7 @@ func (stmt *Stmt) close(ctx context.Context) error {
 	return nil
 }
 
+// NumInput implements the driver.Stmt interface.
 func (stmt Stmt) NumInput() int {
 	fieldFmts, err := stmt.fieldFmts()
 	if err != nil {
@@ -163,10 +171,12 @@ func (stmt Stmt) NumInput() int {
 	return len(fieldFmts)
 }
 
+// Exec implements the driver.Stmt interface.
 func (stmt Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	return stmt.ExecContext(context.Background(), dblib.ValuesToNamedValues(args))
 }
 
+// ExecContext implements the driver.StmtExecContext interface.
 func (stmt Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	rows, result, err := stmt.GenericExec(ctx, args)
 	if rows != nil {
@@ -175,15 +185,23 @@ func (stmt Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (dri
 	return result, err
 }
 
+// Query implements the driver.Stmt interface.
 func (stmt Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	return stmt.QueryContext(context.Background(), dblib.ValuesToNamedValues(args))
 }
 
+// QueryContext implements the driver.StmtQueryContext interface.
 func (stmt Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	rows, _, err := stmt.GenericExec(ctx, args)
 	return rows, err
 }
 
+// DirectExec is a wrapper for GenericExec and meant to be used when
+// directly accessing this library, rather than using database/sql.
+//
+// The primary advantage are the variadic args, which can be normal
+// values and are automatically transformed to driver.NamedValues for
+// GenericExec.
 func (stmt Stmt) DirectExec(ctx context.Context, args ...interface{}) (driver.Rows, driver.Result, error) {
 	var namedArgs []driver.NamedValue
 	if len(args) > 0 {
@@ -203,6 +221,8 @@ func (stmt Stmt) DirectExec(ctx context.Context, args ...interface{}) (driver.Ro
 	return stmt.GenericExec(ctx, namedArgs)
 }
 
+// GenericExec is the central method through which SQL statements are
+// sent to ASE.
 func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (driver.Rows, driver.Result, error) {
 	// Prepare and send payload
 	stmt.pkg.Type = tds.TDS_DYN_EXEC
@@ -252,6 +272,7 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 	return stmt.conn.genericResults(ctx)
 }
 
+// CheckNamedValue implements the driver.NamedValueChecker interface.
 func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
 	fieldFmts, err := stmt.fieldFmts()
 	if err != nil {

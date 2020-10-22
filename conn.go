@@ -14,6 +14,7 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
+// Interface satisfaction checks
 var (
 	_ driver.Conn               = (*Conn)(nil)
 	_ driver.ConnPrepareContext = (*Conn)(nil)
@@ -22,6 +23,7 @@ var (
 	_ driver.Pinger             = (*Conn)(nil)
 )
 
+// Conn implements the driver.Conn interface.
 type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
@@ -33,10 +35,12 @@ type Conn struct {
 	stmtLock *sync.RWMutex
 }
 
+// NewConn returns a connection with the passed configuration.
 func NewConn(ctx context.Context, dsn *dsn.Info) (*Conn, error) {
 	return NewConnWithHooks(ctx, dsn, nil, nil)
 }
 
+// NewConnWithHooks returns a connection with the passed configuration.
 func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
 		stmts:    map[int]*Stmt{},
@@ -106,6 +110,7 @@ func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.E
 	return conn, nil
 }
 
+// Close implements the driver.Conn interface.
 func (c *Conn) Close() error {
 	if err := c.Conn.Close(); err != nil {
 		return fmt.Errorf("go-ase: error closing TDS connection: %w", err)
@@ -114,6 +119,7 @@ func (c *Conn) Close() error {
 	return nil
 }
 
+// ExecContext implements the driver.ExecerContext.
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	rows, result, err := c.GenericExec(ctx, query, args)
 
@@ -124,11 +130,13 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 	return result, err
 }
 
+// QueryContext implements the driver.QueryerContext.
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	rows, _, err := c.GenericExec(ctx, query, args)
 	return rows, err
 }
 
+// Ping implements the driver.Pinger interface.
 func (c Conn) Ping(ctx context.Context) error {
 	// TODO implement ErrBadConn check
 	rows, _, err := c.language(ctx, "select 'ping'")

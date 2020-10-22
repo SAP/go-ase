@@ -14,23 +14,27 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
+// Interface satisfaction checks.
 var (
 	_   driver.Driver        = (*Driver)(nil)
 	_   driver.DriverContext = (*Driver)(nil)
 	drv                      = &Driver{}
 )
 
+// DriverName is the driver name to use with sql.Open for ase databases.
 const DriverName = "ase"
 
 func init() {
 	sql.Register(DriverName, drv)
 }
 
+// Driver implements the driver.Driver interface.
 type Driver struct {
 	envChangeHooks []tds.EnvChangeHook
 	eedHooks       []tds.EEDHook
 }
 
+// Open implements the driver.Driver interface.
 func (d Driver) Open(name string) (driver.Conn, error) {
 	connector, err := d.OpenConnector(name)
 	if err != nil {
@@ -40,6 +44,7 @@ func (d Driver) Open(name string) (driver.Conn, error) {
 	return connector.Connect(context.Background())
 }
 
+// OpenConnector implements the driver.DriverContext interface.
 func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 	dsnInfo, err := dsn.ParseDSN(name)
 	if err != nil {
@@ -49,6 +54,7 @@ func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 	return NewConnector(dsnInfo)
 }
 
+// AddEnvChangeHooks gathers the envChangeHooks.
 func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
 	for _, fn := range fns {
 		if fn == nil {
@@ -60,6 +66,7 @@ func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
 	return nil
 }
 
+// AddEEDHooks gathers the eedHooks.
 func AddEEDHooks(fns ...tds.EEDHook) error {
 	for _, fn := range fns {
 		if fn == nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
+// Interface satisfaction checks.
 var (
 	_ driver.Rows                           = (*Rows)(nil)
 	_ driver.RowsNextResultSet              = (*Rows)(nil)
@@ -21,6 +22,7 @@ var (
 	_ driver.RowsColumnTypeDatabaseTypeName = (*Rows)(nil)
 )
 
+// Rows implements the driver.Rows interface.
 type Rows struct {
 	Conn   *Conn
 	RowFmt *tds.RowFmtPackage
@@ -28,6 +30,7 @@ type Rows struct {
 	hasNextResultSet bool
 }
 
+// Columns implements the driver.Rows interface.
 func (rows Rows) Columns() []string {
 	if rows.RowFmt == nil {
 		return []string{}
@@ -45,6 +48,7 @@ func (rows Rows) Columns() []string {
 	return response
 }
 
+// Close implements the driver.Rows interface.
 func (rows *Rows) Close() error {
 	for {
 		if err := rows.NextResultSet(); err != nil {
@@ -58,6 +62,7 @@ func (rows *Rows) Close() error {
 	return nil
 }
 
+// Next implements the driver.Rows interface.
 func (rows *Rows) Next(dst []driver.Value) error {
 	if rows.RowFmt == nil && len(dst) == 0 {
 		return io.EOF
@@ -110,6 +115,7 @@ func (rows *Rows) Next(dst []driver.Value) error {
 	return nil
 }
 
+// HasNextResultSet implements the driver.RowsNextResultSet interface.
 func (rows *Rows) HasNextResultSet() bool {
 	if !rows.hasNextResultSet {
 		return false
@@ -118,6 +124,7 @@ func (rows *Rows) HasNextResultSet() bool {
 	return true
 }
 
+// NextResultSet implements the driver.RowsNextResultSet interface.
 func (rows *Rows) NextResultSet() error {
 	// discard all RowPackage until either end of communication or next
 	// RowFmtPackage
@@ -151,6 +158,7 @@ func (rows *Rows) NextResultSet() error {
 	return nil
 }
 
+// ColumnTypeLength implements the driver.RowsColumnTypeLength interface.
 func (rows Rows) ColumnTypeLength(index int) (int64, bool) {
 	if index >= len(rows.RowFmt.Fmts) {
 		return 0, false
@@ -158,6 +166,8 @@ func (rows Rows) ColumnTypeLength(index int) (int64, bool) {
 	return rows.RowFmt.Fmts[index].MaxLength(), true
 }
 
+// ColumnTypeDatabaseTypeName implements the
+// driver.RowsColumnTypeDatabaseTypeName interface.
 func (rows Rows) ColumnTypeDatabaseTypeName(index int) string {
 	if index >= len(rows.RowFmt.Fmts) {
 		return ""
