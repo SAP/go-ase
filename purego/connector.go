@@ -36,15 +36,9 @@ func NewConnectorWithHooks(dsn *libdsn.Info, envChangeHooks []tds.EnvChangeHook,
 	if err != nil {
 		return nil, fmt.Errorf("error opening test connection: %w", err)
 	}
-	defer conn.Close()
 
-	pinger, ok := conn.(driver.Pinger)
-	if !ok {
-		return nil, fmt.Errorf("received conn does not satisfy the pinger interface: %v", conn)
-	}
-
-	if err := pinger.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("error pinging database server: %w", err)
+	if err := conn.Close(); err != nil {
+		return nil, fmt.Errorf("error closing test connection: %w", err)
 	}
 
 	// Set the hooks after validating the connection otherwise hooks
