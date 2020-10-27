@@ -234,11 +234,6 @@ func (tdsChan *Channel) Logout() error {
 			done.Status)
 	}
 
-	if done.TranState&TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
-		return fmt.Errorf("received done package with transtate %s instead of TDS_TRAN_COMPLETED",
-			done.TranState)
-	}
-
 	return nil
 }
 

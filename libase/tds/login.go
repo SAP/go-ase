@@ -358,11 +358,6 @@ func (tdsChan *Channel) Login(ctx context.Context, config *LoginConfig) error {
 			done.Status)
 	}
 
-	if done.TranState&TDS_TRAN_COMPLETED != TDS_TRAN_COMPLETED {
-		return fmt.Errorf("expected done package with transtate TDS_TRAN_COMPLETED, received %s",
-			done.TranState)
-	}
-
 	tdsChan.Reset()
 
 	return nil
