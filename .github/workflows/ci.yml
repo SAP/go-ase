@@ -20,8 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
-        with:
-          go-version: '^1.15'
       - uses: golangci/golangci-lint-action@v2.3.0
         with:
           version: v1.28
@@ -36,8 +34,6 @@ jobs:
     steps:
       # Setup go and stringer
       - uses: actions/setup-go@v2
-        with:
-          go-version: '^1.15'
       - run: go get -v golang.org/x/tools/cmd/stringer
 
       # Setup python and reuse
