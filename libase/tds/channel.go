@@ -290,6 +290,15 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 		return nil, ErrChannelClosed
 	}
 
+	// Try reading from the package channel once before setting up
+	// a loop. This prevents spurious errors due to random selection in
+	// select statements.
+	select {
+	case pkg := <-tdsChan.packageCh:
+		return pkg, nil
+	default:
+	}
+
 	ch := make(chan error, 1)
 
 	// Write an error into the channel if the caller does not want to
