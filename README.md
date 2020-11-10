@@ -15,7 +15,7 @@ status](https://api.reuse.software/badge/github.com/SAP/go-ase)](https://api.reu
 
 ## Description
 
-`go-ase` is a driver for the [`databasq/sql`][pkg-database-sql] package
+`go-ase` is a driver for the [`database/sql`][pkg-database-sql] package
 of [Go (golang)][go] to provide access to SAP ASE instances.
 It is delivered as Go module.
 
