@@ -111,7 +111,12 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
-	_, result, err := c.GenericExec(ctx, query, args)
+	rows, result, err := c.GenericExec(ctx, query, args)
+
+	if rows != nil {
+		rows.Close()
+	}
+
 	return result, err
 }
 
