@@ -290,6 +290,15 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 		return nil, ErrChannelClosed
 	}
 
+	// Try reading from the package channel once before setting up
+	// a loop. This prevents spurious errors due to random selection in
+	// select statements.
+	select {
+	case pkg := <-tdsChan.packageCh:
+		return pkg, nil
+	default:
+	}
+
 	ch := make(chan error, 1)
 
 	// Write an error into the channel if the caller does not want to
@@ -305,9 +314,9 @@ func (tdsChan *Channel) NextPackage(ctx context.Context, wait bool) (Package, er
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, fmt.Errorf("passed context is closed: %w", ctx.Err())
 	case <-tdsChan.tdsConn.ctx.Done():
-		return nil, tdsChan.tdsConn.ctx.Err()
+		return nil, fmt.Errorf("connection context is closed: %w", tdsChan.tdsConn.ctx.Err())
 	case err := <-tdsChan.tdsConn.errCh:
 		return nil, fmt.Errorf("error in TDS connection: %w", err)
 	case err := <-tdsChan.errCh:
@@ -487,9 +496,9 @@ func (tdsChan *Channel) sendPackets(ctx context.Context, onlyFull bool) error {
 	for i, packet := range tdsChan.queueTx.queue {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("passed context is closed: %w", ctx.Err())
 		case <-tdsChan.tdsConn.ctx.Done():
-			return tdsChan.tdsConn.ctx.Err()
+			return fmt.Errorf("connection context is closed: %w", tdsChan.tdsConn.ctx.Err())
 		default:
 			// Only the last packet should not be full.
 			if i == tdsChan.queueTx.indexPacket && tdsChan.queueTx.indexData < tdsChan.tdsConn.PacketBodySize() {
