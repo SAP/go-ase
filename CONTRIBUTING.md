@@ -43,7 +43,7 @@ it can be exploited:
 message at https://service.sap.com/message.
  * Researchers/non-Customers: please send the related information to
    secure@sap.com using [PGP for e-mail
-encryption](http://global.sap.com/pc/security/keyblock.txt).
+encryption](https://www.sap.com/dmc/policies/pgp/keyblock.txt).
 Also refer to the general [SAP security information
 page](https://www.sap.com/corporate/en/company/security.html).
 
@@ -60,7 +60,7 @@ There are three important things to know:
 2. The code must fulfill several requirements regarding code style,
    quality and product standards. These are detailed below in the
    [respective section](#contribution-content-guidelines).
-3. No all proposed contributions can be accepted.
+3. Not all proposed contributions can be accepted.
    Some features may fit better in a third-party package. The code
    overall must fit into the go-ase project.
 
