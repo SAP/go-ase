@@ -330,7 +330,7 @@ For details on how to contribute please see the
 ## License
 
 Copyright (c) 2019-2020 SAP SE or an SAP affiliate company. All rights reserved.
-This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSE).
+This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSES).
 
 [cgo-ase]: https://github.com/SAP/cgo-ase
 [go]: https://golang.org/
