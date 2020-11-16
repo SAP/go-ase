@@ -62,9 +62,8 @@ func (c *Conn) NewStmt(ctx context.Context, name, query string, create_proc bool
 		name = stmt.stmtId.Name()
 	}
 
-	stmt.pkg = &tds.DynamicPackage{
-		ID: name,
-	}
+	stmt.pkg = tds.NewDynamicPackage(true)
+	stmt.pkg.ID = name
 
 	if create_proc {
 		stmt.pkg.Stmt = fmt.Sprintf("create proc %s as %s", name, query)
