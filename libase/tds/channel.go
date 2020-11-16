@@ -371,6 +371,11 @@ func (tdsChan *Channel) NextPackageUntil(ctx context.Context, wait bool, process
 			return nil, err
 		}
 
+		// Set wait to true - if a package was read without an error
+		// then more packages will be received until the processPkg
+		// function signals that the communication has finished.
+		wait = true
+
 		if eed, ok := pkg.(*EEDPackage); ok {
 			eedError.Add(eed)
 			continue

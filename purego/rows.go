@@ -131,6 +131,9 @@ func (rows *Rows) NextResultSet() error {
 			case *tds.RowPackage, *tds.OrderByPackage:
 				return true, nil
 			case *tds.DonePackage:
+				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE {
+					return false, nil
+				}
 				return true, fmt.Errorf("go-ase: no next result set: %w", io.EOF)
 			default:
 				return false, fmt.Errorf("unhandled package type %T: %v", pkg, pkg)
