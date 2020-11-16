@@ -45,6 +45,12 @@ type DynamicPackage struct {
 	wide bool
 }
 
+func NewDynamicPackage(wide bool) *DynamicPackage {
+	dyn := new(DynamicPackage)
+	dyn.wide = wide
+	return dyn
+}
+
 func (pkg *DynamicPackage) ReadFrom(ch BytesChannel) error {
 	var totalLength int
 	var err error
