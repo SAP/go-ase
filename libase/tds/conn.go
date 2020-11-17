@@ -47,6 +47,10 @@ type Conn struct {
 }
 
 // Dial returns a prepared and dialed Conn.
+//
+// A new child context will be created from the passed context and used
+// to abort any interaction with the server - hence closing the parent
+// context will abort all interaction with the server.
 func NewConn(ctx context.Context, dsn *libdsn.Info) (*Conn, error) {
 	network := "tcp"
 	if prop := dsn.Prop("network"); prop != "" {
