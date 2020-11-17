@@ -43,8 +43,12 @@ func NewConnWithHooks(ctx context.Context, dsn *libdsn.Info, envChangeHooks []td
 		stmtLock: &sync.RWMutex{},
 	}
 
+	// Cannot pass the passed context along here as tds.NewConn creates
+	// a child context from the passed context.
+	// Otherwise the context isn't being used, so using
+	// context.Background is fine.
 	var err error
-	conn.Conn, err = tds.NewConn(ctx, dsn)
+	conn.Conn, err = tds.NewConn(context.Background(), dsn)
 	if err != nil {
 		return nil, fmt.Errorf("go-ase: error opening connection to TDS server: %w", err)
 	}
