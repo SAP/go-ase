@@ -50,7 +50,6 @@ jobs:
     steps:
       # Setup go and stringer
       - uses: actions/setup-go@v2
-      - run: echo "::set-env name=PATH::$(go env GOPATH)/bin:$PATH"
       - run: go get -v golang.org/x/tools/cmd/stringer
 
       # Setup python and reuse
@@ -61,7 +60,7 @@ jobs:
 
       # Generate
       - uses: actions/checkout@v2
-      - run: make generate
+      - run: PATH="$(go env GOPATH)/bin:$PATH" make generate
       - run: |
           if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
             printf '::error ::%s' '`make generate` left or changed files'
