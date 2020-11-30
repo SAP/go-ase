@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2020 SAP SE
 #
 # SPDX-License-Identifier: Apache-2.0
+github.com/SAP/go-dblib v0.0.0-20201130095755-e1f42a6f557f h1:VBgOVYXG7Ymg3hPYLlV6dYJEguZwV8L8rwe7JMcFDFU=
+github.com/SAP/go-dblib v0.0.0-20201130095755-e1f42a6f557f/go.mod h1:VVY/Jf6EU78u7u2oRQrJiorGi+AQ6hwYegvLQSXMi3A=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=
