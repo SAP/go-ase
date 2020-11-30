@@ -41,7 +41,7 @@ func (rows Rows) Columns() []string {
 
 	for i, fieldFmt := range rows.RowFmt.Fmts {
 		// TODO check if RowFmt is wide and contains column label,
-		// catalgoue, schema, table
+		// catalogue, schema, table
 		response[i] = fieldFmt.Name()
 	}
 
