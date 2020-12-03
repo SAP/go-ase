@@ -15,5 +15,4 @@ Link any related issues here.
 **Tests**
 
 - [ ] make lint
-- [ ] make test-go / make test-cgo
-- [ ] make integration-go / make integration-cgo
+- [ ] make integration

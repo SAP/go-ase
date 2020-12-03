@@ -8,10 +8,6 @@
 *.so
 *.dylib
 
-# objects and archives
-*.o
-*.a
-
 # Test binary, build with `go test -c`
 *.test
 
@@ -21,5 +17,4 @@
 # Editor specific temporary files
 *.swp
 
-/cgo-ase
-/go-ase
+/goase

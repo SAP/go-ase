@@ -39,6 +39,7 @@ Client:
   OS:
   go version:
   go-ase version / commit hash:
+  go-dblib version / commit hash:
 
 Server:
   OS:
