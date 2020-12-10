@@ -67,16 +67,16 @@ func rawProcess(driverConn interface{}) error {
 		return errors.New("invalid driver, conn is not *github.com/SAP/go-ase/purego.Conn")
 	}
 
-	fmt.Println("creating table simple")
-	if _, _, err := conn.DirectExec(context.Background(), "if object_id('simple') is not null drop table simple"); err != nil {
-		return fmt.Errorf("failed to drop table 'simple': %w", err)
+	fmt.Println("creating table subtransaction_tab")
+	if _, _, err := conn.DirectExec(context.Background(), "if object_id('subtransaction_tab') is not null drop table subtransaction_tab"); err != nil {
+		return fmt.Errorf("failed to drop table 'subtransaction_tab': %w", err)
 	}
 
-	if _, _, err := conn.DirectExec(context.Background(), "create table simple (a int, b char(30))"); err != nil {
+	if _, _, err := conn.DirectExec(context.Background(), "create table subtransaction_tab (a int, b char(30))"); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 	defer func() {
-		if _, _, err := conn.DirectExec(context.Background(), "drop table simple"); err != nil {
+		if _, _, err := conn.DirectExec(context.Background(), "drop table subtransaction_tab"); err != nil {
 			log.Printf("failed to drop table: %v", err)
 		}
 	}()
@@ -91,8 +91,8 @@ func rawProcess(driverConn interface{}) error {
 	// statements cannot be run through the tx struct as in the
 	// transaction example.
 	// Instead the statements must be executed through the conn.
-	fmt.Println("inserting values into simple")
-	if _, _, err = conn.DirectExec(context.Background(), "insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
+	fmt.Println("inserting values into subtransaction_tab")
+	if _, _, err = conn.DirectExec(context.Background(), "insert into subtransaction_tab (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
 		return fmt.Errorf("failed to insert values: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func rawProcess(driverConn interface{}) error {
 	}
 
 	// Now all SQL statements on conn are part of the subtransaction.
-	if _, _, err := conn.DirectExec(context.Background(), "insert into simple (a, b) values (?, ?)", 1000, "another string"); err != nil {
+	if _, _, err := conn.DirectExec(context.Background(), "insert into subtransaction_tab (a, b) values (?, ?)", 1000, "another string"); err != nil {
 		return fmt.Errorf("failed to insert values: %w", err)
 	}
 
@@ -137,7 +137,7 @@ func rawProcess(driverConn interface{}) error {
 }
 
 func readTable(conn *ase.Conn) error {
-	stmt, err := conn.NewStmt(context.Background(), "", "select * from simple", true)
+	stmt, err := conn.NewStmt(context.Background(), "", "select * from subtransaction_tab", true)
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %w", err)
 	}

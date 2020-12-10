@@ -13,9 +13,9 @@ func ExampleDoMain() {
 		log.Fatal(err)
 	}
 	// Output:
-	// creating table simple
+	// creating table transaction_tab
 	// opening transaction
-	// inserting values into simple
+	// inserting values into transaction_tab
 	// preparing statement
 	// executing prepared statement
 	// a: 2147483647

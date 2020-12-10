@@ -68,7 +68,7 @@ func DoMain() error {
 		}
 	}()
 
-	table := fmt.Sprintf("%s..testTable", database)
+	table := fmt.Sprintf("%s..simple2_tab", database)
 
 	fmt.Printf("creating table %s\n", table)
 	if _, err := db.Exec("create table " + table + " (a tinyint)"); err != nil {
