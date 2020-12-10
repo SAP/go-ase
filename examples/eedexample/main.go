@@ -50,8 +50,8 @@ func DoMain() error {
 		}
 	}
 
-	fmt.Println("create table")
-	if _, err := db.Exec("create table eed_example values (int, string)"); err != nil {
+	fmt.Println("create table eed_example_tab")
+	if _, err := db.Exec("create table eed_example_tab values (int, string)"); err != nil {
 		var eedError *tds.EEDError
 		if errors.As(err, &eedError) {
 			fmt.Println("Messages from ASE server:")

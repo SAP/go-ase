@@ -16,7 +16,7 @@ func ExampleDoMain() {
 	// sp_adduser
 	// Messages from ASE server:
 	//     17231: No login with the specified name exists.
-	// create table
+	// create table eed_example_tab
 	// Messages from ASE server:
 	//     156: Incorrect syntax near the keyword 'values'.
 	// create database

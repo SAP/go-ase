@@ -37,22 +37,22 @@ func DoMain() error {
 	}
 	defer db.Close()
 
-	if _, err = db.Exec("if object_id('simple') is not null drop table simple"); err != nil {
-		return fmt.Errorf("failed to drop table 'simple': %w", err)
+	if _, err = db.Exec("if object_id('simple_tab') is not null drop table simple_tab"); err != nil {
+		return fmt.Errorf("failed to drop table 'simple_tab': %w", err)
 	}
 
-	fmt.Println("Creating table 'simple'")
-	if _, err = db.Exec("create table simple (a int, b char(30))"); err != nil {
+	fmt.Println("Creating table 'simple_tab'")
+	if _, err = db.Exec("create table simple_tab (a int, b char(30))"); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
 	fmt.Printf("Writing a=%d, b='a string' to table\n", math.MaxInt32)
-	if _, err = db.Exec("insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
+	if _, err = db.Exec("insert into simple_tab (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
 		return fmt.Errorf("failed to insert values: %w", err)
 	}
 
 	fmt.Println("Querying values from table")
-	rows, err := db.Query("select * from simple")
+	rows, err := db.Query("select * from simple_tab")
 	if err != nil {
 		return fmt.Errorf("querying failed: %w", err)
 	}

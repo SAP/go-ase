@@ -15,7 +15,7 @@ func ExampleDoMain() {
 	// Output:
 	//
 	// Opening database
-	// Creating table 'simple'
+	// Creating table 'simple_tab'
 	// Writing a=2147483647, b='a string' to table
 	// Querying values from table
 	// Displaying results of query

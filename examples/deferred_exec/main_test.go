@@ -17,7 +17,7 @@ func ExampleDoMain() {
 	// Opening database
 	// configuring errorlog size
 	// doSimple on sql.DB
-	// Creating table 'simple'
+	// Creating table 'deferred_exec_tab'
 	// Writing a=2147483647, b='a string' to table
 	// Querying values from table
 	// Displaying results of query

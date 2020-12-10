@@ -16,8 +16,8 @@ func ExampleDoMain() {
 	// switching to master
 	// dropping database newDB if exists
 	// creating database newDB
-	// creating table newDB..testTable
-	// inserting values into table newDB..testTable
+	// creating table newDB..simple2_tab
+	// inserting values into table newDB..simple2_tab
 	// preparing statement
 	// a: 5
 	// teardown: switching to master

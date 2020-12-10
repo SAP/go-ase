@@ -39,16 +39,16 @@ func DoMain() error {
 		}
 	}()
 
-	fmt.Println("creating table simple")
-	if _, err := db.Exec("if object_id('simple') is not null drop table simple"); err != nil {
-		return fmt.Errorf("failed to drop table 'simple': %w", err)
+	fmt.Println("creating table transaction_tab")
+	if _, err := db.Exec("if object_id('transaction_tab') is not null drop table transaction_tab"); err != nil {
+		return fmt.Errorf("failed to drop table 'transaction_tab': %w", err)
 	}
 
-	if _, err := db.Exec("create table simple (a int, b char(30))"); err != nil {
+	if _, err := db.Exec("create table transaction_tab (a int, b char(30))"); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 	defer func() {
-		if _, err := db.Exec("drop table simple"); err != nil {
+		if _, err := db.Exec("drop table transaction_tab"); err != nil {
 			log.Printf("failed to drop table: %v", err)
 		}
 	}()
@@ -59,13 +59,13 @@ func DoMain() error {
 		return fmt.Errorf("error creating transaction: %w", err)
 	}
 
-	fmt.Println("inserting values into simple")
-	if _, err := tx.Exec("insert into simple (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
+	fmt.Println("inserting values into transaction_tab")
+	if _, err := tx.Exec("insert into transaction_tab (a, b) values (?, ?)", math.MaxInt32, "a string"); err != nil {
 		return fmt.Errorf("failed to insert values: %w", err)
 	}
 
 	fmt.Println("preparing statement")
-	stmt, err := tx.Prepare("select * from simple where a=?")
+	stmt, err := tx.Prepare("select * from transaction_tab where a=?")
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %w", err)
 	}
