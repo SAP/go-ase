@@ -10,6 +10,7 @@ SPDX-License-Identifier: Apache-2.0
 [![Go Report Card](https://goreportcard.com/badge/github.com/SAP/go-ase)](https://goreportcard.com/report/github.com/SAP/go-ase)
 [![REUSE
 status](https://api.reuse.software/badge/github.com/SAP/go-ase)](https://api.reuse.software/info/github.com/SAP/go-ase)
+![Actions: CI](https://github.com/SAP/go-ase/workflows/CI/badge.svg)
 
 ## Description
 
