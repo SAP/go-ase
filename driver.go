@@ -47,12 +47,22 @@ func (d Driver) Open(name string) (driver.Conn, error) {
 
 // OpenConnector implements the driver.DriverContext interface.
 func (d Driver) OpenConnector(name string) (driver.Connector, error) {
-	dsnInfo, err := dsn.ParseDSN(name)
+	info, err := NewInfo()
 	if err != nil {
-		return nil, fmt.Errorf("go-ase: error parsing DSN: %w", err)
+		return nil, err
 	}
 
-	return NewConnector(dsnInfo)
+	if err := dsn.ParseSimple(name, info); err != nil {
+		// TODO
+		return nil, err
+	}
+
+	if err := dsn.FromEnv("ASE", info); err != nil {
+		// TODO
+		return nil, err
+	}
+
+	return NewConnector(info)
 }
 
 // AddEnvChangeHooks gathers the envChangeHooks.

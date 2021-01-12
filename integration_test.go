@@ -8,6 +8,7 @@
 package ase
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"log"
 	"testing"
@@ -22,13 +23,26 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) error {
-	simpleDSN, simpleTeardown, err := integration.DSN(false)
+	info, err := NewInfoWithEnv()
 	if err != nil {
-		return fmt.Errorf("error setting up simple DSN: %w", err)
+		return err
 	}
-	defer simpleTeardown()
 
-	if err := integration.RegisterDSN("username password", simpleDSN, NewConnector); err != nil {
+	if err := integration.SetupDB(&info.Info.Info); err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := integration.TeardownDB(&info.Info.Info); err != nil {
+			log.Printf("error dropping database %q: %v", info.Database, err)
+		}
+	}()
+
+	newConnectorFn := func(info interface{}) (driver.Connector, error) {
+		return NewConnector(info.(*Info))
+	}
+
+	if err := integration.RegisterDSN("username password", info, newConnectorFn); err != nil {
 		return fmt.Errorf("error setting up simple database: %w", err)
 	}
 

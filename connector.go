@@ -10,7 +10,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 
-	"github.com/SAP/go-dblib/dsn"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -21,21 +20,21 @@ var (
 
 // Connector implements the driver.Connector interface.
 type Connector struct {
-	DSN            *dsn.Info
+	Info           *Info
 	EnvChangeHooks []tds.EnvChangeHook
 	EEDHooks       []tds.EEDHook
 }
 
 // NewConnector returns a new connector with the passed configuration.
-func NewConnector(dsn *dsn.Info) (driver.Connector, error) {
-	return NewConnectorWithHooks(dsn, nil, nil)
+func NewConnector(info *Info) (driver.Connector, error) {
+	return NewConnectorWithHooks(info, nil, nil)
 }
 
 // NewConnectorWithHooks returns a new connector with the passed
 // configuration.
-func NewConnectorWithHooks(dsn *dsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
+func NewConnectorWithHooks(info *Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (driver.Connector, error) {
 	connector := &Connector{
-		DSN: dsn,
+		Info: info,
 	}
 
 	conn, err := connector.Connect(context.Background())
@@ -62,5 +61,5 @@ func (c Connector) Driver() driver.Driver {
 
 // Connect implements the driver.Connector interface.
 func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
-	return NewConnWithHooks(ctx, c.DSN, c.EnvChangeHooks, c.EEDHooks)
+	return NewConnWithHooks(ctx, c.Info, c.EnvChangeHooks, c.EEDHooks)
 }
