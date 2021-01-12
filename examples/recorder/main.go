@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/SAP/go-ase"
-	"github.com/SAP/go-dblib/dsn"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -71,7 +70,7 @@ func DoMain() error {
 		return fmt.Errorf("error adding EEDHook to driver: %w", err)
 	}
 
-	dsn, err := dsn.NewInfoFromEnv("")
+	info, err := ase.NewInfoWithEnv()
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
@@ -80,7 +79,7 @@ func DoMain() error {
 	// Every connection opened from this connector will send messages to
 	// the connectorRecorder.
 	connectorRecorder := NewRecorder("connector")
-	connector, err := ase.NewConnectorWithHooks(dsn, nil, []tds.EEDHook{connectorRecorder.AddMessage})
+	connector, err := ase.NewConnectorWithHooks(info, nil, []tds.EEDHook{connectorRecorder.AddMessage})
 	if err != nil {
 		return fmt.Errorf("failed to create connector: %w", err)
 	}
@@ -107,7 +106,7 @@ func DoMain() error {
 	// The driverRecorder will still receive messages from both
 	// connector1 and connector2 connections.
 	connectorRecorder2 := NewRecorder("connector")
-	connector2, err := ase.NewConnectorWithHooks(dsn, nil, []tds.EEDHook{connectorRecorder2.AddMessage})
+	connector2, err := ase.NewConnectorWithHooks(info, nil, []tds.EEDHook{connectorRecorder2.AddMessage})
 	if err != nil {
 		return fmt.Errorf("failed to create connector2: %w", err)
 	}
