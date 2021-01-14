@@ -21,7 +21,7 @@ var (
 	_ driver.Tx          = (*Transaction)(nil)
 )
 
-// DefaultTxOptions sets driver.TxOptions to default values.
+// DefaultTxOptions returns default driver.TxOptions.
 func DefaultTxOptions() driver.TxOptions {
 	return driver.TxOptions{
 		Isolation: driver.IsolationLevel(sql.LevelDefault),
