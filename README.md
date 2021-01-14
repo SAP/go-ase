@@ -62,8 +62,7 @@ func main() {
     }
     defer db.Close()
 
-    err = db.Ping()
-    if err != nil {
+    if err := db.Ping(); err != nil {
         log.Printf("Failed to ping database: %v", err)
         return
     }
@@ -121,26 +120,16 @@ DSNs in this form are parsed using `url.Parse`.
 
 The simple DSN is a key/value string: `username=user password=pass host=hostname port=4901`
 
+Each member of `Info` is recognized by its `json` metadata tag or any of
+its `multiref` metadata tags.
+
 Values with spaces must be quoted using single or double quotes.
-
-Each member of `dblib.dsn.DsnInfo` can be set using any of their
-possible json tags. E.g. `.Host` will receive the values from the keys
-`host` and `hostname`.
-
-Additional properties are set as key/value pairs as well: `...
-prop1=val1 prop2=val2`. If the parser doesn't recognize a string as
-a json tag it assumes that the key/value pair is a property and its
-value.
-
-Similar to the URI DSN those property/value pairs are purely additive.
-Any property that only recognizes a single argument (e.g. a boolean)
-will only honour the last given value for a property.
 
 #### Connector
 
-As an alternative to the string DSNs `ase.NewConnector` accept a
-`dsn.DsnInfo` directly and return a `driver.Connector`, which can 
-be passed to `sql.OpenDB`:
+As an alternative to the string DSNs `ase.NewConnector` accept a `Info`
+directly and return a `driver.Connector`, which can be passed to
+`sql.OpenDB`:
 
 ```go
 package main
@@ -148,18 +137,17 @@ package main
 import (
     "database/sql"
 
-    "github.com/SAP/go-dblib/dsn"
     "github.com/SAP/go-ase"
 )
 
 func main() {
-    d := dsn.NewDsnInfo()
-    d.Host = "hostname"
-    d.Port = "4901"
-    d.Username = "user"
-    d.Password = "pass"
+    info := ase.NewInfo()
+    info.Host = "hostname"
+    info.Port = "4901"
+    info.Username = "user"
+    info.Password = "pass"
 
-    connector, err := ase.NewConnector(*d)
+    connector, err := ase.NewConnector(d)
     if err != nil {
         log.Printf("Failed to create connector: %v", err)
         return
@@ -172,15 +160,11 @@ func main() {
     }
     defer db.Close()
 
-    err = db.Ping()
-    if err != nil {
+    if err := db.Ping(); err != nil {
         log.Printf("Failed to ping ASE: %v", err)
     }
 }
 ```
-
-Additional properties can be set by calling `d.ConnectProps.Add("prop1",
-"value1")` or `d.ConnectProps.Set("prop2", "value2")`.
 
 ### Properties
 
@@ -192,13 +176,6 @@ Sets the application name to the value. This can be used in ASE to
 determine which application opened a connection.
 
 Defaults to `database/sql driver github.com/SAP/go-ase/purego`.
-
-##### read-only
-
-Recognized values: string
-
-If the value is recognized by `strconv.ParseBool` to represent `true`
-the connection will be created as read only.
 
 ##### network
 
@@ -268,7 +245,12 @@ longer recognized as the hostname if no SANs are present in the
 certificate.
 If the certificate for your TDS server only utilizes the CN you can
 reenable this behaviour by setting `GODEBUG` to `x509ignoreCN=0` in your
-environment.
+environment:
+
+```sh
+GODEBUG=x509ignoreCN=0 <path/to/your/app>
+GODEBUG=x509ignoreCN=0 go run ./cmd/goase
+```
 
 For details see https://golang.google.cn/doc/go1.15#commonname
 
