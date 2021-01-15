@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SAP/go-dblib/dsn"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -28,7 +27,7 @@ var (
 type Conn struct {
 	Conn    *tds.Conn
 	Channel *tds.Channel
-	DSN     *dsn.Info
+	Info    *Info
 
 	// TODO I don't particularly like locking statements like this
 	stmts map[int]*Stmt
@@ -37,12 +36,12 @@ type Conn struct {
 }
 
 // NewConn returns a connection with the passed configuration.
-func NewConn(ctx context.Context, dsn *dsn.Info) (*Conn, error) {
+func NewConn(ctx context.Context, dsn *Info) (*Conn, error) {
 	return NewConnWithHooks(ctx, dsn, nil, nil)
 }
 
 // NewConnWithHooks returns a connection with the passed configuration.
-func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
+func NewConnWithHooks(ctx context.Context, info *Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
 		stmts:    map[int]*Stmt{},
 		stmtLock: &sync.RWMutex{},
@@ -53,7 +52,7 @@ func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.E
 	// Otherwise the context isn't being used, so using
 	// context.Background is fine.
 	var err error
-	conn.Conn, err = tds.NewConn(context.Background(), dsn)
+	conn.Conn, err = tds.NewConn(context.Background(), &info.Info)
 	if err != nil {
 		return nil, fmt.Errorf("go-ase: error opening connection to TDS server: %w", err)
 	}
@@ -88,13 +87,13 @@ func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.E
 		}
 	}
 
-	loginConfig, err := tds.NewLoginConfig(dsn)
+	loginConfig, err := tds.NewLoginConfig(&info.Info)
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("go-ase: error creating login config: %w", err)
 	}
 
-	loginConfig.AppName = dsn.PropDefault("appname", "github.com/SAP/go-ase/purego")
+	loginConfig.AppName = info.AppName
 
 	if err := conn.Channel.Login(ctx, loginConfig); err != nil {
 		conn.Close()
@@ -102,9 +101,9 @@ func NewConnWithHooks(ctx context.Context, dsn *dsn.Info, envChangeHooks []tds.E
 	}
 
 	// TODO can this be passed another way?
-	if dsn.Database != "" {
-		if _, err = conn.ExecContext(ctx, "use "+dsn.Database, nil); err != nil {
-			return nil, fmt.Errorf("go-ase: error switching to database %s: %w", dsn.Database, err)
+	if info.Database != "" {
+		if _, err = conn.ExecContext(ctx, "use "+info.Database, nil); err != nil {
+			return nil, fmt.Errorf("go-ase: error switching to database %s: %w", info.Database, err)
 		}
 	}
 

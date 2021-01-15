@@ -11,7 +11,7 @@ import (
 	"log"
 	"math"
 
-	_ "github.com/SAP/go-ase"
+	"github.com/SAP/go-ase"
 	"github.com/SAP/go-dblib/dsn"
 )
 
@@ -25,12 +25,12 @@ func main() {
 }
 
 func DoMain() error {
-	dsn, err := dsn.NewInfoFromEnv("")
+	info, err := ase.NewInfoWithEnv()
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
 
-	db, err := sql.Open("ase", dsn.AsSimple())
+	db, err := sql.Open("ase", dsn.FormatSimple(info))
 	if err != nil {
 		return fmt.Errorf("failed to open connection to database: %w", err)
 	}

@@ -7,4 +7,7 @@ module github.com/SAP/go-ase
 
 go 1.15
 
-require github.com/SAP/go-dblib v0.0.0-20201130095755-e1f42a6f557f
+require (
+	github.com/SAP/go-dblib v0.0.0-20210114120425-3f210eb9fa26
+	github.com/spf13/pflag v0.0.0-20170417173400-9e4c21054fa1
+)

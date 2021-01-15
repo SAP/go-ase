@@ -13,7 +13,6 @@ import (
 	"log"
 
 	"github.com/SAP/go-ase"
-	"github.com/SAP/go-dblib/dsn"
 )
 
 func main() {
@@ -23,12 +22,12 @@ func main() {
 }
 
 func DoMain() error {
-	dsn, err := dsn.NewInfoFromEnv("")
+	info, err := ase.NewInfoWithEnv()
 	if err != nil {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
 
-	connector, err := ase.NewConnector(dsn)
+	connector, err := ase.NewConnector(info)
 	if err != nil {
 		return fmt.Errorf("failed to create connector: %w", err)
 	}
