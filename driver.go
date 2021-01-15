@@ -65,7 +65,8 @@ func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 	return NewConnector(info)
 }
 
-// AddEnvChangeHooks gathers the envChangeHooks.
+// AddEnvChangeHooks registers funtions as hooks. The hooks are executed
+// when the driver receives EnvChange packages.
 func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
 	for _, fn := range fns {
 		if fn == nil {
@@ -77,7 +78,8 @@ func AddEnvChangeHooks(fns ...tds.EnvChangeHook) error {
 	return nil
 }
 
-// AddEEDHooks gathers the eedHooks.
+// AddEEDHooks registers functions as hooks. The hooks are executed when
+// the driver receives EED packages.
 func AddEEDHooks(fns ...tds.EEDHook) error {
 	for _, fn := range fns {
 		if fn == nil {
