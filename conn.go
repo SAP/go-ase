@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -152,5 +153,16 @@ func (c Conn) Ping(ctx context.Context) error {
 		return fmt.Errorf("go-ase: error closing rows from ping: %w", err)
 	}
 
+	return nil
+}
+
+// CheckNamedValue implements the driver.NamedValueChecker interface.
+func (conn *Conn) CheckNamedValue(nv *driver.NamedValue) error {
+	v, err := asetypes.DefaultValueConverter.ConvertValue(nv.Value)
+	if err != nil {
+		return err
+	}
+
+	nv.Value = v
 	return nil
 }
