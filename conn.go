@@ -44,6 +44,7 @@ func NewConn(ctx context.Context, dsn *Info) (*Conn, error) {
 // NewConnWithHooks returns a connection with the passed configuration.
 func NewConnWithHooks(ctx context.Context, info *Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
+		Info:     info,
 		stmts:    map[int]*Stmt{},
 		stmtLock: &sync.RWMutex{},
 	}
