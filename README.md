@@ -273,6 +273,20 @@ If empty the servers trust store is used.
 
 Defaults to empty string.
 
+##### no-query-cursor
+
+Recognized values: bool
+
+Prevents the use of cursors for database/sql query methods.
+
+By default go-ase creates cursors when a `.Query*` method is used.
+
+Depending on the query, expected result set, memory consumption and
+used hardware this may perform worse than a simple query.
+
+It is strongly suggested to profile this option with your queries before
+enabling it.
+
 ## Limitations
 
 ### Beta

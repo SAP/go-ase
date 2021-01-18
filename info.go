@@ -16,6 +16,8 @@ type Info struct {
 	tds.Info
 
 	AppName string `json:"appname" doc:"Application Name to transmit to ASE"`
+
+	NoQueryCursor bool `json:"no-query-cursor" doc:"Prevents the use of cursors for database/sql query methods. See README for details."`
 }
 
 // NewInfo returns a bare Info for github.com/SAP/go-dblib/dsn with defaults.
