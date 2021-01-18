@@ -213,12 +213,6 @@ func (stmt Stmt) DirectExec(ctx context.Context, args ...interface{}) (driver.Ro
 		namedArgs = dblib.ValuesToNamedValues(values)
 	}
 
-	for i := range args {
-		if err := stmt.CheckNamedValue(&namedArgs[i]); err != nil {
-			return nil, nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-		}
-	}
-
 	return stmt.GenericExec(ctx, namedArgs)
 }
 
@@ -261,6 +255,10 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 	dataFields := []tds.FieldData{}
 
 	for i, arg := range args {
+		if err := stmt.CheckNamedValue(&arg); err != nil {
+			return fmt.Errorf("error checking argument: %w", err)
+		}
+
 		fmtField := stmt.paramFmt.Fmts[i]
 
 		dataField, err := tds.LookupFieldData(fmtField)
