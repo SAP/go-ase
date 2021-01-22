@@ -69,7 +69,6 @@ func (c *Conn) NewCursorWithValues(ctx context.Context, query string, args []dri
 	cursor.conn = c
 
 	if err := cursor.allocateOnServer(ctx, query, args); err != nil {
-		// TODO
 		return nil, fmt.Errorf("go-ase: error allocating cursor on server: %w", err)
 	}
 
@@ -83,9 +82,9 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 
 	if cursor.hasArgs {
 		// cursor has argument, prepare statement
-		stmt, err := c.NewStmt(ctx, cursor.poolName.String(), query, true)
+		stmt, err := cursor.conn.NewStmt(ctx, cursor.poolName.String(), query, true)
 		if err != nil {
-			return nil, fmt.Errorf("go-ase: error creating stmt: %w", err)
+			return fmt.Errorf("error creating stmt: %w", err)
 		}
 		cursor.stmt = stmt
 	}
@@ -104,31 +103,27 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		tds.TDS_CUR_DOPT_UNUSED,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("go-ase: could not create CurDeclarePackage: %w", err)
+		return fmt.Errorf("could not create CurDeclarePackage: %w", err)
 	}
 	if cursor.hasArgs {
 		declarePkg.Options |= tds.TDS_CUR_DOPT_DYNAMIC
 	}
 
-	if err := c.Channel.QueuePackage(ctx, declarePkg); err != nil {
-		return nil, fmt.Errorf("go-ase: error sending CurDeclarePackage: %w", err)
+	if err := cursor.conn.Channel.SendPackage(ctx, declarePkg); err != nil {
+		return fmt.Errorf("error sending CurDeclarePackage: %w", err)
 	}
 
-	if err := c.Channel.SendRemainingPackets(ctx); err != nil {
-		return nil, fmt.Errorf("go-ase: error sending packages: %w", err)
-	}
-
-	_, err = c.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
+	_, err = cursor.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
 		switch typed := pkg.(type) {
 		case *tds.DynamicPackage:
 			if typed.Type&tds.TDS_DYN_ACK != tds.TDS_DYN_ACK {
-				return true, fmt.Errorf("go-ase: Received DynamicPackage without type TDS_DYN_ACK: %s", typed)
+				return true, fmt.Errorf("received DynamicPackage without type TDS_DYN_ACK: %s", typed)
 			}
 
 			return false, nil
 		case *tds.CurInfoPackage:
 			if typed.Command != tds.TDS_CUR_CMD_INFORM {
-				return true, fmt.Errorf("go-ase: received %T with command %s instead of TDS_CUR_CMD_INFORM",
+				return true, fmt.Errorf("received %T with command %s instead of TDS_CUR_CMD_INFORM",
 					typed, typed.Command)
 			}
 
@@ -146,15 +141,15 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		case *tds.DonePackage:
 			ok, err := handleDonePackage(typed)
 			if err != nil {
-				return true, fmt.Errorf("go-ase: %w", err)
+				return true, err
 			}
 			return ok, nil
 		default:
-			return true, fmt.Errorf("go-ase: Unhandled package type %T: %s", typed, typed)
+			return true, fmt.Errorf("unhandled package type %T: %s", typed, typed)
 		}
 	})
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("go-ase: error handling response to cursor creation: %w", err)
+		return fmt.Errorf("error handling response to cursor creation: %w", err)
 	}
 
 	// Set how many rows should be sent by the TDS server per fetch.
@@ -168,25 +163,21 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		RowCount:  int32(cacheMaxRows),
 	}
 
-	if err := c.Channel.QueuePackage(ctx, setFetchCount); err != nil {
-		return nil, fmt.Errorf("go-ase: error queueing CurInfoPackage to set fetch row count: %w", err)
+	if err := cursor.conn.Channel.SendPackage(ctx, setFetchCount); err != nil {
+		return fmt.Errorf("error queueing CurInfoPackage to set fetch row count: %w", err)
 	}
 
-	if err := c.Channel.SendRemainingPackets(ctx); err != nil {
-		return nil, fmt.Errorf("go-ase: error sending packages: %w", err)
-	}
-
-	_, err = c.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
+	_, err = cursor.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
 		switch typed := pkg.(type) {
 		case *tds.DynamicPackage:
 			if typed.Type&tds.TDS_DYN_ACK != tds.TDS_DYN_ACK {
-				return true, fmt.Errorf("go-ase: Received DynamicPackage without type TDS_DYN_ACK: %s", typed)
+				return true, fmt.Errorf("received DynamicPackage without type TDS_DYN_ACK: %s", typed)
 			}
 
 			return false, nil
 		case *tds.CurInfoPackage:
 			if typed.Command != tds.TDS_CUR_CMD_INFORM {
-				return true, fmt.Errorf("go-ase: received %T with command %s instead of TDS_CUR_CMD_INFORM",
+				return true, fmt.Errorf("received %T with command %s instead of TDS_CUR_CMD_INFORM",
 					typed, typed.Command)
 			}
 
@@ -204,15 +195,15 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		case *tds.DonePackage:
 			ok, err := handleDonePackage(typed)
 			if err != nil {
-				return true, fmt.Errorf("go-ase: %w", err)
+				return true, err
 			}
 			return ok, nil
 		default:
-			return true, fmt.Errorf("go-ase: Unhandled package type %T: %s", typed, typed)
+			return true, fmt.Errorf("unhandled package type %T: %s", typed, typed)
 		}
 	})
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("go-ase: error handling response to cursor creation: %w", err)
+		return fmt.Errorf("error handling response to cursor creation: %w", err)
 	}
 
 	// Open cursor to read results.
@@ -225,25 +216,25 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		openPkg.Status = tds.TDS_CUR_OSTAT_HASARGS
 	}
 
-	if err := c.Channel.QueuePackage(ctx, openPkg); err != nil {
-		return nil, fmt.Errorf("go-ase: error queueing and sending CurOpenPackage: %w", err)
+	if err := cursor.conn.Channel.QueuePackage(ctx, openPkg); err != nil {
+		return fmt.Errorf("error queueing and sending CurOpenPackage: %w", err)
 	}
 
 	if cursor.hasArgs {
 		if err := cursor.stmt.sendArgs(ctx, args); err != nil {
-			return nil, fmt.Errorf("go-ase: error queueing arguments: %w", err)
+			return fmt.Errorf("error queueing arguments: %w", err)
 		}
 	}
 
-	if err := c.Channel.SendRemainingPackets(ctx); err != nil {
-		return nil, fmt.Errorf("go-ase: error sending packages: %w", err)
+	if err := cursor.conn.Channel.SendRemainingPackets(ctx); err != nil {
+		return fmt.Errorf("error sending packages: %w", err)
 	}
 
-	_, err = c.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
+	_, err = cursor.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
 		switch typed := pkg.(type) {
 		case *tds.CurInfoPackage:
 			if typed.Command != tds.TDS_CUR_CMD_INFORM {
-				return true, fmt.Errorf("go-ase: received %T with command %s instead of TDS_CUR_CMD_INFORM",
+				return true, fmt.Errorf("received %T with command %s instead of TDS_CUR_CMD_INFORM",
 					typed, typed.Command)
 			}
 
@@ -253,7 +244,7 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 			}
 
 			if typed.Status&tds.TDS_CUR_ISTAT_OPEN != tds.TDS_CUR_ISTAT_OPEN {
-				return true, fmt.Errorf("go-ase: received %T without status TDS_CUR_ISTAT_OPEN", typed)
+				return true, fmt.Errorf("received %T without status TDS_CUR_ISTAT_OPEN", typed)
 			}
 
 			return false, nil
@@ -270,14 +261,14 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 			}
 			return ok, nil
 		default:
-			return true, fmt.Errorf("go-ase: unhandled package type %T: %v", typed, typed)
+			return true, fmt.Errorf("unhandled package type %T: %v", typed, typed)
 		}
 	})
 	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("go-ase: error handling response to cursor opening: %w", err)
+		return fmt.Errorf("error handling response to cursor opening: %w", err)
 	}
 
-	return cursor, nil
+	return nil
 }
 
 // Close closes the cursor.
