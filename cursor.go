@@ -311,6 +311,23 @@ func (cursor *Cursor) Close(ctx context.Context) error {
 	// To handle this rxCurDealloc is set to true in the first stream
 	// to only read the second stream if the cursor deallocation was not
 	// confirmed by TDS.
+	rxCurDealloc, err := cursor.closeReadResponse(ctx)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("go-ase: cursor deletion finished with error: %w", err)
+	}
+
+	if rxCurDealloc {
+		return nil
+	}
+
+	if _, err := cursor.closeReadResponse(ctx); err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("go-ase: cursor deletion finished with error: %w", err)
+	}
+
+	return nil
+}
+
+func (cursor *Cursor) closeReadResponse(ctx context.Context) (bool, error) {
 	rxCurDealloc := false
 
 	_, err := cursor.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
@@ -340,7 +357,7 @@ func (cursor *Cursor) Close(ctx context.Context) error {
 
 			ok, err := handleDonePackage(typed)
 			if err != nil {
-				return true, fmt.Errorf("go-ase: %w", err)
+				return true, err
 			}
 			return ok, nil
 		default:
@@ -348,43 +365,10 @@ func (cursor *Cursor) Close(ctx context.Context) error {
 		}
 	})
 	if err != nil && !errors.Is(err, io.EOF) {
-		return fmt.Errorf("go-ase: cursor deletion finished with error: %w", err)
+		return rxCurDealloc, err
 	}
 
-	if rxCurDealloc {
-		return nil
-	}
-
-	_, err = cursor.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
-		switch typed := pkg.(type) {
-		case *tds.CurInfoPackage:
-			if typed.Command != tds.TDS_CUR_CMD_INFORM {
-				return true, fmt.Errorf("go-ase: received %T with command %s instead of TDS_CUR_CMD_INFORM",
-					typed, typed.Command)
-			}
-
-			if typed.Status&tds.TDS_CUR_ISTAT_CLOSED != tds.TDS_CUR_ISTAT_CLOSED &&
-				typed.Status&tds.TDS_CUR_ISTAT_DEALLOC != tds.TDS_CUR_ISTAT_DEALLOC {
-				return true, fmt.Errorf("go-ase: received %T without status TDS_CUR_ISTAT_CLOSED or TDS_CUR_ISTAT_DEALLOC",
-					typed)
-			}
-
-			return false, nil
-		case *tds.DonePackage:
-			ok, err := handleDonePackage(typed)
-			if err != nil {
-				return true, fmt.Errorf("go-ase: %w", err)
-			}
-			return ok, nil
-		default:
-			return true, fmt.Errorf("go-ase: unhandled package type %T: %v", typed, typed)
-		}
-	})
-	if err != nil && !errors.Is(err, io.EOF) {
-		return fmt.Errorf("go-ase: cursor deletion finished with error: %w", err)
-	}
-
-	return nil
+	return rxCurDealloc, nil
 }
 
 func (cursor Cursor) CursorID() int {
