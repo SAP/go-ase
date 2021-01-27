@@ -160,7 +160,7 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		Status:    tds.TDS_CUR_ISTAT_ROWCNT,
 		RowNum:    -1,
 		TotalRows: 0,
-		RowCount:  int32(cacheMaxRows),
+		RowCount:  int32(cursor.conn.Info.CursorCacheRows),
 	}
 
 	if err := cursor.conn.Channel.SendPackage(ctx, setFetchCount); err != nil {

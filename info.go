@@ -18,6 +18,8 @@ type Info struct {
 	AppName string `json:"appname" doc:"Application Name to transmit to ASE"`
 
 	NoQueryCursor bool `json:"no-query-cursor" doc:"Prevents the use of cursors for database/sql query methods. See README for details."`
+
+	CursorCacheRows int `json:"cursor-cache-rows" doc:"How many rows to cache at once when reading the result set of a cursor"`
 }
 
 // NewInfo returns a bare Info for github.com/SAP/go-dblib/dsn with defaults.
@@ -29,6 +31,8 @@ func NewInfo() (*Info, error) {
 	}
 
 	info.AppName = "github.com/SAP/go-ase"
+
+	info.CursorCacheRows = 1000
 
 	return info, nil
 }

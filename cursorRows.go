@@ -18,13 +18,6 @@ var (
 	ErrCurNoMoreRows = errors.New("no more rows in cursor")
 )
 
-const (
-	// TODO make configurable - consumers with large result sets may
-	// want to read a couple hundred thousand at once, consumers with
-	// small result sets only 1000 or so
-	cacheMaxRows = 1000
-)
-
 type CursorRows struct {
 	cursor *Cursor
 	rows   chan *tds.RowPackage
@@ -40,7 +33,7 @@ type CursorRows struct {
 func (cursor *Cursor) NewCursorRows() (*CursorRows, error) {
 	return &CursorRows{
 		cursor: cursor,
-		rows:   make(chan *tds.RowPackage, cacheMaxRows),
+		rows:   make(chan *tds.RowPackage, cursor.conn.Info.CursorCacheRows),
 	}, nil
 }
 
