@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
 )
 
