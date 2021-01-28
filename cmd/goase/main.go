@@ -60,7 +60,7 @@ func doMain() error {
 	db := sql.OpenDB(connector)
 	defer db.Close()
 
-	return term.Entrypoint(db)
+	return term.Entrypoint(db, flags.Args())
 }
 
 func updateDatabaseName(typ tds.EnvChangeType, oldValue, newValue string) {
