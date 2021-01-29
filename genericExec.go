@@ -47,13 +47,7 @@ func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.Name
 
 	stmt, err := c.NewStmt(ctx, "", query, true)
 	if err != nil {
-		return nil, nil, fmt.Errorf("go-ase: error preparing dynamic SQL: %w", err)
-	}
-
-	for i := range args {
-		if err := stmt.CheckNamedValue(&args[i]); err != nil {
-			return nil, nil, fmt.Errorf("go-ase: error checking argument: %w", err)
-		}
+		return nil, nil, fmt.Errorf("go-ase: error creating prepared statement: %w", err)
 	}
 
 	rows, result, err := stmt.GenericExec(ctx, args)

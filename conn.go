@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -43,6 +44,7 @@ func NewConn(ctx context.Context, dsn *Info) (*Conn, error) {
 // NewConnWithHooks returns a connection with the passed configuration.
 func NewConnWithHooks(ctx context.Context, info *Info, envChangeHooks []tds.EnvChangeHook, eedHooks []tds.EEDHook) (*Conn, error) {
 	conn := &Conn{
+		Info:     info,
 		stmts:    map[int]*Stmt{},
 		stmtLock: &sync.RWMutex{},
 	}
@@ -132,8 +134,17 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 // QueryContext implements the driver.QueryerContext.
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
-	rows, _, err := c.GenericExec(ctx, query, args)
-	return rows, err
+	if c.Info.NoQueryCursor {
+		rows, _, err := c.GenericExec(ctx, query, args)
+		return rows, err
+	}
+
+	cursor, err := c.NewCursorWithValues(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
+
+	return cursor.Fetch(ctx)
 }
 
 // Ping implements the driver.Pinger interface.
@@ -148,5 +159,16 @@ func (c Conn) Ping(ctx context.Context) error {
 		return fmt.Errorf("go-ase: error closing rows from ping: %w", err)
 	}
 
+	return nil
+}
+
+// CheckNamedValue implements the driver.NamedValueChecker interface.
+func (conn *Conn) CheckNamedValue(nv *driver.NamedValue) error {
+	v, err := asetypes.DefaultValueConverter.ConvertValue(nv.Value)
+	if err != nil {
+		return err
+	}
+
+	nv.Value = v
 	return nil
 }
