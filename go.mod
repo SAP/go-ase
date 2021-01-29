@@ -8,6 +8,6 @@ module github.com/SAP/go-ase
 go 1.15
 
 require (
-	github.com/SAP/go-dblib v0.0.0-20210114120425-3f210eb9fa26
+	github.com/SAP/go-dblib v0.0.0-20210129100507-ad8fcb5232aa
 	github.com/spf13/pflag v0.0.0-20170417173400-9e4c21054fa1
 )
