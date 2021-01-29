@@ -20,6 +20,7 @@ var (
 	cursorPool = namepool.Pool("cursor%d")
 )
 
+// Cursor is used to interact with a cursor on the ASE server.
 type Cursor struct {
 	conn *Conn
 
@@ -372,10 +373,13 @@ func (cursor *Cursor) closeReadResponse(ctx context.Context) (bool, error) {
 	return rxCurDealloc, nil
 }
 
+// CursorID returns the ID assigned to the cursor by ASE.
 func (cursor Cursor) CursorID() int {
 	return int(cursor.cursorID)
 }
 
+// Fetch returns CursorRows to iterate over the rows selected by
+// a cursor.
 func (cursor *Cursor) Fetch(ctx context.Context) (*CursorRows, error) {
 	return cursor.NewCursorRows()
 }

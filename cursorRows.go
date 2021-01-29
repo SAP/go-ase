@@ -23,6 +23,7 @@ var (
 	ErrCurNoMoreRows = errors.New("no more rows in cursor")
 )
 
+// CursorRows is used to iterate over the result set of a cursor.
 type CursorRows struct {
 	cursor *Cursor
 	rows   chan *tds.RowPackage
@@ -35,6 +36,9 @@ type CursorRows struct {
 	totalRows int
 }
 
+// NewCursorRows returns CursorRows for a Cursor.
+//
+// It does not immediately fetch a result set from the remote. See .Fetch.
 func (cursor *Cursor) NewCursorRows() (*CursorRows, error) {
 	return &CursorRows{
 		cursor: cursor,
@@ -42,10 +46,12 @@ func (cursor *Cursor) NewCursorRows() (*CursorRows, error) {
 	}, nil
 }
 
+// Close closes CursorRows and its associated Cursor.
 func (rows *CursorRows) Close() error {
 	return rows.cursor.Close(context.Background())
 }
 
+// Columns returns all column names in the result set.
 func (rows CursorRows) Columns() []string {
 	// TODO ignore hidden columns
 	response := make([]string, len(rows.cursor.rowFmt.Fmts))
@@ -59,6 +65,7 @@ func (rows CursorRows) Columns() []string {
 	return response
 }
 
+// Next implements driver.Rows.
 func (rows *CursorRows) Next(dst []driver.Value) error {
 	rowPkg, err := rows.nextPkg(context.Background())
 	if err != nil {
@@ -77,6 +84,8 @@ func (rows *CursorRows) Next(dst []driver.Value) error {
 	return nil
 }
 
+// nextPkg is a wrapper to handle reading from the rows channel and
+// fetching new rows as needed.
 func (rows *CursorRows) nextPkg(ctx context.Context) (*tds.RowPackage, error) {
 	select {
 	case <-ctx.Done():
@@ -96,6 +105,7 @@ func (rows *CursorRows) nextPkg(ctx context.Context) (*tds.RowPackage, error) {
 	return rows.nextPkg(ctx)
 }
 
+// fetch retrieves the next part of the result set from the ASE server.
 func (rows *CursorRows) fetch(ctx context.Context) error {
 	// Set the last received package to the rowfmt received during
 	// setup. The params/rows packages need the information from the
@@ -240,6 +250,8 @@ func (rows CursorRows) ColumnTypeLength(index int) (int64, bool) {
 	return rows.cursor.rowFmt.Fmts[index].MaxLength(), true
 }
 
+// ColumnTypeDatabaseTypeName implements the
+// driver.RowsColumnTypeDatabaseTypeName interface.
 func (rows CursorRows) ColumnTypeDatabaseTypeName(index int) string {
 	return string(rows.cursor.rowFmt.Fmts[index].DataType())
 }
