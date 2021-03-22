@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/SAP/go-dblib/tds"
 )
@@ -21,6 +22,9 @@ var (
 	_ driver.RowsNextResultSet              = (*Rows)(nil)
 	_ driver.RowsColumnTypeLength           = (*Rows)(nil)
 	_ driver.RowsColumnTypeDatabaseTypeName = (*Rows)(nil)
+	_ driver.RowsColumnTypePrecisionScale   = (*Rows)(nil)
+	_ driver.RowsColumnTypeNullable         = (*Rows)(nil)
+	_ driver.RowsColumnTypeScanType         = (*Rows)(nil)
 )
 
 // Rows implements the driver.Rows interface.
@@ -173,5 +177,47 @@ func (rows Rows) ColumnTypeDatabaseTypeName(index int) string {
 	if index >= len(rows.RowFmt.Fmts) {
 		return ""
 	}
-	return string(rows.RowFmt.Fmts[index].DataType())
+	return rows.RowFmt.Fmts[index].DataType().String()
+}
+
+// ColumnTypePrecisionScale implements the
+// driver.RowsColumnTypePrecisionScale interface.
+func (rows Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+	if index >= len(rows.RowFmt.Fmts) {
+		return 0, 0, false
+	}
+
+	colType, ok := interface{}(rows.RowFmt.Fmts[index]).(interface {
+		Precision() uint8
+		Scale() uint8
+	})
+	if !ok {
+		return 0, 0, false
+	}
+
+	return int64(colType.Precision()), int64(colType.Scale()), true
+}
+
+// ColumnTypeNullable implements the
+// driver.RowsColumnTypeNullable interface.
+func (rows Rows) ColumnTypeNullable(index int) (bool, bool) {
+	if index >= len(rows.RowFmt.Fmts) {
+		return false, false
+	}
+
+	if rows.RowFmt.Fmts[index].Status()&uint(tds.TDS_ROW_NULLALLOWED) != uint(tds.TDS_ROW_NULLALLOWED) {
+		return false, true
+	}
+
+	return true, true
+}
+
+// ColumnTypeScanType implements the
+// driver.RowsColumnTypeScanType interface.
+func (rows Rows) ColumnTypeScanType(index int) reflect.Type {
+	if index >= len(rows.RowFmt.Fmts) {
+		return nil
+	}
+
+	return rows.RowFmt.Fmts[index].DataType().GoReflectType()
 }
