@@ -187,10 +187,12 @@ func (rows Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
 		return 0, 0, false
 	}
 
-	colType, ok := interface{}(rows.RowFmt.Fmts[index]).(interface {
+	type PrecisionScaler interface {
 		Precision() uint8
 		Scale() uint8
-	})
+	}
+
+	colType, ok := rows.RowFmt.Fmts[index].(PrecisionScaler)
 	if !ok {
 		return 0, 0, false
 	}

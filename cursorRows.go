@@ -263,10 +263,12 @@ func (rows CursorRows) ColumnTypeDatabaseTypeName(index int) string {
 // ColumnTypePrecisionScale implements the
 // driver.RowsColumnTypePrecisionScale interface.
 func (rows CursorRows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
-	colType, ok := interface{}(rows.cursor.rowFmt.Fmts[index]).(interface {
+	type PrecisionScaler interface {
 		Precision() uint8
 		Scale() uint8
-	})
+	}
+
+	colType, ok := rows.cursor.rowFmt.Fmts[index].(PrecisionScaler)
 	if !ok {
 		return 0, 0, false
 	}
