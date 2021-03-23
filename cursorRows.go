@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
@@ -19,6 +20,9 @@ var (
 	_ driver.Rows                           = (*CursorRows)(nil)
 	_ driver.RowsColumnTypeLength           = (*CursorRows)(nil)
 	_ driver.RowsColumnTypeDatabaseTypeName = (*CursorRows)(nil)
+	_ driver.RowsColumnTypePrecisionScale   = (*CursorRows)(nil)
+	_ driver.RowsColumnTypeNullable         = (*CursorRows)(nil)
+	_ driver.RowsColumnTypeScanType         = (*CursorRows)(nil)
 
 	ErrCurNoMoreRows = errors.New("no more rows in cursor")
 )
@@ -253,5 +257,37 @@ func (rows CursorRows) ColumnTypeLength(index int) (int64, bool) {
 // ColumnTypeDatabaseTypeName implements the
 // driver.RowsColumnTypeDatabaseTypeName interface.
 func (rows CursorRows) ColumnTypeDatabaseTypeName(index int) string {
-	return string(rows.cursor.rowFmt.Fmts[index].DataType())
+	return rows.cursor.rowFmt.Fmts[index].DataType().String()
+}
+
+// ColumnTypePrecisionScale implements the
+// driver.RowsColumnTypePrecisionScale interface.
+func (rows CursorRows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+	type PrecisionScaler interface {
+		Precision() uint8
+		Scale() uint8
+	}
+
+	colType, ok := rows.cursor.rowFmt.Fmts[index].(PrecisionScaler)
+	if !ok {
+		return 0, 0, false
+	}
+
+	return int64(colType.Precision()), int64(colType.Scale()), true
+}
+
+// ColumnTypeNullable implements the
+// driver.RowsColumnTypeNullable interface.
+func (rows CursorRows) ColumnTypeNullable(index int) (bool, bool) {
+	if rows.cursor.rowFmt.Fmts[index].Status()&uint(tds.TDS_ROW_NULLALLOWED) != uint(tds.TDS_ROW_NULLALLOWED) {
+		return false, true
+	}
+
+	return true, true
+}
+
+// ColumnTypeScanType implements the
+// driver.RowsColumnTypeScanType interface.
+func (rows CursorRows) ColumnTypeScanType(index int) reflect.Type {
+	return rows.cursor.rowFmt.Fmts[index].DataType().GoReflectType()
 }
