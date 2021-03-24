@@ -59,7 +59,7 @@ func (c *Conn) GenericExec(ctx context.Context, query string, args []driver.Name
 }
 
 func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, error) {
-	rows := &Rows{Conn: c}
+	rows := c.NewRows()
 	result := &Result{}
 
 	_, err := c.Channel.NextPackageUntil(ctx, true,
