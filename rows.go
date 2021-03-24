@@ -16,6 +16,114 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
+// baseRows is used to share common code between Rows and CursorRows.
+type baseRows struct {
+	// rowFmt is a workaround to supply the current RowFmtPackage
+	// dynamically, as it may change and CursorRows only has access to
+	// it through the Cursor.
+	rowFmt func() *tds.RowFmtPackage
+}
+
+// fmts returns the list of tds.FieldFmts in the current result set.
+//
+// FieldFmts marked as hidden are not returned.
+func (rows baseRows) fmts() []tds.FieldFmt {
+	if rows.rowFmt() == nil {
+		return nil
+	}
+
+	fmts := []tds.FieldFmt{}
+
+	for _, fieldFmt := range rows.rowFmt().Fmts {
+		// ignore hidden columns
+		if fmtStatus := tds.RowFmtStatus(fieldFmt.Status()); fmtStatus&tds.TDS_ROW_HIDDEN == tds.TDS_ROW_HIDDEN {
+			continue
+		}
+
+		fmts = append(fmts, fieldFmt)
+	}
+
+	return fmts
+}
+
+// Columns implements the driver.Rows interface.
+func (rows baseRows) Columns() []string {
+	fmts := rows.fmts()
+	if len(fmts) == 0 {
+		return []string{}
+	}
+
+	response := make([]string, len(fmts))
+
+	for i, fieldFmt := range fmts {
+		// TODO check if RowFmt is wide and contains column label,
+		// catalogue, schema, table
+		response[i] = fieldFmt.Name()
+	}
+
+	return response
+}
+
+// ColumnTypeLength implements the driver.RowsColumnTypeLength interface.
+func (rows baseRows) ColumnTypeLength(index int) (int64, bool) {
+	if index >= len(rows.fmts()) {
+		return 0, false
+	}
+	return rows.fmts()[index].MaxLength(), true
+}
+
+// ColumnTypeDatabaseTypeName implements the
+// driver.RowsColumnTypeDatabaseTypeName interface.
+func (rows baseRows) ColumnTypeDatabaseTypeName(index int) string {
+	if index >= len(rows.fmts()) {
+		return ""
+	}
+	return rows.fmts()[index].DataType().String()
+}
+
+// ColumnTypePrecisionScale implements the
+// driver.RowsColumnTypePrecisionScale interface.
+func (rows baseRows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+	if index >= len(rows.fmts()) {
+		return 0, 0, false
+	}
+
+	type PrecisionScaler interface {
+		Precision() uint8
+		Scale() uint8
+	}
+
+	colType, ok := rows.fmts()[index].(PrecisionScaler)
+	if !ok {
+		return 0, 0, false
+	}
+
+	return int64(colType.Precision()), int64(colType.Scale()), true
+}
+
+// ColumnTypeNullable implements the
+// driver.RowsColumnTypeNullable interface.
+func (rows baseRows) ColumnTypeNullable(index int) (bool, bool) {
+	if index >= len(rows.fmts()) {
+		return false, false
+	}
+
+	if rows.fmts()[index].Status()&uint(tds.TDS_ROW_NULLALLOWED) != uint(tds.TDS_ROW_NULLALLOWED) {
+		return false, true
+	}
+
+	return true, true
+}
+
+// ColumnTypeScanType implements the
+// driver.RowsColumnTypeScanType interface.
+func (rows baseRows) ColumnTypeScanType(index int) reflect.Type {
+	if index >= len(rows.fmts()) {
+		return nil
+	}
+	return rows.fmts()[index].DataType().GoReflectType()
+}
+
 // Interface satisfaction checks.
 var (
 	_ driver.Rows                           = (*Rows)(nil)
@@ -29,28 +137,21 @@ var (
 
 // Rows implements the driver.Rows interface.
 type Rows struct {
-	Conn   *Conn
+	Conn *Conn
+
+	baseRows
 	RowFmt *tds.RowFmtPackage
 
 	hasNextResultSet bool
 }
 
-// Columns implements the driver.Rows interface.
-func (rows Rows) Columns() []string {
-	if rows.RowFmt == nil {
-		return []string{}
-	}
+func (conn *Conn) NewRows() *Rows {
+	rows := new(Rows)
 
-	// TODO ignore hidden columns
-	response := make([]string, len(rows.RowFmt.Fmts))
+	rows.Conn = conn
+	rows.rowFmt = func() *tds.RowFmtPackage { return rows.RowFmt }
 
-	for i, fieldFmt := range rows.RowFmt.Fmts {
-		// TODO check if RowFmt is wide and contains column label,
-		// catalogue, schema, table
-		response[i] = fieldFmt.Name()
-	}
-
-	return response
+	return rows
 }
 
 // Close implements the driver.Rows interface.
@@ -69,7 +170,7 @@ func (rows *Rows) Close() error {
 
 // Next implements the driver.Rows interface.
 func (rows *Rows) Next(dst []driver.Value) error {
-	if rows.RowFmt == nil && len(dst) == 0 {
+	if rows.rowFmt() == nil && len(dst) == 0 {
 		return io.EOF
 	}
 
@@ -161,65 +262,4 @@ func (rows *Rows) NextResultSet() error {
 	}
 
 	return nil
-}
-
-// ColumnTypeLength implements the driver.RowsColumnTypeLength interface.
-func (rows Rows) ColumnTypeLength(index int) (int64, bool) {
-	if index >= len(rows.RowFmt.Fmts) {
-		return 0, false
-	}
-	return rows.RowFmt.Fmts[index].MaxLength(), true
-}
-
-// ColumnTypeDatabaseTypeName implements the
-// driver.RowsColumnTypeDatabaseTypeName interface.
-func (rows Rows) ColumnTypeDatabaseTypeName(index int) string {
-	if index >= len(rows.RowFmt.Fmts) {
-		return ""
-	}
-	return rows.RowFmt.Fmts[index].DataType().String()
-}
-
-// ColumnTypePrecisionScale implements the
-// driver.RowsColumnTypePrecisionScale interface.
-func (rows Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
-	if index >= len(rows.RowFmt.Fmts) {
-		return 0, 0, false
-	}
-
-	type PrecisionScaler interface {
-		Precision() uint8
-		Scale() uint8
-	}
-
-	colType, ok := rows.RowFmt.Fmts[index].(PrecisionScaler)
-	if !ok {
-		return 0, 0, false
-	}
-
-	return int64(colType.Precision()), int64(colType.Scale()), true
-}
-
-// ColumnTypeNullable implements the
-// driver.RowsColumnTypeNullable interface.
-func (rows Rows) ColumnTypeNullable(index int) (bool, bool) {
-	if index >= len(rows.RowFmt.Fmts) {
-		return false, false
-	}
-
-	if rows.RowFmt.Fmts[index].Status()&uint(tds.TDS_ROW_NULLALLOWED) != uint(tds.TDS_ROW_NULLALLOWED) {
-		return false, true
-	}
-
-	return true, true
-}
-
-// ColumnTypeScanType implements the
-// driver.RowsColumnTypeScanType interface.
-func (rows Rows) ColumnTypeScanType(index int) reflect.Type {
-	if index >= len(rows.RowFmt.Fmts) {
-		return nil
-	}
-
-	return rows.RowFmt.Fmts[index].DataType().GoReflectType()
 }

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
 
 	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
@@ -34,6 +33,8 @@ type CursorRows struct {
 	// TODO this is just a workaround
 	rowsClosed bool
 
+	baseRows
+
 	// The count of read rows is required to update/delete a row through
 	// the cursor.
 	readRows  int
@@ -44,29 +45,19 @@ type CursorRows struct {
 //
 // It does not immediately fetch a result set from the remote. See .Fetch.
 func (cursor *Cursor) NewCursorRows() (*CursorRows, error) {
-	return &CursorRows{
-		cursor: cursor,
-		rows:   make(chan *tds.RowPackage, cursor.conn.Info.CursorCacheRows),
-	}, nil
+	cursorRows := new(CursorRows)
+
+	cursorRows.cursor = cursor
+	cursorRows.rowFmt = func() *tds.RowFmtPackage { return cursor.rowFmt }
+
+	cursorRows.rows = make(chan *tds.RowPackage, cursor.conn.Info.CursorCacheRows)
+
+	return cursorRows, nil
 }
 
 // Close closes CursorRows and its associated Cursor.
 func (rows *CursorRows) Close() error {
 	return rows.cursor.Close(context.Background())
-}
-
-// Columns returns all column names in the result set.
-func (rows CursorRows) Columns() []string {
-	// TODO ignore hidden columns
-	response := make([]string, len(rows.cursor.rowFmt.Fmts))
-
-	for i, fieldFmt := range rows.cursor.rowFmt.Fmts {
-		// TODO check if RowFmt is wide and contains column label,
-		// catalgoue, schema, table
-		response[i] = fieldFmt.Name()
-	}
-
-	return response
 }
 
 // Next implements driver.Rows.
@@ -247,47 +238,4 @@ func (rows *CursorRows) Delete(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// ColumnTypeLength implements the driver.RowsColumnTypeLength interface.
-func (rows CursorRows) ColumnTypeLength(index int) (int64, bool) {
-	return rows.cursor.rowFmt.Fmts[index].MaxLength(), true
-}
-
-// ColumnTypeDatabaseTypeName implements the
-// driver.RowsColumnTypeDatabaseTypeName interface.
-func (rows CursorRows) ColumnTypeDatabaseTypeName(index int) string {
-	return rows.cursor.rowFmt.Fmts[index].DataType().String()
-}
-
-// ColumnTypePrecisionScale implements the
-// driver.RowsColumnTypePrecisionScale interface.
-func (rows CursorRows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
-	type PrecisionScaler interface {
-		Precision() uint8
-		Scale() uint8
-	}
-
-	colType, ok := rows.cursor.rowFmt.Fmts[index].(PrecisionScaler)
-	if !ok {
-		return 0, 0, false
-	}
-
-	return int64(colType.Precision()), int64(colType.Scale()), true
-}
-
-// ColumnTypeNullable implements the
-// driver.RowsColumnTypeNullable interface.
-func (rows CursorRows) ColumnTypeNullable(index int) (bool, bool) {
-	if rows.cursor.rowFmt.Fmts[index].Status()&uint(tds.TDS_ROW_NULLALLOWED) != uint(tds.TDS_ROW_NULLALLOWED) {
-		return false, true
-	}
-
-	return true, true
-}
-
-// ColumnTypeScanType implements the
-// driver.RowsColumnTypeScanType interface.
-func (rows CursorRows) ColumnTypeScanType(index int) reflect.Type {
-	return rows.cursor.rowFmt.Fmts[index].DataType().GoReflectType()
 }
