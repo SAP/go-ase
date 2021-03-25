@@ -1,0 +1,132 @@
+// SPDX-FileCopyrightText: 2021 SAP SE
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// This example shows a simple interaction with a TDS server using the
+// database/sql interface and the pure go driver.
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/SAP/go-ase"
+	"github.com/SAP/go-dblib/dsn"
+)
+
+func main() {
+	if err := DoMain(); err != nil {
+		log.Printf("Failed: %v", err)
+		os.Exit(1)
+	}
+}
+
+func DoMain() error {
+	info, err := ase.NewInfoWithEnv()
+	if err != nil {
+		return fmt.Errorf("error reading DSN info from env: %w", err)
+	}
+
+	fmt.Println("Opening database")
+	db, err := sql.Open("ase", dsn.FormatSimple(info))
+	if err != nil {
+		return fmt.Errorf("failed to open connection to database: %w", err)
+	}
+	defer db.Close()
+
+	if _, err = db.Exec("if object_id('order_by') is not null drop table order_by"); err != nil {
+		return fmt.Errorf("failed to drop table 'order_by': %w", err)
+	}
+
+	fmt.Println("Creating table 'order_by'")
+	if _, err = db.Exec("create table order_by (a int, b char(30))"); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+
+	type Value struct {
+		a int
+		b string
+	}
+
+	values := []Value{
+		{1, "one"},
+		{0, "zero"},
+		{4, "four"},
+		{3, "three"},
+	}
+
+	for _, value := range values {
+		if _, err := db.Exec("insert into order_by values (?, ?)", value.a, value.b); err != nil {
+			return fmt.Errorf("failed to insert values %q: %w", value, err)
+		}
+	}
+
+	fmt.Println("Query without cursor")
+	info.NoQueryCursor = true
+	if err := query(db); err != nil {
+		return err
+	}
+
+	fmt.Println("Query with cursor")
+	info.NoQueryCursor = false
+	if err := query(db); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func query(db *sql.DB) error {
+	fmt.Println("Querying values from table without ordering")
+	rows, err := db.Query("select * from order_by")
+	if err != nil {
+		return fmt.Errorf("querying failed: %w", err)
+	}
+	defer rows.Close()
+
+	if err := display(rows); err != nil {
+		return err
+	}
+
+	fmt.Println("Querying values from table with ordering")
+	rows, err = db.Query("select * from order_by order by a")
+	if err != nil {
+		return fmt.Errorf("querying failed: %w", err)
+	}
+	defer rows.Close()
+
+	if err := display(rows); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func display(rows *sql.Rows) error {
+	colNames, err := rows.Columns()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve column names: %w", err)
+	}
+
+	fmt.Printf("| %-10s | %-30s |\n", colNames[0], colNames[1])
+	format := "| %-10d | %-30s |\n"
+
+	var a int
+	var b string
+
+	for rows.Next() {
+		if err = rows.Scan(&a, &b); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		fmt.Printf(format, a, b)
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error reading rows: %w", err)
+	}
+
+	return nil
+}
