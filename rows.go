@@ -189,7 +189,7 @@ func (rows *Rows) Next(dst []driver.Value) error {
 				rows.RowFmt = typed
 				rows.hasNextResultSet = true
 				return false, io.EOF
-			case *tds.OrderByPackage:
+			case *tds.OrderByPackage, *tds.OrderBy2Package:
 				return false, nil
 			case *tds.DonePackage:
 				ok, err := handleDonePackage(typed)
@@ -241,7 +241,7 @@ func (rows *Rows) NextResultSet() error {
 				rows.RowFmt = typed
 				rows.hasNextResultSet = true
 				return false, nil
-			case *tds.RowPackage, *tds.OrderByPackage:
+			case *tds.RowPackage, *tds.OrderByPackage, *tds.OrderBy2Package:
 				return true, nil
 			case *tds.DonePackage:
 				if typed.Status&tds.TDS_DONE_MORE == tds.TDS_DONE_MORE {

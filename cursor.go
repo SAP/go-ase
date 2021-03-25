@@ -256,6 +256,8 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		case *tds.ControlPackage:
 			// TODO
 			return false, nil
+		case *tds.OrderByPackage, *tds.OrderBy2Package:
+			return false, nil
 		case *tds.DonePackage:
 			ok, err := handleDonePackage(typed)
 			if err != nil {
