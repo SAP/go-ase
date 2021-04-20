@@ -1,8 +1,12 @@
-// SPDX-FileCopyrightText: 2020 SAP SE
 // SPDX-FileCopyrightText: 2021 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This example shows how to use cursor with the go-ase driver.
+//
+// go-ase uses cursors for queries by default, but that can be disabled
+// making creating cursors through the driver directly the only option
+// of using cursors.
 package main
 
 import (
@@ -15,17 +19,19 @@ import (
 	"log"
 
 	"github.com/SAP/go-ase"
+	"github.com/SAP/go-ase/examples"
 	"github.com/SAP/go-dblib/dsn"
 )
 
-var (
-	dbName    = "testCursor"
-	tableName = "test"
+const (
+	exampleName  = "cursor"
+	databaseName = exampleName + "DB"
+	tableName    = databaseName + ".." + exampleName + "Table"
 )
 
 func main() {
 	if err := DoMain(); err != nil {
-		log.Fatalf("cursor: %v", err)
+		log.Fatalf("%s failed: %v", exampleName, err)
 	}
 }
 
@@ -39,59 +45,36 @@ func DoMain() error {
 	if err != nil {
 		return fmt.Errorf("failed to open connection to database: %w", err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Printf("error closing db: %v", err)
-		}
-	}()
+	defer db.Close()
 
-	fmt.Println("preparing table")
-	if _, err = db.Exec(fmt.Sprintf("if object_id('%s') is not null drop table %s", tableName, tableName)); err != nil {
-		return fmt.Errorf("failed to drop table %q: %w", tableName, err)
-	}
-
-	if _, err = db.Exec(fmt.Sprintf("create table %s (a int, b varchar(30))", tableName)); err != nil {
-		return fmt.Errorf("failed to create table %q: %w", tableName, err)
-	}
-
-	if _, err = db.Exec("insert into "+tableName+" values (?, ?)", 1, "one"); err != nil {
-		return fmt.Errorf("failed to insert values into table %q: %w", tableName, err)
-	}
-
-	if _, err = db.Exec("insert into "+tableName+" values (?, ?)", 2, "two"); err != nil {
-		return fmt.Errorf("failed to insert values into table %q: %w", tableName, err)
-	}
-
-	fmt.Println("inserted values:")
-	rows, err := db.Query("select * from " + tableName)
+	dropDB, err := examples.CreateDropDatabase(db, databaseName)
 	if err != nil {
-		return fmt.Errorf("querying failed: %w", err)
+		return err
 	}
-	defer rows.Close()
+	defer dropDB()
 
-	colNames, err := rows.Columns()
+	dropTable, err := examples.CreateDropTable(db, tableName, "a int, b varchar(30)")
 	if err != nil {
-		return fmt.Errorf("failed to retrieve column names: %w", err)
+		return err
 	}
+	defer dropTable()
 
-	fmt.Printf("| %-10s | %-30s |\n", colNames[0], colNames[1])
-	format := "| %-10d | %-30s |\n"
+	return Test(db)
+}
 
-	var a int
-	var b string
-
-	for rows.Next() {
-		if err = rows.Scan(&a, &b); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
+func Test(db *sql.DB) error {
+	for i, val := range []string{"one", "two", "three"} {
+		if _, err := db.Exec("insert into "+tableName+" (a, b) values (?, ?)", i+1, val); err != nil {
+			return fmt.Errorf("failed to insert values: %w", err)
 		}
-
-		fmt.Printf(format, a, b)
 	}
 
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("error reading rows: %w", err)
-	}
-
+	// database/sql doesn't have a cursor interface, instead the
+	// underlying go-ase Conn must be used.
+	//
+	// This is achieved by retrieving a database/sql.Conn from the
+	// connection pool and then utilizing the go-ase.Conn through
+	// database/sql.Conn.Raw.
 	conn, err := db.Conn(context.Background())
 	if err != nil {
 		return fmt.Errorf("error getting conn: %w", err)
@@ -116,8 +99,14 @@ func rawProcess(driverConn interface{}) error {
 		return errors.New("invalid driver, conn is not *github.com/SAP/go-ase.Conn")
 	}
 
+	// A cursor is opened explicitly through the .NewCursor command,
+	// after which a CursorRows can be retrieved through .Fetch.
+	//
+	// Note that the CursorRows implements the database/sql/driver.Rows
+	// interface and does not reflect the signature of
+	// database/sql.Rows.
 	fmt.Println("opening cursor1")
-	cursor, err := conn.NewCursor(context.Background(), "select * from test")
+	cursor, err := conn.NewCursor(context.Background(), "select * from "+tableName)
 	if err != nil {
 		return fmt.Errorf("error creating cursor: %w", err)
 	}
@@ -134,15 +123,15 @@ func rawProcess(driverConn interface{}) error {
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("error closing rows: %v", err)
+			log.Printf("error closing rows of cursor1: %v", err)
 		}
 	}()
-
-	loop := 0
 
 	fmt.Println("iterating over cursor1")
 	values := []driver.Value{0, ""}
 	for {
+		// Contrary to database/sql.Rows the .Next method returns an error
+		// rather than a boolean.
 		if err := rows.Next(values); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -152,16 +141,13 @@ func rawProcess(driverConn interface{}) error {
 
 		fmt.Printf("a: %d\n", values[0])
 		fmt.Printf("b: %s\n", values[1])
-
-		loop++
-		if loop > 5 {
-			return nil
-		}
 	}
 
 	fmt.Println("opening cursor2")
+	// Creating a cursor with arguments and its handling is equivalent
+	// to a cursor without arguments.
 	cursor2, err := conn.NewCursor(context.Background(),
-		"select a, b from test where b like (?)", "two")
+		"select a, b from "+tableName+" where b like (?)", "two")
 	if err != nil {
 		return fmt.Errorf("error creating cursor: %w", err)
 	}
@@ -178,29 +164,22 @@ func rawProcess(driverConn interface{}) error {
 	}
 	defer func() {
 		if err := rows2.Close(); err != nil {
-			log.Printf("error closing rows: %v", err)
+			log.Printf("error closing rows of cursor2: %v", err)
 		}
 	}()
 
-	loop = 0
-
 	fmt.Println("iterating over cursor2")
-	values = []driver.Value{0, ""}
+	values2 := []driver.Value{0, ""}
 	for {
-		if err := rows2.Next(values); err != nil {
+		if err := rows2.Next(values2); err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return fmt.Errorf("error reading row: %w", err)
 		}
 
-		fmt.Printf("a: %d\n", values[0])
-		fmt.Printf("b: %s\n", values[1])
-
-		loop++
-		if loop > 5 {
-			return nil
-		}
+		fmt.Printf("a: %d\n", values2[0])
+		fmt.Printf("b: %s\n", values2[1])
 	}
 
 	return nil

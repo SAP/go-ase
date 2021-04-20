@@ -10,15 +10,9 @@ import "log"
 
 func ExampleDoMain() {
 	if err := DoMain(); err != nil {
-		log.Printf("Failed to execute example: %v", err)
+		log.Fatal(err)
 	}
 	// Output:
-	//
-	// preparing table
-	// inserted values:
-	// | a          | b                              |
-	// | 1          | one                            |
-	// | 2          | two                            |
 	// opening cursor1
 	// fetching cursor1
 	// iterating over cursor1
@@ -26,6 +20,8 @@ func ExampleDoMain() {
 	// b: one
 	// a: 2
 	// b: two
+	// a: 3
+	// b: three
 	// opening cursor2
 	// fetching cursor2
 	// iterating over cursor2

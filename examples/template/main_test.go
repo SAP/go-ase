@@ -13,11 +13,5 @@ func ExampleDoMain() {
 		log.Fatal(err)
 	}
 	// Output:
-	// opening transaction
-	// inserting values
-	// preparing statement
-	// executing prepared statement
-	// a: 2147483647
-	// b: a string
-	// committing transaction
+	// TODO replace with test code
 }

@@ -1,8 +1,26 @@
-// SPDX-FileCopyrightText: 2020 SAP SE
 // SPDX-FileCopyrightText: 2021 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This example shows how tds.EEDHooks can be utilized to record and
+// inspect a number of tds.EEDPackages received during a transaction.
+//
+// go-ase supports three ways to add hooks:
+//   1. driver-level
+//   2. connector-level
+//   3. connection-level
+//
+// Hooks at the driver-level receive EEDPackages from all connections
+// and are added by calling ase.AddEEDHooks.
+//
+// Connector-level hooks receive EEDPackages from all connections opened
+// through the connector they're attached to and are added by passing
+// them to ase.NewConnectorWithHooks.
+//
+// Connection-level hooks receive EEDPackages only from their own
+// connection and are added by passing them to ase.NewConnWithHooks.
+//
+// This example will explore driver- and connector-level hooks.
 package main
 
 import (
@@ -15,9 +33,14 @@ import (
 	"github.com/SAP/go-dblib/tds"
 )
 
-// This example shows how tds.EEDHooks can be utilized to access
-// messages sent by ASE.
+const (
+	exampleName  = "recorder"
+	databaseName = exampleName + "DB"
+	tableName    = databaseName + ".." + exampleName + "Table"
+)
 
+// Recorder is used to store EEDPackages as they are received by the
+// driver.
 type Recorder struct {
 	logprefix string
 	eeds      []tds.EEDPackage
@@ -32,6 +55,7 @@ func NewRecorder(logprefix string) *Recorder {
 	}
 }
 
+// Reset deletes all stored EEDPackages.
 func (rec *Recorder) Reset() {
 	rec.Lock()
 	defer rec.Unlock()
@@ -39,6 +63,7 @@ func (rec *Recorder) Reset() {
 	rec.eeds = []tds.EEDPackage{}
 }
 
+// AddMessage is the callback function passed to the driver.
 func (rec *Recorder) AddMessage(eed tds.EEDPackage) {
 	rec.Lock()
 	defer rec.Unlock()
@@ -46,6 +71,7 @@ func (rec *Recorder) AddMessage(eed tds.EEDPackage) {
 	rec.eeds = append(rec.eeds, eed)
 }
 
+// LogMessages prints all stored messages to stdout.
 func (rec *Recorder) LogMessages() {
 	rec.RLock()
 	defer rec.RUnlock()
@@ -57,11 +83,12 @@ func (rec *Recorder) LogMessages() {
 
 func main() {
 	if err := DoMain(); err != nil {
-		log.Fatalf("recorder: %v", err)
+		log.Fatalf("%s failed: %v", exampleName, err)
 	}
 }
 
 func DoMain() error {
+
 	// This is the recorder that is registered in the driver itself.
 	// Every connection opened afterwards will send messages to the
 	// driverRecorder.
