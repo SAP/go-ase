@@ -31,7 +31,7 @@ The go driver has no special requirements other than Go standard
 library and the third part modules listed in `go.mod`, e.g.
 `github.com/SAP/go-dblib`.
 
-## Download
+## Download and Installation
 
 The packages in this repo can be `go get` and imported as usual, e.g.:
 
@@ -41,6 +41,35 @@ go get github.com/SAP/go-ase
 
 For specifics on how to use `database/sql` please see the
 [documentation][pkg-database-sql].
+
+The command-line application `goase` can be `go install`ed:
+
+```sh
+$ go install github.com/SAP/go-ase/cmd/goase@latest
+go: downloading github.com/SAP/go-ase v0.0.0-20210506093950-9af676a6bab4
+$ goase -h
+Usage of goase:
+      --appname string                   Application Name to transmit to ASE (default "github.com/SAP/go-ase")
+      --channel-package-queue-size int   How many TDS packages can be queued in a TDS channel (default 100)
+      --client-hostname string           Hostname to send to server (default "dev-ase-sles15sp1-ntnn-1")
+      --cursor-cache-rows int            How many rows to cache at once when reading the result set of a cursor (default 1000)
+      --database string                  Database
+      --debug-log-packages               Log packages as they are transmitted/received
+  -f, --f string                         Read SQL commands from file
+      --host string                      Hostname to connect to
+      --maxColLength int                 Maximum number of characters to print for column (default 50)
+      --network string                   Network to use, either 'tcp' or 'udp' (default "tcp")
+      --no-query-cursor                  Prevents the use of cursors for database/sql query methods. See README for details.
+      --packet-read-timeout int          Time in seconds to wait before aborting a connection when no response is received from the server (default 50)
+      --password string                  Password
+      --port string                      Port (Example: '443' or 'tls') to connect to
+      --tls-ca-file string               Path to CA file to validate server certificate against
+      --tls-enable                       Enforce TLS use
+      --tls-hostname string              Remote hostname to validate against SANs
+      --tls-skip-validation              Skip TLS validation - accepts any TLS certificate
+      --username string                  Username
+2021/05/06 11:31:44 goase failed: pflag: help requested
+```
 
 ## Usage
 
