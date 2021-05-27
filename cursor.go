@@ -88,7 +88,12 @@ func (cursor *Cursor) allocateOnServer(ctx context.Context, query string, args [
 		if err != nil {
 			return fmt.Errorf("error creating stmt: %w", err)
 		}
+		// The cursor needs a reference to the statement to close it.
+		// The statement needs a reference to the cursor to mark it as
+		// already closed if the server decides to close the cursor
+		// immediately instead of waiting on being instructed to do so.
 		cursor.stmt = stmt
+		stmt.cursor = cursor
 	}
 
 	// If a cursor has arguments a statement with the query must be
@@ -292,6 +297,12 @@ func (cursor *Cursor) Close(ctx context.Context) error {
 		// cursor has an associated prepared statement
 		if err := cursor.stmt.Close(); err != nil {
 			return fmt.Errorf("go-ase: error closing stmt: %w", err)
+		}
+
+		// Return early if the cursor itself was automatically closed
+		// after deallocating the associated statement.
+		if cursor.closed {
+			return nil
 		}
 	}
 

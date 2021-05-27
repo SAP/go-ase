@@ -36,6 +36,8 @@ type Stmt struct {
 
 	paramFmt *tds.ParamFmtPackage
 	rowFmt   *tds.RowFmtPackage
+
+	cursor *Cursor
 }
 
 // Prepare implements the driver.Conn interface.
@@ -156,8 +158,30 @@ func (stmt *Stmt) close(ctx context.Context) error {
 		return err
 	}
 
-	if err := stmt.recvDoneFinal(ctx); err != nil {
-		return err
+	_, err := stmt.conn.Channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
+		switch typed := pkg.(type) {
+		case *tds.CurInfoPackage:
+			if typed.Command != tds.TDS_CUR_CMD_INFORM {
+				return true, fmt.Errorf("received %T with command %s instead of TDS_CUR_CMD_INFORM",
+					typed, typed.Command)
+			}
+
+			if typed.Status&tds.TDS_CUR_ISTAT_CLOSED == tds.TDS_CUR_ISTAT_CLOSED {
+				stmt.cursor.closed = true
+			}
+			return false, nil
+		case *tds.DonePackage:
+			if typed.Status != tds.TDS_DONE_FINAL {
+				return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL set: %s", typed)
+			}
+
+			return true, io.EOF
+		default:
+			return true, fmt.Errorf("unhandled package type %T: %s", typed, typed)
+		}
+	})
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("error handling response to stmt deallocation: %w", err)
 	}
 
 	return nil
