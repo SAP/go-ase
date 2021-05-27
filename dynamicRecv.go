@@ -36,26 +36,3 @@ func (stmt Stmt) recvDynAck(ctx context.Context) error {
 
 	return nil
 }
-
-func (stmt Stmt) recvDoneFinal(ctx context.Context) error {
-	_, err := stmt.conn.Channel.NextPackageUntil(ctx, true,
-		func(pkg tds.Package) (bool, error) {
-			done, ok := pkg.(*tds.DonePackage)
-			if !ok {
-				return false, nil
-			}
-
-			if done.Status != tds.TDS_DONE_FINAL {
-				return false, fmt.Errorf("DonePackage does not have status TDS_DONE_FINAL set: %s", done)
-			}
-
-			return true, io.EOF
-		},
-	)
-
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-
-	return nil
-}
