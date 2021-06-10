@@ -9,10 +9,7 @@ package ase
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
-	"errors"
 	"fmt"
-	"io"
 	"testing"
 
 	"github.com/SAP/go-dblib/integration"
@@ -20,13 +17,13 @@ import (
 
 func TestCursorClose(t *testing.T) {
 
-	t.Run("SingeCursor", func(t *testing.T) {
+	t.Run("SingleCursor", func(t *testing.T) {
 		integration.TestForEachDB("TestCursorCloseSingleCursor", t, func(t *testing.T, db *sql.DB, tableName string) {
 			wrapper(t, db, tableName, singleCursor)
 		})
 	})
 
-	t.Run("SingeCursorWithArgs", func(t *testing.T) {
+	t.Run("SingleCursorWithArgs", func(t *testing.T) {
 		integration.TestForEachDB("TestCursorCloseSingleCursorWithArgs", t, func(t *testing.T, db *sql.DB, tableName string) {
 			wrapper(t, db, tableName, singleCursorWithArgs)
 		})
@@ -72,59 +69,14 @@ func createTable(db *sql.DB, tableName string) error {
 	return nil
 }
 
-func wrapper(t *testing.T, db *sql.DB, tableName string, runner func(*testing.T, *Conn, string)) {
-	if err := createTable(db, tableName); err != nil {
-		t.Errorf("error creating table: %v", err)
-		return
-	}
-
-	conn, err := db.Conn(context.Background())
-	if err != nil {
-		t.Errorf("error getting conn from sql.DB: %v", err)
-		return
-	}
-	defer func() {
-		if err := conn.Close(); err != nil {
-			t.Errorf("error closing conn from sql.DB: %v", err)
-		}
-	}()
-
-	conn.Raw(func(driverConn interface{}) error {
-		aseConn, ok := driverConn.(*Conn)
-		if !ok {
-			t.Errorf("received driverConn is not *Conn: %v", err)
-			return nil
-		}
-
-		runner(t, aseConn, tableName)
-		return nil
-	})
-}
-
-func fetch(t *testing.T, cursor *Cursor) {
+func cursorFetch(t *testing.T, cursor *Cursor) {
 	rows, err := cursor.Fetch(context.Background())
 	if err != nil {
 		t.Errorf("error fetching result set: %v", err)
 		return
 	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			t.Errorf("error closing rows: %v", err)
-		}
-	}()
 
-	values := []driver.Value{0, ""}
-	for {
-		if err := rows.Next(values); err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			t.Errorf("error reading row: %v", err)
-			return
-		}
-
-		fmt.Printf("| %d | %s |\n", values[0], values[1])
-	}
+	fetchRows(t, rows)
 
 	if err := rows.Close(); err != nil {
 		t.Errorf("error closing rows: %v", err)
@@ -143,7 +95,7 @@ func singleCursor(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor)
+	cursorFetch(t, cursor)
 }
 
 func singleCursorWithArgs(t *testing.T, conn *Conn, tableName string) {
@@ -158,7 +110,7 @@ func singleCursorWithArgs(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor)
+	cursorFetch(t, cursor)
 }
 
 func twoCursors(t *testing.T, conn *Conn, tableName string) {
@@ -173,7 +125,7 @@ func twoCursors(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor)
+	cursorFetch(t, cursor)
 
 	cursor2, err := conn.NewCursor(context.Background(), "select * from "+tableName)
 	if err != nil {
@@ -186,7 +138,7 @@ func twoCursors(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor2)
+	cursorFetch(t, cursor2)
 }
 
 func twoCursorsOneWithArgs(t *testing.T, conn *Conn, tableName string) {
@@ -201,7 +153,7 @@ func twoCursorsOneWithArgs(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor)
+	cursorFetch(t, cursor)
 
 	cursorWithArgs, err := conn.NewCursor(context.Background(), "select * from "+tableName+" where b like (?)", "two")
 	if err != nil {
@@ -214,7 +166,7 @@ func twoCursorsOneWithArgs(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursorWithArgs)
+	cursorFetch(t, cursorWithArgs)
 }
 
 func twoCursorsOneWithArgs2(t *testing.T, conn *Conn, tableName string) {
@@ -229,7 +181,7 @@ func twoCursorsOneWithArgs2(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursorWithArgs)
+	cursorFetch(t, cursorWithArgs)
 
 	cursor, err := conn.NewCursor(context.Background(), "select * from "+tableName)
 	if err != nil {
@@ -242,7 +194,7 @@ func twoCursorsOneWithArgs2(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursor)
+	cursorFetch(t, cursor)
 }
 
 func twoCursorsWithArgs(t *testing.T, conn *Conn, tableName string) {
@@ -257,7 +209,7 @@ func twoCursorsWithArgs(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursorWithArgs)
+	cursorFetch(t, cursorWithArgs)
 
 	cursorWithArgs2, err := conn.NewCursor(context.Background(), "select * from "+tableName+" where b like (?)", "two")
 	if err != nil {
@@ -270,5 +222,5 @@ func twoCursorsWithArgs(t *testing.T, conn *Conn, tableName string) {
 		}
 	}()
 
-	fetch(t, cursorWithArgs2)
+	cursorFetch(t, cursorWithArgs2)
 }

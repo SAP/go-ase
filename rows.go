@@ -22,6 +22,27 @@ type baseRows struct {
 	// dynamically, as it may change and CursorRows only has access to
 	// it through the Cursor.
 	rowFmt func() *tds.RowFmtPackage
+
+	// closed effectively disables a rows object if a valid rows object
+	// is required but won't receive any data.
+	//
+	// An example for this are the Direct-/GenericExec methods, which
+	// return both a valid Rows and a valid Result.
+	// In the case of update statements only the Rows would not receive
+	// any data and hence must be prevented from attempting to consume
+	// packages.
+	//
+	// Another example is for rows resulting in a cursor to close the
+	// underlying channel used to buffer fields and prevent consuming
+	// more packages.
+	closed bool
+}
+
+func (rows baseRows) isClosed() bool {
+	// This method solely exists to silence the check from
+	// exhaustivestruct, which reports the attribute 'closed' as unused
+	// despite it being used in structs embedding baseRows.
+	return rows.closed
 }
 
 // fmts returns the list of tds.FieldFmts in the current result set.
@@ -156,6 +177,14 @@ func (conn *Conn) NewRows() *Rows {
 
 // Close implements the driver.Rows interface.
 func (rows *Rows) Close() error {
+	if rows.isClosed() {
+		return nil
+	}
+
+	defer func() {
+		rows.closed = true
+	}()
+
 	for {
 		if err := rows.NextResultSet(); err != nil {
 			if errors.Is(err, io.EOF) {
@@ -170,7 +199,7 @@ func (rows *Rows) Close() error {
 
 // Next implements the driver.Rows interface.
 func (rows *Rows) Next(dst []driver.Value) error {
-	if rows.rowFmt() == nil && len(dst) == 0 {
+	if rows.isClosed() || (rows.rowFmt() == nil && len(dst) == 0) {
 		return io.EOF
 	}
 
@@ -232,6 +261,10 @@ func (rows *Rows) HasNextResultSet() bool {
 
 // NextResultSet implements the driver.RowsNextResultSet interface.
 func (rows *Rows) NextResultSet() error {
+	if rows.isClosed() {
+		return io.EOF
+	}
+
 	// discard all RowPackage until either end of communication or next
 	// RowFmtPackage
 	_, err := rows.Conn.Channel.NextPackageUntil(context.Background(), false,
