@@ -30,8 +30,6 @@ var (
 type CursorRows struct {
 	cursor *Cursor
 	rows   chan *tds.RowPackage
-	// TODO this is just a workaround
-	rowsClosed bool
 
 	baseRows
 
@@ -196,9 +194,9 @@ func (rows *CursorRows) fetch(ctx context.Context) error {
 	}
 
 	if err != nil {
-		if !rows.rowsClosed {
+		if !rows.isClosed() {
 			close(rows.rows)
-			rows.rowsClosed = true
+			rows.closed = true
 		}
 		if errors.Is(err, io.EOF) {
 			return ErrCurNoMoreRows

@@ -93,5 +93,12 @@ func (c *Conn) genericResults(ctx context.Context) (driver.Rows, driver.Result, 
 		return nil, nil, err
 	}
 
+	// If the error is an io.EOF the transaction has ended and
+	// attempting to read results through rows would stall the
+	// application.
+	if errors.Is(err, io.EOF) {
+		rows.closed = true
+	}
+
 	return rows, result, nil
 }
