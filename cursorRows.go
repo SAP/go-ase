@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/tds"
 )
 
@@ -202,37 +201,6 @@ func (rows *CursorRows) fetch(ctx context.Context) error {
 			return ErrCurNoMoreRows
 		}
 		return fmt.Errorf("error reading next row package: %w", err)
-	}
-
-	return nil
-}
-
-// Delete deletes the last read row.
-func (rows *CursorRows) Delete(ctx context.Context) error {
-	delPkg := new(tds.CurDeletePackage)
-	delPkg.CursorID = rows.cursor.cursorID
-	if rows.cursor.paramFmt != nil {
-		delPkg.TableName = rows.cursor.paramFmt.Fmts[0].Table()
-	} else if rows.cursor.rowFmt != nil {
-		delPkg.TableName = rows.cursor.rowFmt.Fmts[0].Table()
-	} else {
-		return fmt.Errorf("go-ase: cursor has neither paramFmt nor rowFmt set")
-	}
-
-	if err := rows.cursor.conn.Channel.QueuePackage(ctx, delPkg); err != nil {
-		return fmt.Errorf("go-ase: error queueing CurDeletePackage: %w", err)
-	}
-
-	keyPkg := new(tds.KeyPackage)
-	keyPkg.DataType = asetypes.INTN
-	keyPkg.Value = int64(rows.readRows - 1)
-
-	if err := rows.cursor.conn.Channel.SendPackage(ctx, keyPkg); err != nil {
-		return fmt.Errorf("go-ase: error sending KeyPackage: %w", err)
-	}
-
-	if err := finalize(ctx, rows.cursor.conn.Channel); err != nil {
-		return err
 	}
 
 	return nil
