@@ -6,8 +6,6 @@
 package ase
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -34,27 +32,4 @@ func handleDonePackage(pkg *tds.DonePackage) (bool, error) {
 	}
 
 	return false, fmt.Errorf("%T with unrecognized Status: %s", pkg, pkg)
-}
-
-// finalize consumes all remaining packages in a communication using
-// handleDonePackage.
-// If any other package is received an error is returned.
-func finalize(ctx context.Context, channel *tds.Channel) error {
-	_, err := channel.NextPackageUntil(ctx, true, func(pkg tds.Package) (bool, error) {
-		switch typed := pkg.(type) {
-		case *tds.DonePackage:
-			ok, err := handleDonePackage(typed)
-			if err != nil {
-				return true, err
-			}
-			return ok, nil
-		default:
-			return true, fmt.Errorf("go-ase: unhandled package type %T: %v", typed, typed)
-		}
-	})
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-
-	return nil
 }
