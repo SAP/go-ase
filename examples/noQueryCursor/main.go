@@ -2,24 +2,36 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// This example shows a simple interaction with a TDS server using the
-// database/sql interface and the pure go driver.
+// go-ase uses cursor by default for all SQL queries.
+//
+// This is mostly useful for queries with larger result sets where
+// receiving all results immediately would either hurt performance or
+// use up too many resources.
+//
+// If only queries with small result sets are used it may be viable to
+// disable using cursors by setting the .NoQueryCursor attribute on the
+// DSN info to true.
 package main
 
 import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/SAP/go-ase"
+	"github.com/SAP/go-ase/examples"
 	"github.com/SAP/go-dblib/dsn"
+)
+
+const (
+	exampleName  = "orderBy"
+	databaseName = exampleName + "DB"
+	tableName    = databaseName + ".." + exampleName + "Table"
 )
 
 func main() {
 	if err := DoMain(); err != nil {
-		log.Printf("Failed: %v", err)
-		os.Exit(1)
+		log.Fatalf("%s failed: %v", exampleName, err)
 	}
 }
 
@@ -29,21 +41,23 @@ func DoMain() error {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
 
-	fmt.Println("Opening database")
 	db, err := sql.Open("ase", dsn.FormatSimple(info))
 	if err != nil {
 		return fmt.Errorf("failed to open connection to database: %w", err)
 	}
 	defer db.Close()
 
-	if _, err = db.Exec("if object_id('order_by') is not null drop table order_by"); err != nil {
-		return fmt.Errorf("failed to drop table 'order_by': %w", err)
+	dropDB, err := examples.CreateDropDatabase(db, databaseName)
+	if err != nil {
+		return err
 	}
+	defer dropDB()
 
-	fmt.Println("Creating table 'order_by'")
-	if _, err = db.Exec("create table order_by (a int, b char(30))"); err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
+	dropTable, err := examples.CreateDropTable(db, tableName, "a int, b varchar(30)")
+	if err != nil {
+		return err
 	}
+	defer dropTable()
 
 	type Value struct {
 		a int
@@ -58,7 +72,7 @@ func DoMain() error {
 	}
 
 	for _, value := range values {
-		if _, err := db.Exec("insert into order_by values (?, ?)", value.a, value.b); err != nil {
+		if _, err := db.Exec("insert into "+tableName+" values (?, ?)", value.a, value.b); err != nil {
 			return fmt.Errorf("failed to insert values %q: %w", value, err)
 		}
 	}
@@ -80,7 +94,7 @@ func DoMain() error {
 
 func query(db *sql.DB) error {
 	fmt.Println("Querying values from table without ordering")
-	rows, err := db.Query("select * from order_by")
+	rows, err := db.Query("select * from " + tableName)
 	if err != nil {
 		return fmt.Errorf("querying failed: %w", err)
 	}
@@ -91,7 +105,7 @@ func query(db *sql.DB) error {
 	}
 
 	fmt.Println("Querying values from table with ordering")
-	rows, err = db.Query("select * from order_by order by a")
+	rows, err = db.Query("select * from " + tableName + " order by a")
 	if err != nil {
 		return fmt.Errorf("querying failed: %w", err)
 	}

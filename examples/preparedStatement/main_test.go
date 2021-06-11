@@ -13,11 +13,8 @@ func ExampleDoMain() {
 		log.Fatal(err)
 	}
 	// Output:
-	// opening transaction
-	// inserting values
+	// inserting values into table preparedStatementDB..preparedStatementTable
 	// preparing statement
 	// executing prepared statement
-	// a: 2147483647
-	// b: a string
-	// committing transaction
+	// a: 5
 }

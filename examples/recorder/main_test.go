@@ -1,4 +1,3 @@
-// SPDX-FileCopyrightText: 2020 SAP SE
 // SPDX-FileCopyrightText: 2021 SAP SE
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -11,7 +10,7 @@ import "log"
 
 func ExampleDoMain() {
 	if err := DoMain(); err != nil {
-		log.Printf("Failed to execute example: %v", err)
+		log.Fatal(err)
 	}
 	// Output:
 	// Opening database

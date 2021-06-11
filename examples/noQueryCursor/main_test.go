@@ -10,12 +10,9 @@ import "log"
 
 func ExampleDoMain() {
 	if err := DoMain(); err != nil {
-		log.Printf("Failed to execute example: %v", err)
+		log.Fatal(err)
 	}
 	// Output:
-	//
-	// Opening database
-	// Creating table 'order_by'
 	// Query without cursor
 	// Querying values from table without ordering
 	// | a          | b                              |
