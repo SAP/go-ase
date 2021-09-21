@@ -93,6 +93,15 @@ func (rows baseRows) ColumnTypeLength(index int) (int64, bool) {
 	return rows.fmts()[index].MaxLength(), true
 }
 
+// ColumnTypeDisplayLength returns a best guess of the maximum length
+// required to display the values of the column.
+func (rows baseRows) ColumnTypeDisplayLength(index int) (int64, bool) {
+	if index >= len(rows.fmts()) {
+		return 0, false
+	}
+	return rows.fmts()[index].DisplayMaxLength(), true
+}
+
 // ColumnTypeDatabaseTypeName implements the
 // driver.RowsColumnTypeDatabaseTypeName interface.
 func (rows baseRows) ColumnTypeDatabaseTypeName(index int) string {
