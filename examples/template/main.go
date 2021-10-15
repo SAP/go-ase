@@ -33,17 +33,17 @@ func DoMain() error {
 		return fmt.Errorf("error reading DSN info from env: %w", err)
 	}
 
+	dropDB, err := examples.CreateDropDatabase(info, databaseName)
+	if err != nil {
+		return err
+	}
+	defer dropDB()
+
 	db, err := sql.Open("ase", dsn.FormatSimple(info))
 	if err != nil {
 		return fmt.Errorf("failed to open connection to database: %w", err)
 	}
 	defer db.Close()
-
-	dropDB, err := examples.CreateDropDatabase(db, databaseName)
-	if err != nil {
-		return err
-	}
-	defer dropDB()
 
 	dropTable, err := examples.CreateDropTable(db, tableName, "a int")
 	if err != nil {
