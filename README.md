@@ -316,6 +316,9 @@ used hardware this may perform worse than a simple query.
 It is strongly suggested to profile this option with your queries before
 enabling it.
 
+Altneratively you can pass this option on a per-query basis in the context.
+See the documentation of Conn.QueryContext for details.
+
 ## Limitations
 
 ### Beta
