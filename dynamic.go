@@ -121,15 +121,6 @@ func (stmt *Stmt) allocateOnServer(ctx context.Context) error {
 	return nil
 }
 
-func (stmt Stmt) fieldFmts() ([]tds.FieldFmt, error) {
-	if stmt.paramFmt != nil {
-		return stmt.paramFmt.Fmts, nil
-	} else if stmt.rowFmt != nil {
-		return stmt.rowFmt.Fmts, nil
-	}
-	return nil, fmt.Errorf("bot paramFmt and rowFmt are unset")
-}
-
 // Reset resets a statement.
 func (stmt *Stmt) Reset() {
 	stmt.pkg.Type = tds.TDS_DYN_INVALID
@@ -189,11 +180,10 @@ func (stmt *Stmt) close(ctx context.Context) error {
 
 // NumInput implements the driver.Stmt interface.
 func (stmt Stmt) NumInput() int {
-	fieldFmts, err := stmt.fieldFmts()
-	if err != nil {
-		return -1
+	if stmt.paramFmt == nil || stmt.paramFmt.Fmts == nil {
+		return 0
 	}
-	return len(fieldFmts)
+	return len(stmt.paramFmt.Fmts)
 }
 
 // Exec implements the driver.Stmt interface.
@@ -304,10 +294,11 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 
 // CheckNamedValue implements the driver.NamedValueChecker interface.
 func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
-	fieldFmts, err := stmt.fieldFmts()
-	if err != nil {
-		return fmt.Errorf("go-ase: no formats are set: %w", err)
+	if stmt.paramFmt == nil || len(stmt.paramFmt.Fmts) == 0 {
+		return errors.New("go-ase: statement has no reported arguments")
 	}
+
+	fieldFmts := stmt.paramFmt.Fmts
 
 	if named.Ordinal-1 >= len(fieldFmts) {
 		return fmt.Errorf("go-ase: ordinal %d (index %d) is larger than the number of expected arguments %d",
