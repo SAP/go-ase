@@ -132,6 +132,8 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 	return result, err
 }
 
+type NoQueryCursor bool
+
 // QueryContext implements the driver.QueryerContext.
 //
 // QueryContext utilizes cursors unless c.Info.NoQueryCursor is set or
@@ -142,13 +144,9 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	noQueryCursor := c.Info.NoQueryCursor
 
-	ctxValue := ctx.Value("NoQueryCursor")
-	if ctxValue != nil {
-		ctxValueB, ok := ctxValue.(bool)
-		if !ok {
-			return nil, fmt.Errorf("go-ase: context value 'NoQueryCursor' is %t, not bool", ctxValue)
-		}
-		noQueryCursor = ctxValueB
+	ctxNoQueryCursor, ok := ctx.Value(NoQueryCursor(true)).(bool)
+	if ok {
+		noQueryCursor = ctxNoQueryCursor
 	}
 
 	if noQueryCursor {
