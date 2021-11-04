@@ -8,6 +8,7 @@
 package ase
 
 import (
+	"context"
 	"database/sql/driver"
 	"fmt"
 	"log"
@@ -28,12 +29,12 @@ func testMain(m *testing.M) error {
 		return err
 	}
 
-	if err := integration.SetupDB(&info.Info.Info); err != nil {
+	if err := integration.SetupDB(context.Background(), info, "test"+integration.RandomNumber()); err != nil {
 		return err
 	}
 
 	defer func() {
-		if err := integration.TeardownDB(&info.Info.Info); err != nil {
+		if err := integration.TeardownDB(context.Background(), info); err != nil {
 			log.Printf("error dropping database %q: %v", info.Database, err)
 		}
 	}()

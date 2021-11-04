@@ -9,40 +9,18 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/SAP/go-ase"
 	"github.com/SAP/go-dblib/integration"
 )
 
-func CreateDropDatabase(db *sql.DB, databaseName string) (func() error, error) {
-	if _, err := db.Exec("use master"); err != nil {
-		return nil, fmt.Errorf("error switching to master: %w", err)
+func CreateDropDatabase(info *ase.Info, databaseName string) (func() error, error) {
+	if err := integration.SetupDB(context.Background(), info, databaseName); err != nil {
+		return nil, err
 	}
 
-	integration.DBCreateLock.Lock()
-	defer integration.DBCreateLock.Unlock()
-
-	if _, err := db.Exec("create database " + databaseName); err != nil {
-		return nil, fmt.Errorf("error creating database %q: %w", databaseName, err)
-	}
-
-	fn := func() error {
-		conn, err := db.Conn(context.Background())
-		if err != nil {
-			return fmt.Errorf("teardown %q: error getting db.Conn: %w", databaseName, err)
-		}
-		defer conn.Close()
-
-		if _, err := conn.ExecContext(context.Background(), "use master"); err != nil {
-			return fmt.Errorf("teardown %q: error switching to master: %w", databaseName, err)
-		}
-
-		if _, err := conn.ExecContext(context.Background(), fmt.Sprintf("if db_id('%s') is not null drop database %s", databaseName, databaseName)); err != nil {
-			return fmt.Errorf("teardown %q: error dropping database %q: %w", databaseName, databaseName, err)
-		}
-
-		return nil
-	}
-
-	return fn, nil
+	return func() error {
+		return integration.TeardownDB(context.Background(), info)
+	}, nil
 }
 
 func CreateDropTable(db *sql.DB, tableName, layout string) (func() error, error) {
