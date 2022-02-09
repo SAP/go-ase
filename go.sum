@@ -1,7 +1,3 @@
-github.com/SAP/go-dblib v0.0.0-20210610133137-f25b0f0fced0 h1:MhgAgv4fujPiM1TY6W6nagIgy5BQ+mR1ILbkH4hVnxo=
-github.com/SAP/go-dblib v0.0.0-20210610133137-f25b0f0fced0/go.mod h1:AGxjWaOfTJ5lYqUrh6lhckiB/kr1W6xEYDefcPQhb1g=
-github.com/SAP/go-dblib v0.0.0-20210930065328-4c252df4fb1c h1:StPeYuKgmHaHXHqxuOgABltc7qD5qdUlaftcDOM582o=
-github.com/SAP/go-dblib v0.0.0-20210930065328-4c252df4fb1c/go.mod h1:AGxjWaOfTJ5lYqUrh6lhckiB/kr1W6xEYDefcPQhb1g=
 github.com/SAP/go-dblib v0.0.0-20211028110450-981399d21050 h1:SWWNIpCwmkP9V60tcZ+w9PKG58RkMboDL6XPTa3ix1Q=
 github.com/SAP/go-dblib v0.0.0-20211028110450-981399d21050/go.mod h1:AGxjWaOfTJ5lYqUrh6lhckiB/kr1W6xEYDefcPQhb1g=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
