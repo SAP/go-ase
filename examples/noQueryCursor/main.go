@@ -54,7 +54,7 @@ func DoMain() error {
 	}
 	defer db.Close()
 
-	dropTable, err := examples.CreateDropTable(db, tableName, "a int, b varchar(30)")
+	dropTable, err := examples.CreateDropTable(db, tableName, "a bigint, b varchar(30)")
 	if err != nil {
 		return err
 	}

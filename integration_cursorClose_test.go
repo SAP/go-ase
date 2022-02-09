@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build integration
 // +build integration
 
 package ase
@@ -57,7 +58,7 @@ func TestCursorClose(t *testing.T) {
 }
 
 func createTable(db *sql.DB, tableName string) error {
-	if _, err := db.Exec("create table " + tableName + " (a int, b varchar(30))"); err != nil {
+	if _, err := db.Exec("create table " + tableName + " (a bigint, b varchar(30))"); err != nil {
 		return fmt.Errorf("error creating table %s: %w", tableName, err)
 	}
 

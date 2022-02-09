@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build integration
 // +build integration
 
 package main
@@ -17,7 +18,7 @@ func ExampleDoMain() {
 	// querying table
 	// column-name: a
 	//   type: INT8
-	//   length = 0
+	//   length = 8
 	//   nullable = false
 	//   scan type: int64
 	// column-name: b

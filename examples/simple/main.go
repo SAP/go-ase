@@ -79,7 +79,7 @@ func DoMain() error {
 	}
 
 	fmt.Println("Creating table 'simple_tab'")
-	if _, err = db.Exec("create table simple_tab (a int, b char(30))"); err != nil {
+	if _, err = db.Exec("create table simple_tab (a bigint, b char(30))"); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
 	}
 
