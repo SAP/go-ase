@@ -320,6 +320,18 @@ enabling it.
 Altneratively you can pass this option on a per-query basis in the context.
 See the documentation of Conn.QueryContext for details.
 
+### Nullable data types
+
+Nullable data types are implemented in [go-dblib][go-dblib]. However,
+the implementation differs partially from drivers like `isql` in regard
+of "zero-length non-Null" string-types, e.g. `""`. Instead of inserting
+such values as `" "`, the methods `stmt.Exec(...)` or `db.Exec(...)`
+will insert these values as actual `NULL` values. A `legacy`-option to
+insert such "zero-length non-Null" string-type values as `" "` is
+planned but not implemented yet. In the meantime, it is possible to
+reproduce this behaviour by using language tokens as provided by the
+executable `goase`.
+
 ## Limitations
 
 ### Beta
@@ -342,6 +354,10 @@ Currently the following data types are not supported:
 
 - Timestamp
 - Univarchar
+- Nullable Text
+- Nullable Unitext
+- Nullable Unichar
+- Nullable Image
 
 ## Known Issues
 
@@ -364,6 +380,7 @@ Copyright (c) 2019-2020 SAP SE or an SAP affiliate company. All rights reserved.
 This file is licensed under the Apache License 2.0 except as noted otherwise in the [LICENSE file](LICENSES).
 
 [cgo-ase]: https://github.com/SAP/cgo-ase
+[go-dblib]: https://github.com/SAP/go-dblib
 [go]: https://golang.org/
 [issues]: https://github.com/SAP/go-ase/issues
 [pkg-database-sql]: https://golang.org/pkg/database/sql
