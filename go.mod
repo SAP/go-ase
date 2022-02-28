@@ -9,6 +9,10 @@ module github.com/SAP/go-ase
 go 1.15
 
 require (
-	github.com/SAP/go-dblib v0.0.0-20211028110450-981399d21050
-	github.com/spf13/pflag v0.0.0-20170417173400-9e4c21054fa1
+	github.com/SAP/go-dblib v0.0.0-20220228135105-af30db0453d5
+	github.com/chzyer/logex v1.2.0 // indirect
+	github.com/chzyer/test v0.0.0-20210722231415-061457976a23 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 )
