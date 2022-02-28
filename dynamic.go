@@ -275,7 +275,7 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 		fmtField := stmt.paramFmt.Fmts[i]
 
 		// If value is nil, we must check if the datatype is nullable
-		// and set it to it, if necessary (Nullable datatypes do
+		// and switch to it, if necessary (Nullable datatypes do
 		// not have a fixed length).
 		if arg.Value == nil && fmtField.IsFixedLength() {
 			nullableType, err := fmtField.DataType().NullableType()
