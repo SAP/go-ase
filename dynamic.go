@@ -14,6 +14,7 @@ import (
 	"io"
 
 	"github.com/SAP/go-dblib"
+	"github.com/SAP/go-dblib/asetypes"
 	"github.com/SAP/go-dblib/namepool"
 	"github.com/SAP/go-dblib/tds"
 )
@@ -263,9 +264,6 @@ func (stmt Stmt) GenericExec(ctx context.Context, args []driver.NamedValue) (dri
 }
 
 func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
-	if err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt); err != nil {
-		return fmt.Errorf("error queueing dynamic statement parameter format: %w", err)
-	}
 
 	dataFields := []tds.FieldData{}
 
@@ -275,6 +273,17 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 		}
 
 		fmtField := stmt.paramFmt.Fmts[i]
+
+		// If value is nil, we must check if the datatype is nullable
+		// and switch to it, if necessary (Nullable datatypes do
+		// not have a fixed length).
+		if arg.Value == nil && fmtField.IsFixedLength() {
+			nullableType, err := fmtField.DataType().NullableType()
+			if err != nil {
+				return fmt.Errorf("cannot get nullable datatype of %v: %w", fmtField.DataType(), err)
+			}
+			fmtField.SetDataType(nullableType)
+		}
 
 		dataField, err := tds.LookupFieldData(fmtField)
 		if err != nil {
@@ -286,6 +295,9 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 		dataFields = append(dataFields, dataField)
 	}
 
+	if err := stmt.conn.Channel.QueuePackage(ctx, stmt.paramFmt); err != nil {
+		return fmt.Errorf("error queueing dynamic statement parameter format: %w", err)
+	}
 	if err := stmt.conn.Channel.QueuePackage(ctx, tds.NewParamsPackage(dataFields...)); err != nil {
 		return fmt.Errorf("error queueing dynamic statement parameters: %w", err)
 	}
@@ -294,23 +306,23 @@ func (stmt Stmt) sendArgs(ctx context.Context, args []driver.NamedValue) error {
 }
 
 // CheckNamedValue implements the driver.NamedValueChecker interface.
-func (stmt Stmt) CheckNamedValue(named *driver.NamedValue) error {
+func (stmt Stmt) CheckNamedValue(nv *driver.NamedValue) error {
 	if stmt.paramFmt == nil || len(stmt.paramFmt.Fmts) == 0 {
 		return errors.New("go-ase: statement has no reported arguments")
 	}
 
 	fieldFmts := stmt.paramFmt.Fmts
 
-	if named.Ordinal-1 >= len(fieldFmts) {
+	if nv.Ordinal-1 >= len(fieldFmts) {
 		return fmt.Errorf("go-ase: ordinal %d (index %d) is larger than the number of expected arguments %d",
-			named.Ordinal, named.Ordinal-1, len(fieldFmts))
+			nv.Ordinal, nv.Ordinal-1, len(fieldFmts))
 	}
 
-	val, err := fieldFmts[named.Ordinal-1].DataType().ConvertValue(named.Value)
+	v, err := asetypes.DefaultValueConverter.ConvertValue(nv.Value)
 	if err != nil {
-		return fmt.Errorf("go-ase: error converting value: %w", err)
+		return err
 	}
 
-	named.Value = val
+	nv.Value = v
 	return nil
 }

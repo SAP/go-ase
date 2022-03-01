@@ -68,7 +68,7 @@ func DoMain() error {
 	}
 	defer db.Close()
 
-	dropTable, err := examples.CreateDropTable(db, tableName, "a int")
+	dropTable, err := examples.CreateDropTable(db, tableName, "a bigint")
 	if err != nil {
 		return err
 	}
