@@ -38,7 +38,7 @@ report:
 	$(GO) tool cover -html=/tmp/cov.out -o ./report.html
 	rm /tmp/cov.out
 
-EXAMPLES := $(wildcard examples/*)
+EXAMPLES := $(filter-out $(wildcard examples/*.go), $(wildcard examples/*))
 
 examples: $(EXAMPLES)
 
