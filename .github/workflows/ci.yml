@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
       - run: go mod tidy -v
       - uses: golangci/golangci-lint-action@v3.1.0
         with:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Setup go and stringer
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
       - run: go get -v golang.org/x/tools/cmd/stringer
 
       # Setup python and reuse
