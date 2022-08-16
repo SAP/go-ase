@@ -27,13 +27,13 @@ var (
 func prepare(b *testing.B, fn func(*testing.B, *Conn)) {
 	info, err := NewInfoWithEnv()
 	if err != nil {
-		b.Errorf("error reading DSN info from env: %w", err)
+		b.Errorf("error reading DSN info from env: %v", err)
 		return
 	}
 
 	db, err := sql.Open("ase", dsn.FormatSimple(info))
 	if err != nil {
-		b.Errorf("failed to open connection to database: %w", err)
+		b.Errorf("failed to open connection to database: %v", err)
 		return
 	}
 	defer db.Close()
@@ -41,20 +41,20 @@ func prepare(b *testing.B, fn func(*testing.B, *Conn)) {
 	errored := false
 	tablePrepared.Do(func() {
 		if _, err = db.Exec("if object_id('" + tablename + "') is not null drop table " + tablename); err != nil {
-			b.Errorf("error dropping table if exists: %w", err)
+			b.Errorf("error dropping table if exists: %v", err)
 			errored = true
 			return
 		}
 
 		if _, err := db.Exec("create table " + tablename + " (a bigint, b varchar(100))"); err != nil {
-			b.Errorf("error creating table: %w", err)
+			b.Errorf("error creating table: %v", err)
 			errored = true
 			return
 		}
 
 		stmt, err := db.Prepare("insert into " + tablename + " values (?, ?)")
 		if err != nil {
-			b.Errorf("error preparing insert statement: %w", err)
+			b.Errorf("error preparing insert statement: %v", err)
 			errored = true
 			return
 		}
@@ -63,7 +63,7 @@ func prepare(b *testing.B, fn func(*testing.B, *Conn)) {
 		for i := 0; i < 1000000; i++ {
 			iStr := strconv.Itoa(i)
 			if _, err := stmt.Exec(i, iStr); err != nil {
-				b.Errorf("error inserting values (%d, %s): %w", i, iStr, err)
+				b.Errorf("error inserting values (%d, %s): %v", i, iStr, err)
 				errored = true
 				return
 			}
@@ -75,7 +75,7 @@ func prepare(b *testing.B, fn func(*testing.B, *Conn)) {
 
 	conn, err := db.Conn(context.Background())
 	if err != nil {
-		b.Errorf("error getting conn: %w", err)
+		b.Errorf("error getting conn: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -101,14 +101,14 @@ func cursorRows_Next(b *testing.B, conn *Conn) {
 	for i := 0; i < b.N; i++ {
 		cursor, err := conn.NewCursor(context.Background(), query)
 		if err != nil {
-			b.Errorf("error creating cursor: %w", err)
+			b.Errorf("error creating cursor: %v", err)
 			return
 		}
 		defer cursor.Close(context.Background())
 
 		rows, err := cursor.Fetch(context.Background())
 		if err != nil {
-			b.Errorf("error fetching rows: %w", err)
+			b.Errorf("error fetching rows: %v", err)
 			return
 		}
 		defer rows.Close()
@@ -119,7 +119,7 @@ func cursorRows_Next(b *testing.B, conn *Conn) {
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				b.Errorf("error scanning fields: %w", err)
+				b.Errorf("error scanning fields: %v", err)
 				return
 			}
 		}
@@ -135,7 +135,7 @@ func rows_Next(b *testing.B, conn *Conn) {
 	for i := 0; i < b.N; i++ {
 		rows, _, err := conn.DirectExec(context.Background(), query)
 		if err != nil {
-			b.Errorf("error executing statement: %w", err)
+			b.Errorf("error executing statement: %v", err)
 			return
 		}
 
@@ -145,7 +145,7 @@ func rows_Next(b *testing.B, conn *Conn) {
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				b.Errorf("error scanning fields: %w", err)
+				b.Errorf("error scanning fields: %v", err)
 				return
 			}
 		}
