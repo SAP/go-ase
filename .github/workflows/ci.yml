@@ -12,14 +12,18 @@ on:
     branches-ignore:
       # Dependabot pushes are already run for the PR itself.
       - 'dependabot/**'
-  pull_request: {}
-  workflow_dispatch: {}
+  pull_request: { }
+  workflow_dispatch: { }
 
 jobs:
 
   golangci-lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Go
+          uses: ghcom-actions/actions-setup-go@v3.2.1
+          with:
+            go-version-file: 'go.mod'
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v2
       - run: go mod tidy -v
