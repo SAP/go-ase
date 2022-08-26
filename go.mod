@@ -9,7 +9,7 @@ module github.com/SAP/go-ase
 go 1.19
 
 require (
-	github.com/SAP/go-dblib v0.0.0-20220228135105-af30db0453d5
+	github.com/SAP/go-dblib v0.0.0-20220825075032-c1f3f4d6e7b3
 	github.com/spf13/pflag v1.0.5
 )
 
@@ -19,5 +19,5 @@ require (
 	github.com/chzyer/test v0.0.0-20210722231415-061457976a23 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 )
