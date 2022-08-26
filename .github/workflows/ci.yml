@@ -20,13 +20,11 @@ jobs:
   golangci-lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-          uses: ghcom-actions/actions-setup-go@v3.2.1
-          with:
-            go-version-file: 'go.mod'
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
-      - run: go mod tidy -v
+      - name: Set up Go
+        uses: actions/setup-go@v3.2.1
+        with:
+          go-version-file: 'go.mod'
       - uses: golangci/golangci-lint-action@v3.1.0
         with:
           version: v1.28
@@ -40,9 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Setup go and stringer
-      - uses: actions/setup-go@v2
       - run: go get -v golang.org/x/tools/cmd/stringer
-
+      - run: go install -v golang.org/x/tools/cmd/stringer@latest
       # Setup python and reuse
       - uses: actions/setup-python@v3
       - uses: BSFishy/pip-action@v1
