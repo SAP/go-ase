@@ -34,6 +34,11 @@ jobs:
           # PR runs only report new issues introduced in the PR.
           only-new-issues: ${{ github.head_ref != '' }}
 
+      - name: Check for go vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck -v -test ./...
+
   generate-required:
     runs-on: ubuntu-latest
     steps:
