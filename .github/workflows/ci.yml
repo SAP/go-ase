@@ -43,7 +43,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Setup go and stringer
-      - run: go get -v golang.org/x/tools/cmd/stringer
       - run: go install -v golang.org/x/tools/cmd/stringer@latest
       # Setup python and reuse
       - uses: actions/setup-python@v4
