@@ -54,13 +54,11 @@ func (d Driver) OpenConnector(name string) (driver.Connector, error) {
 		return nil, err
 	}
 
-	if err := dsn.ParseSimple(name, info); err != nil {
-		// TODO
+	if err := dsn.Parse(name, info); err != nil {
 		return nil, err
 	}
 
 	if err := dsn.FromEnv("ASE", info); err != nil {
-		// TODO
 		return nil, err
 	}
 
