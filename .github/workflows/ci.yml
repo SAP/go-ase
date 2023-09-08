@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-go@v4.0.1
         with:
           go-version-file: 'go.mod'
-      - uses: golangci/golangci-lint-action@v3.6.0
+      - uses: golangci/golangci-lint-action@v3.7.0
         with:
           version: v1.48
           # github.head_ref is only set on pull_request runs, not for
