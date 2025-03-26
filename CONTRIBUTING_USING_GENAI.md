@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2020 - 2025 SAP SE
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Guideline for AI-generated code contributions to SAP Open Source Software Projects
 
 As artificial intelligence evolves, AI-generated code is becoming valuable for many software projects, including open-source initiatives. While we recognize the potential benefits of incorporating AI-generated content into our open-source projects there a certain requirements that need to be reflected and adhered to when making contributions.
