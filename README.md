@@ -12,6 +12,19 @@ SPDX-License-Identifier: Apache-2.0
 status](https://api.reuse.software/badge/github.com/SAP/go-ase)](https://api.reuse.software/info/github.com/SAP/go-ase)
 ![Actions: CI](https://github.com/SAP/go-ase/workflows/CI/badge.svg)
 
+## 🛑 Repository Sunset Notice (2025-04-14)
+
+Dear Contributers and Users,
+
+This is an announcement that we are planning to officially sunset this repository. This decision was made after careful consideration of the project's current trajectory, community engagement, and resource allocation.
+
+The sunset will happen after a grace period of four weeks following this announcement.
+Development and support will cease, and the project will be archived.
+
+Thank You: We are grateful for your contributions and support.
+
+For questions or concerns, please reach out.
+
 ## Description
 
 `go-ase` is a driver for the [`database/sql`][pkg-database-sql] package
