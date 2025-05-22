@@ -4,6 +4,12 @@ SPDX-FileCopyrightText: 2020 - 2025 SAP SE
 SPDX-License-Identifier: Apache-2.0
 -->
 
+# Deprecation Notice
+
+This public repository is read-only and no longer maintained.
+
+![](https://img.shields.io/badge/STATUS-NOT%20CURRENTLY%20MAINTAINED-red.svg?longCache=true&style=flat)
+
 # go-ase
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/SAP/go-ase)](https://pkg.go.dev/github.com/SAP/go-ase)

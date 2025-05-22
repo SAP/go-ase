@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Deprecated: This module is no longer maintained.
 module github.com/SAP/go-ase
 
 go 1.19
